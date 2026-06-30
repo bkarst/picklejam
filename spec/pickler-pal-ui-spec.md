@@ -75,7 +75,7 @@ Each component: **anatomy → variants → states → behavior**. Variants are b
 - **CourtCard** — *grid* and *list* variants. Fields: thumbnail (media, optional watermark, **photo credit** when the source requires attribution), **save** control, name, court count (total; indoor/outdoor split shown on detail), distance, status badges (Indoor and/or Outdoor; access [Free/Membership/One-time/Reservation]), rating (stars + count). Whole card links to court detail.
 - **EventCard** (outings, tournaments, leagues) — date block (month/day), title, time + timezone, venue (link), chips (type, skill range, capacity/RSVP or spots-left), host avatar, status badge, primary action (RSVP/Register).
 - **ArticleCard** (content + news) — media, category chip, title (clamped), excerpt (clamped), author avatar + name, read-time, date.
-- **PlayerCard** — avatar, name, location, RatingBadge(s), Follow action.
+- **PlayerCard** — avatar, name, location, RatingBadge(s). *(No Follow — player-follow removed, N16.)*
 - **ReviewCard** — reviewer avatar + name, star rating, date, body, attribute tags, "Helpful" action, "verified via check-in" marker when applicable.
 - **StandingRow / RankRow** (table row) — rank (medal treatment for top 3), player/team (avatar + name), record (W-L), games, points, rating delta (up/down), and (ladder) recent-form + movement indicator.
 - **CityCard / StateCard / CountryCard** — place name + count line (locations / courts / games). Links into the directory.
@@ -138,6 +138,7 @@ Sticky top; elevates on scroll.
 - **Logo** (left) → `/`.
 - **Primary nav:** Play · Compete · Learn · Organize — each a **mega-menu** trigger; active route item indicated.
 - **Search:** the §2.10 typeahead; collapses to an icon affordance on narrow widths.
+- **Notifications (logged-in):** a **bell** with an unread-count badge → dropdown of recent in-app notifications (RSVPs, waitlist openings, league/challenge updates, receipts), each linking to its source; "See all →" `/account/alerts`. **In-app only (no push)**; an email mirror is sent via Resend per the user's prefs (§6.2).
 - **Account:** logged-out → "Log in" link + "Sign up" button; logged-in → avatar + menu (Dashboard, Profile & Ratings, My Check-ins, My Outings, My Registrations, Organize, Help, Log out).
 **Mega-menu panel** (full-width dropdown): left = link columns, right = a promo card.
 | Menu | Columns | Promo card |
@@ -220,7 +221,7 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 │ [CourtCard list…]             │                                          │
 └───────────────────────────────┴──────────────────────────────────────────┘
 ```
-**Regions:** (1) **Toolbar** — places typeahead (sets map center), **Courts·Games** segmented control, **Filters** button with active-count. (2) **List** — result count, CourtCard *list* stream (infinite scroll + skeletons), hover ↔ pin highlight, click → court detail. Games mode swaps to EventCards + a **date stepper** + skill chips. (3) **Map** — §2.9; pin click opens popover + scrolls list. (4) **Filters drawer** — groups: Number of courts (Any/2+/4+/6+/8+/10+, by total) · Type (Dedicated, Reserved, Indoor, Outdoor) · **Access** (Free, Membership, One-time fee, Reservation required) · **Amenities** (Restrooms, Water, Lighted, Wheelchair, Food, Training, Locker rooms, Pro shop, Youth, Adaptive) · **Surface** (Hard, Concrete, Asphalt, Wood, Acrylic, Clay). Footer: "Clear all" + "Show N results" (live).
+**Regions:** (1) **Toolbar** — places typeahead (sets map center), **Courts·Games** segmented control, **Filters** button with active-count. (2) **List** — result count, CourtCard *list* stream (infinite scroll + skeletons), hover ↔ pin highlight, click → court detail. Games mode swaps to EventCards + a **date stepper** + skill chips. (3) **Map** — §2.9; pin click opens popover + scrolls list. (4) **Filters drawer** — groups: Number of courts (Any/2+/4+/6+/8+/10+, by total) · Type (Dedicated, Indoor, Outdoor) · **Access** (Free, Membership, One-time fee, Reservation required) · **Amenities** (Restrooms, Water, Lighted, Wheelchair, Food, Training, Locker rooms, Pro shop, Youth, Adaptive) · **Surface** (Hard, Concrete, Asphalt, Wood, Acrylic, Clay). Footer: "Clear all" + "Show N results" (live).
 **States:** loading → list skeletons + map placeholder; empty → "No courts in this area — zoom out or search a different place"; geo denied → prompt to search a place.
 **Responsive:** bottom-sheet list; filters as full-screen sheet.
 **Data:** geohash GSI radius (PRD §9.7); Games mode = CITYGAME GSI by date.
@@ -289,13 +290,13 @@ Lenexa Community Center               [ Membership ][ Indoor ]
 5. **About** — description paragraph.
 6. **Surface & Features** — two-column checklist: **lines** [permanent/temporary/tape/chalk], **nets** [permanent/portable/BYO/tennis], **surface material(s)** [hard · concrete · asphalt · wood · acrylic · clay — may be several], **indoor / outdoor court counts** (e.g. 3 indoor · 0 outdoor; total), **lighting**, **amenities** (restrooms, water, food, training, locker rooms, pro shop, youth, adaptive, wheelchair-accessible), **facility type**. Unknown/empty fields are omitted (not shown blank).
 7. **Connect band** — aggregate stats (players · games · reviews · groups) + "Follow to see who's checked in & get invited".
-8. **Upcoming Games** — **week grid**: 7 day-columns (Today highlighted), time-ordered slot pills (time + skill chip + RSVP count) → outing detail; **empty slot shows a `+`** → create outing (organizer on-ramp). Controls: All / Open Play filter, week pager, timezone label.
+8. **Upcoming Games** — **week grid**: 7 day-columns (Today highlighted), time-ordered slot pills (time + skill chip + RSVP count) → outing detail; **empty slot shows a `+`** → create outing (organizer on-ramp). Controls: All / Open Play filter, week pager, timezone label. Above the grid, an **Open-play schedule** strip shows the court's recurring open-play blocks (day · time · skill, from `openPlay[]`) — rendered **even when there are no member games yet** (day-one content); falls back to free-text `scheduleDetails` when unstructured (N13).
 9. **Reviews** (§7) — avg ★ + count + **histogram**; sort control; ReviewCard list (Load-more); **Write a review** (auth-gated). `AggregateRating`+`Review` JSON-LD.
 10. **Tournaments & leagues here** — EventCard rail (cross-sell); else "Run an event here →".
 11. **Court FAQ** — accordion, `FAQPage`.
-12. **Sidebar (sticky)** — mini-map (→ directions); full address (copy), phone, website, **Reserve a court** (reservation link, shown when reservations are available); **Add an outing**; **7-day weather forecast** (day · hi/lo · conditions · wind · precip%). *(No "Last verified" date until a re-verification cadence exists — court-admin deferred. Claim/Suggest-edit links also deferred — see [`court-admin.md`](./court-admin.md).)*
+12. **Sidebar (sticky)** — mini-map (→ directions); full address (copy), phone, website, **Reserve a court** (reservation link, shown when reservations are available); **Add an outing**; **7-day weather forecast** (day · hi/lo · conditions · wind · precip%) — **shown only when the court has outdoor courts (`outdoorCourts > 0`); hidden for indoor-only**, labeled "outdoor courts" for mixed facilities (N14). *(No "Last verified" date until a re-verification cadence exists — court-admin deferred. Claim/Suggest-edit links also deferred — see [`court-admin.md`](./court-admin.md).)*
 13. **Interlink footer** — Nearby courts rail + Nearby cities grid (SEO graph).
-**States:** unauth + Check In → anonymous allowed (§5.1, no modal); Follow / Write-review → Auth modal. Loading → hero + sidebar skeletons. Weather fail → hide widget. No reviews → "No reviews yet — be the first" + CTA. No upcoming games → all-empty week grid with `+` affordances.
+**States:** unauth + Check In → anonymous allowed (§5.1, no modal); Follow / Write-review → Auth modal. Loading → hero + sidebar skeletons. Weather fail **or indoor-only court (`outdoorCourts == 0`)** → no weather widget. No reviews → "No reviews yet — be the first" + CTA. No upcoming games → all-empty week grid with `+` affordances.
 **Responsive:** single column; sidebar reflows under title (map → address → actions); **Follow + Check In become a sticky bottom action bar**; week grid → horizontally-scrollable day columns or day-tabs + agenda list.
 **Data:** COURT/META (name, slug, counts, ratingAvg, photos, address, amenities); CHECKIN live; outings via court pointer; reviews; weather (external).
 **SEO:** title "Play Pickleball at {Court}: Courts, Schedule & Reviews | PicklerPal"; `SportsActivityLocation`+`AggregateRating`+`FAQPage`+`BreadcrumbList`; in `courts` sitemap.
@@ -345,18 +346,18 @@ Account shell + main: H1 "My Check-ins" + summary stats (total · favorite court
 **Wireframe:**
 ```
 ╔════ cover band ════╗
- ●  Ben K.   Lenexa, KS                        [ Follow ] [ Message ]
+ ●  Ben K.   Lenexa, KS                                   [ Message ]
     [ DUPR 3.74 ✓ ][ UTR-P 5.2 ][ Self 3.5 ]   (RatingBadges)
 ┌───────────────────────────────┬───────────────────────┐
 │ MAIN                          │ SIDEBAR               │
 │ ── Activity ──                │ Home court: Lenexa CC │
 │  hosted outings, events played│ Plays since 2024      │
-│  reviews written (ReviewCard) │ Followers · Following │
+│  reviews written (ReviewCard) │ Skill band            │
 │ ── Stats ── games · win%      │ Badges                │
 └───────────────────────────────┴───────────────────────┘
 ```
-**Contents:** avatar, display name (H1), city-level location, **RatingBadges** (per connected system; verified marker), Follow (toggles to "Following"), Message (gated/future). Main: recent **public** activity (hosted outings, events played, reviews) + light stats (games, win%). Sidebar: home court link, member-since, follower/following counts, achievements. Private fields suppressed per visibility; private profile → minimal "This profile is private" card (+ `noindex`).
-**States:** own profile → "Edit profile" instead of Follow; sparse profile hides empty sections.
+**Contents:** avatar, display name (H1), city-level location, **RatingBadges** (per connected system; verified marker), Message (gated/future). Main: recent **public** activity (hosted outings, events played, reviews) + light stats (games, win%). Sidebar: home court link, member-since, skill band, achievements. *(**Player-follow removed** — privacy, N16: no Follow action, no follower/following counts.)* Private fields suppressed per visibility; private profile → minimal "This profile is private" card (+ `noindex`).
+**States:** own profile → "Edit profile"; sparse profile hides empty sections.
 **SEO:** `Person` JSON-LD (sport-scoped); `noindex` when private.
 
 ## 6.2 Edit Profile & Ratings — `/account/profile` · SSR+CSR · auth · noindex
@@ -373,8 +374,8 @@ Default rating source:  ( DUPR ▾ )
 ```
 "Don't have a rating? → How ratings work" link. DUPR row → connect/validate; verified shows a marker + "official".
 3. **Contact** — emails (repeatable; one Primary), phone(s); verify states.
-4. **Notifications** *(deferred — ships with the separate Notifications PRD)* — toggles: games at followed courts, RSVPs, league updates, news digest.
-5. **Privacy** — Profile visibility (Public / Followers / Private); Check-in visibility; Searchable toggle.
+4. **Notifications** — per-type × per-channel (**in-app / email**; no push) toggles: games at followed courts, RSVPs, league updates, news digest; **quiet hours**. Delivered in-app + via Resend (PRD §9.3).
+5. **Privacy** — Profile visibility (**Public / Private**); Check-in visibility (**Public / Private**); Searchable toggle. *(No "Followers" scope — player-follow removed, N16.)*
 **Behavior:** dirty-tracked Save bar (disabled until valid); inline validation; username change warns about URL change; save → button loading → success toast.
 **States:** loading skeleton; conflict (username taken) → field error. **Data:** USER/PROFILE + RATING#<system>.
 
@@ -707,7 +708,7 @@ Division tabs; **bracket tree** (single/double elim: seed, names, scores, winner
 
 ### 12.2.5 Organizer — Create Tournament — `/organize/tournaments/new` · CSR wizard · auth + Connect
 Multi-step wizard (step rail + main + a live **registration-page preview** on wide screens), sticky Save/Next.
-**Steps:** 1 **Basics** (name, venue = court link, dates, description, cover). 2 **Divisions** (repeatable: name, skill range, event type MD/WD/MX/Singles, **fee** → Stripe Price, capacity, registration window; duplicate). 3 **Format** (pool→bracket / single / double elim; # courts; court-time estimate). 4 **Registration form** (waiver, custom-field builder, refund policy). 5 **Payments** (Stripe **Connect onboarding** status; fee model toggle absorb vs pass-through; payout account). 6 **Review & publish** (preview public detail + registration page; Publish / Save draft).
+**Steps:** 1 **Basics** (name, venue = court link, dates, description, **cover image** — uploader → S3, crop; placeholder when none). 2 **Divisions** (repeatable: name, skill range, event type MD/WD/MX/Singles, **fee** → Stripe Price, capacity, registration window; duplicate). 3 **Format** (pool→bracket / single / double elim; # courts; court-time estimate). 4 **Registration form** (waiver, custom-field builder, refund policy). 5 **Payments** (Stripe **Connect onboarding** status; fee model toggle absorb vs pass-through; payout account). 6 **Review & publish** (preview public detail + registration page; Publish / Save draft).
 **States:** can't publish until Connect complete + ≥1 division + valid dates; draft autosaves. **On-ramp:** deep-links from `/round-robin/[id]` and outings prefill basics/roster.
 
 ### 12.2.6 Organizer — Tournament Dashboard — `/organize/tournaments/[id]` · SSR · auth
@@ -754,7 +755,7 @@ Wednesday Night 3.5 Doubles League   [ Registering ]
 Division tabs + **StandingRow table** (rank, team, W-L, games, points, Δrating, top-3 treatment) + **schedule** accordion by week (matchups, court, time, score; your games highlighted when logged in) + **playoff bracket** post-season + Display mode. **SEO:** indexable "{league} standings".
 
 ### 12.3.5 Organizer — Create League/Ladder — `/organize/leagues/new` · CSR wizard · auth + Connect
-Like §12.2.5 with league fields: **format select first** (League vs Ladder — sets downstream UI); season (start, # weeks, night/time); **partner mode** (fixed / rotating); divisions/flights (skill bands, caps); scheduling (auto round-robin generation preview; playoff format + bracket size); registration form; payments (Connect, fee model); review & publish. **Ladder branch** swaps "weeks/schedule" for **ladder rules** (challenge range, response window, scoring, movement, skip-week policy, season length). Live preview.
+Like §12.2.5 (incl. its **Basics** step — name, description, **cover image** uploader → S3, crop) with league fields: **format select first** (League vs Ladder — sets downstream UI); season (start, # weeks, night/time); **partner mode** (fixed / rotating); divisions/flights (skill bands, caps); scheduling (auto round-robin generation preview; playoff format + bracket size); registration form; payments (Connect, fee model); review & publish. **Ladder branch** swaps "weeks/schedule" for **ladder rules** (challenge range, response window, scoring, movement, skip-week policy, season length). Live preview.
 
 ### 12.3.6 Organizer — League Dashboard — `/organize/leagues/[id]` · SSR · auth
 Stat row (Registrations, Revenue, Payout, Weeks elapsed) + Tabs: **Roster/Teams** (assign free agents, divisions), **Schedule** (auto-generate, edit matchups/courts/times, byes/subs), **Standings** (auto from scores; manual override), **Scores** (per-week entry/verify), **Registrations/Payments** (Stripe, refunds), **Messaging** (broadcast/division/team), **Settings**. Ladder variant: **Ladder board** management + challenge oversight. **Data:** LEAGUE/TEAM/REG/WEEK/STANDING.
@@ -873,8 +874,7 @@ My Courts                                            (H1)
 **States:** empty → "Follow courts to track games and get invited" + [ Find courts ]. **Data:** FOLLOW#COURT via GSI1 USER#uid.
 
 ## 13.6 Notifications & Alerts — `/account/alerts` · SSR · auth · noindex
-> ⏳ **Deferred — not in the initial build.** Notifications, this Alerts page, the header bell, channel preferences, and email/push **delivery** are specced in a **separate Notifications PRD**. Retained here for reference only. (Auth emails come from Firebase Auth (§13.9); receipts from Stripe.)
-> §14.4 specs the header bell dropdown; this is the full page + preferences.
+> **In the initial build** — **in-app + email (via Resend); no push.** The header bell (§3.2) is the dropdown; this page is the full list + preferences. (Auth emails come from Firebase Auth (§13.9); receipts from Stripe.)
 **Wireframe:**
 ```
 Alerts                                    [ Mark all read ] [ Settings ]
@@ -883,10 +883,10 @@ Alerts                                    [ Mark all read ] [ Settings ]
 ● Waitlist — a spot opened in Summer Slam       · 5h    → register
 ● Challenge — Dan challenged you (ladder)       · 1d    → challenge
 [ Load more ]
-── Alert preferences ──  per type × channel (in-app / email / push) toggles
+── Alert preferences ──  per type × channel (in-app / email) toggles + quiet hours
 ```
 **Contents:** filter (All / Unread); grouped reverse-chron alert rows (type, summary, time, read state) each linking to its source; mark-read; **preferences** (per-type × per-channel toggles, mirrors §6.2).
-**States:** empty → "You're all caught up"; loading skeleton rows. **Data:** notification items per user *(new entity — see §9 note)*.
+**States:** empty → "You're all caught up"; loading skeleton rows. **Data:** `NOTIF#` items per user (PRD §9.3).
 
 ## 13.7 Account Settings & Security — `/account/settings` · SSR+CSR · auth · noindex
 > Profile edit (§6.2) covers profile fields; this covers account + security.
@@ -896,7 +896,7 @@ Account Settings                                     (H1)
 ── Login & security ──  email (change / verify) · [ Change password ] ·
    two-factor ( toggle ) · active sessions [ Sign out other devices ]
 ── Connected accounts ──  Google ✓ · Apple — · DUPR ✓   [ Connect / Disconnect ]
-── Communication ──  email / push preferences (→ §6.2)
+── Communication ──  email / in-app preferences (→ §6.2)
 ── Danger zone ──  [ Export my data ]      [ Delete account ]
 ```
 **Contents/behavior:** login & security (change email w/ re-verify, change password, 2FA toggle, active-session list w/ revoke); connected accounts (OAuth + DUPR connect/disconnect); communication prefs link; **danger zone** (export data; delete account → typed-confirm modal listing consequences). Sensitive actions require **re-authentication**; credential/2FA flows hand off to the auth provider (PicklerPal never stores raw credentials).
@@ -966,10 +966,10 @@ Full-page route error → "Something went wrong" + Retry + "Back to home". 404 �
 | Round robin landing | paid cross-sell band | tournaments / leagues |
 **Rule:** free value is never walled; the upgrade is always *additive* (money, structure, brackets, payouts) and one click away with context carried over.
 
-## 14.4 Notifications & alerts — ⏳ deferred (separate Notifications PRD)
-> The header bell, alert dropdown, email/push delivery, channel preferences, and quiet hours are **not in the initial build** — specced in a separate **Notifications PRD**. Transient **toasts** for immediate action feedback (§2.7) remain in this build; auth emails come from Firebase Auth and receipts from Stripe. Description below retained for reference.
+## 14.4 Notifications & alerts — in the initial build (in-app + email; no push)
+> The header bell, alert dropdown, **email delivery (via Resend)**, channel preferences, and quiet hours are **in the initial build** — **in-app + email only; no push** (no web-push/FCM/APNs). Transient **toasts** for immediate action feedback (§2.7) also remain; auth emails come from Firebase Auth and receipts from Stripe.
 >
-> In-app: header bell → dropdown (RSVPs, waitlist promotions, challenge requests, league match reminders, receipts), each linking to its source. Toasts for immediate feedback. Email/push (prefs in §6.2): game reminders, waitlist openings, challenge deadlines, registration confirmations, weekly league recaps. Quiet hours respected.
+> In-app: header bell → dropdown (RSVPs, waitlist promotions, challenge requests, league match reminders, receipts), each linking to its source. Toasts for immediate feedback. **Email** (via Resend; prefs in §6.2): game reminders, waitlist openings, challenge deadlines, registration confirmations, weekly league recaps. **No push in v1.** Quiet hours respected.
 
 ## 14.5 Ad slots (AdSense)
 Ad-eligible page classes (**PRD §2.2**) place **AdSlot** (§2.12) in fixed, reserved positions; **ineligible classes carry none**. Map:
@@ -995,9 +995,9 @@ Ad-eligible page classes (**PRD §2.2**) place **AdSlot** (§2.12) in fixed, res
 | Map finder | Toolbar, segmented control, CourtCard(list), Map+pins, Filter drawer, date stepper |
 | City directory | Breadcrumb, segmented control, CourtCard(list), Map, EventCard rails, Filter drawer, CityCard grid, FAQ, AdSlot (§2.12) |
 | Ad-eligible pages (directory · detail · article · finders) | + **AdSlot** (§2.12) placed per §14.5; ad-free on homepage/console/account/checkout |
-| Court detail | Breadcrumb, gallery, badges, Follow/CTA Check-In buttons, Check-In sheet, week grid, Reviews module, weather widget, CourtCard/CityCard rails, FAQ |
+| Court detail | Breadcrumb, gallery, badges, Follow/CTA Check-In buttons, Check-In sheet, week grid, open-play schedule, Reviews module, weather widget (outdoor only), CourtCard/CityCard rails, FAQ |
 | Check-in sheet | Modal/sheet, segmented control, chips, checkbox, input, CTA button |
-| Player profile | Avatar, RatingBadge, button, ReviewCard, stat modules |
+| Player profile | Avatar, RatingBadge, Message (gated), ReviewCard, stat modules |
 | Edit profile | Sectioned form cards, avatar uploader, combobox, rating rows, toggles, Save bar |
 | Reviews | Star rating, histogram, ReviewCard, composer modal |
 | Content/News | ArticleCard, Tabs, TOC, body renderer, breadcrumb |
@@ -1007,7 +1007,7 @@ Ad-eligible page classes (**PRD §2.2**) place **AdSlot** (§2.12) in fixed, res
 | Round robin | Marketing hero, format gallery, builder form, StandingRow, schedule, run-console steppers |
 | Tournament/League detail | Breadcrumb, status badge, divisions table, register sidebar, bracket/standings, EventCard rails |
 | Registration | 3-step container, division cards, partner combobox, fee summary, Stripe Element |
-| Organizer wizards | Step rail, repeatable rows, Connect status, live preview |
+| Organizer wizards | Step rail, repeatable rows, cover image uploader, Connect status, live preview |
 | Organizer dashboards | Stat row, Tabs, data tables, refund modal, broadcast composer |
 | Participant console | This-week card, score entry, schedule, availability, chat |
 | Ladder | RankRow board, movement indicators, Challenge modal, challenge tabs |
@@ -1053,10 +1053,10 @@ Ad-eligible page classes (**PRD §2.2**) place **AdSlot** (§2.12) in fixed, res
 | Group finder / detail | #25 / #24 + #26 |
 | My groups | #27 |
 | Groups at a court | #28 |
-| Alerts *(deferred — Notifications PRD)* | notification items per user (specced in the Notifications PRD, not core §9) |
+| Alerts | `NOTIF#` items per user (PRD §9.3) |
 | Account settings / Onboarding | USER/PROFILE + RATING writes |
 
-> **§9 schema note:** the **onboarded** flag (§13.8) is added to the core PRD §9.3. **Notifications/alerts entities are deferred** to a separate Notifications PRD (not in core §9). (Court contribution/claim entities live in [`court-admin.md`](./court-admin.md), deferred.)
+> **§9 schema note:** the **onboarded** flag (§13.8) and the **`Notification` entity** (in-app + email; no push) are in the core PRD §9.3. (Court contribution/claim entities live in [`court-admin.md`](./court-admin.md), deferred.)
 
 ---
 

@@ -45,6 +45,7 @@
 | Search (geo) | **Geohash GSI** on the table | Radius "near me" search (§9.7). No external search engine in v1; directory pages are static, not query-driven. |
 | Media | **S3 + CloudFront** | Court photos, avatars, OG images. On-the-fly OG image generation via Next.js `ImageResponse`. |
 | Auth | **Firebase Auth** | Email/password + OAuth (Google/Apple); **Firebase sends email verification + password-reset** and provides 2FA. The client holds a Firebase **ID token**, verified server-side in route handlers (Admin SDK) to authorize writes. Anonymous check-ins need *no* account (ephemeral token). |
+| Notifications | **Resend** (email) + **in-app** | **Email via Resend** (transactional + notification mail; SPF/DKIM/DMARC, one-click unsubscribe/suppression) and an **in-app** notification center (header bell + `/account/alerts`) backed by `Notification` items (§9.3). **No push in v1** (no web-push/FCM/APNs) — email + in-app only. Per-type/channel prefs + quiet hours in §6.3 / UI §6.2. |
 | Analytics | **PostHog · GA4 · Google Search Console** | PostHog = product analytics, funnels, retention, flags/experiments (client SDK + **server SDK**); GA4 = site-wide web analytics (anonymous directory + logged-in app); Search Console = organic-search performance + index-coverage monitoring. Consent-gated; kept off the CWV critical path (§3.8). Instrumentation rules + event taxonomy in **§2.1**; North Star/metrics in [`picklerpal-strategy.md`](./picklerpal-strategy.md). |
 | Ads | **Google AdSense** | Display ads on **free content-rich indexable** pages only (directory · content · news · finders · public detail); **never** on checkout/console/account/homepage. Reserved CWV-safe slots, consent-gated (Consent Mode v2), `ads.txt`. See **§2.2**. |
 | Hosting | **Vercel or SST/AWS** | ISR + edge caching for directory pages. |
@@ -73,9 +74,13 @@
 |---|---|
 | Discovery | `page_view`, `search_performed`, `geo_snapshot_shown` |
 | Activation | `signup_completed`, `rating_connected`, `first_play_action` |
-| Community | `court_checkin` ⚙, `rsvp_set` ⚙, `review_submitted`, `court_followed` |
-| Free organizing | `round_robin_created`, `round_robin_scored`, `upgrade_clicked` (carries `source`) |
+| Community | `court_checkin` ⚙, `rsvp_set` ⚙, `outing_attended` ⚙, `match_played` ⚙, `review_submitted`, `court_followed` |
+| Free organizing | `round_robin_created` (carries `rrCreatorToken`), `round_robin_scored`, `upgrade_clicked` (carries `source` + `rrCreatorToken`) |
 | Monetization | `checkout_started`, `payment_succeeded` ⚙, `registration_confirmed` ⚙, `connect_onboarding_completed` ⚙, `refund_issued` ⚙ |
+
+**Confirmed play-action events (N1).** Two server-side, **identity-linked** events make a real game (not just intent) measurable: `outing_attended` ⚙ fires when a `going` RSVP is corroborated by a same-day check-in at the outing's court within its time window, **or** the host marks the outing complete with attendees (§6.7) — so attendance ≠ RSVP. `match_played` ⚙ fires **per participant per finalized match** across round robin / league / ladder / tournament (on score finalize). An **anonymous** round-robin match (no account) contributes **no distinct player** until the entrant is claimed — it counts toward organizing volume, not the play-action funnel.
+
+**Anonymous-organizer attribution (N2).** A round robin created without an account is stamped with a stable **`rrCreatorToken`** (the same ephemeral-token mechanism as anonymous check-ins, §6.2; stored on the RR event, §9.3). `round_robin_created` and `upgrade_clicked` carry it, so the **anonymous → claimed → paid** organizer funnel is attributable before signup; on claim the token resolves to the `uid`.
 
 **Consent & privacy.** GA4, PostHog, Mapbox, and geo-IP load only behind the consent layer (EU/CA); prefer first-party/cookieless paths to cut adblock loss and consent burden. (Consent management is tracked with the other privacy/compliance requirements.)
 
@@ -221,7 +226,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 │   /account/registrations          My event registrations + receipts (auth)
 │   /account/payments               Payment methods (Stripe) (auth)
 │   /account/courts                 Saved / followed courts (auth)
-│   /account/alerts                 Notifications & alert prefs (auth) — DEFERRED (separate Notifications PRD)
+│   /account/alerts                 Notifications & alert prefs (auth) — in-app + email (Resend); no push v1
 │   /account/settings               Account & security (password, 2FA, delete) (auth)
 │
 ├── AUTH & ONBOARDING ───────────────────────────────────────────
@@ -337,8 +342,9 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
   - **"Checked in today"** — recent same-day check-ins (anonymous shown as "A player"); a daily record, not live presence ("checked in" ≠ "currently playing") — freshness.
   - **Community band:** "{N} players · {N} games · {N} reviews · {N} groups" aggregates.
   - **Upcoming Games** weekly grid (Today→+6d), All/Open-Play filter, "+ add a game" affordance on empty slots (organizer on-ramp, **PH §6.2**).
+  - **Open-play schedule** — the court's recurring open-play blocks (day · time · skill, from `openPlay[]`); renders **even with zero member-created games** (day-one content), falling back to free-text `scheduleDetails` when unstructured (N13).
   - **Reviews** module (§6.4): avg stars, rating histogram, review list, "Write a review."
-  - **7-day weather forecast** for the court (high-intent, shareable — **PH §6.4**).
+  - **7-day weather forecast** for the court — **outdoor courts only** (shown when `outdoorCourts > 0`; hidden for indoor-only; labeled "outdoor courts" for mixed facilities — N14) (high-intent, shareable — **PH §6.4**).
   - **Tournaments & leagues here** cross-link (→ paid).
   - **Groups that play here** rail (GroupCards → group pages; "Start a group at {Court}") — community connector (§6.9).
   - **Court FAQ** (FAQ JSON-LD).
@@ -372,7 +378,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 #### View: My Check-in History — `/account/checkins`
 - **Render:** SSR · **Auth:** required · **Contents:** chronological list of courts you've checked into, frequency stats, "favorite courts," re-check-in shortcut. **Links to:** court details, follow prompts.
 
-> **Privacy default:** anonymous check-ins never expose identity; logged-in check-in visibility is per-user toggle (public / followers / private). Identity is never derivable from an anonymous token.
+> **Privacy default:** anonymous check-ins never expose identity; logged-in check-in visibility is per-user toggle (**public / private** — the "followers" scope is dropped with player-follow, N16). Identity is never derivable from an anonymous token.
 
 ---
 
@@ -383,7 +389,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 #### View: Public Player Profile — `/players/[username]`
 - **Render:** ISR(3600) · **Auth:** none (respects privacy settings)
 - **Purpose:** shareable identity + light SEO.
-- **Contents:** avatar, display name, location (city-level), **multi-system rating badges** (DUPR / UTR-P / WPR / CTPR / Self), skill band, home court, recent public activity (check-ins, outings hosted, events played), reviews written, follow button. Private fields suppressed per settings.
+- **Contents:** avatar, display name, location (city-level), **multi-system rating badges** (DUPR / UTR-P / WPR / CTPR / Self), skill band, home court, recent public activity (check-ins, outings hosted, events played), reviews written. Private fields suppressed per settings. *(**Player-follow removed** — privacy, N16: no Follow action and **no follower/following counts** on profiles. Court **Follow** (§6.1) is unaffected.)*
 - **Links to:** home court, hosted outings, events, city page.
 - **SEO:** `Person` JSON-LD (sport-scoped); `noindex` if profile set to private.
 
@@ -527,7 +533,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 
 #### View: Create Round Robin — `/round-robin/new`
 - **Render:** CSR · **Auth:** **none required** (account optional; offered to save)
-- **Contents:** event name, # players (add names, optional ratings), # courts, **format select** (→ engine, above) with **partner mode** (rotating/fixed, doubles), **scoring** (to 11/15/21, win-by, optional time cap), **seeding** (rating/random), **# rounds** (auto or set), and **Pool→Bracket** extras (pools, advance-count); a **format-aware live preview** (rounds · matches · games-each · sit-outs/round · est. time) recomputed on change; "Generate." Optional "Save to my account" → light signup. **This is the conversion moment** — keep friction near zero.
+- **Contents:** event name, # players (add names, optional ratings), # courts, **format select** (→ engine, above) with **partner mode** (rotating/fixed, doubles), **scoring** (to 11/15/21, win-by, optional time cap), **seeding** (rating/random), **# rounds** (auto or set), and **Pool→Bracket** extras (pools, advance-count); a **format-aware live preview** (rounds · matches · games-each · sit-outs/round · est. time) recomputed on change; "Generate." Optional "Save to my account" → light signup. Anonymous events are stamped with a stable **`rrCreatorToken`** so the unclaimed → claimed → paid funnel stays attributable before signup (carried in analytics, §2.1; stored on the event, §9.3 — N2). **This is the conversion moment** — keep friction near zero.
 
 #### View: Round Robin Event (public) — `/round-robin/[eventId]`
 - **Render:** ISR/SSR (public, shareable) · **Auth:** none to view
@@ -704,6 +710,7 @@ The funnel is **discovery → community → free organizing → paid organizing*
 - **Model the access patterns, not the entities** — every query in §9.5 is a single `Query`/`GetItem`, no scans, no joins.
 - **Denormalize for reads; reconcile on writes** via DynamoDB Streams → aggregation Lambdas (counts, averages).
 - **Idempotency** for Stripe webhooks via a dedupe item.
+- **Atomic composite writes (N15).** Multi-item creates that must be mutually consistent — outing + `OUTINGREF` (+ `SERIES` / `MEETUP`), group + creator `MEMBER` + `COURT#→GROUP#` pointers, registration + `Payment` + counter — are written with **`TransactWriteItems`** (all-or-nothing; respect the 100-item / 4 MB limits). A periodic **reconcile/repair sweep** heals any orphaned reference (e.g. an outing missing its court pointer); invariants are asserted in §14.6.
 - **TTL** only for ephemeral anonymous tokens. **Check-ins are durable** (a same-day record + lasting history) — no presence TTL.
 
 ### 9.2 Global secondary indexes
@@ -752,12 +759,14 @@ Court meta     PK COURT#<courtId>       SK META
                                        amenities[](restrooms,water,lighted,wheelchair,food,training,locker-rooms,pro-shop,youth,adaptive,…),
                                        lighted(= amenities ∋ lighted)
                attrs — access:         access(free|membership|one-time|reservation|—), accessDetails, hasReservations,
-                                       reservationUrl, facilityType(public|club|school|private|—), scheduleDetails
+                                       reservationUrl, facilityType(public|club|school|private|—), scheduleDetails,
+                                       openPlay[]{dayOfWeek(0-6), start, end, skillMin, skillMax}  (structured open-play; parsed from scheduleDetails at ingest where feasible, else empty — N13)
                attrs — contact:        phone, email, website
                attrs — media:          photos[]{url, source(user|google-places|…), visible, attribution{url,html,name}}
                                        (re-hosted S3 keys → photoKeys[] optional)
                attrs — content:        description
-               attrs — computed:       reviewCount, ratingAvg, checkinsTodayCount, playerCount, groupCount, popularityRank
+               attrs — computed:       reviewCount, ratingAvg, checkinsTodayCount, playerCount, groupCount, popularityRank,
+                                       dedicated(derived: nets=permanent ∧ lines=permanent — backs the "dedicated" court-type landing, N8)
                attrs — provenance/lifecycle: sourceId, source, hidden, deleted, createdAt, updatedAt,
                                        scheduleSourcesUpdatedAt, importedAt(= seed updated_at; provenance only)
 Court review   PK COURT#<courtId>       SK REVIEW#<ts>#<uid>                  (reviews for a court)
@@ -808,7 +817,8 @@ RR event       PK RR#<eventId>          SK META
                attrs: name, entryMode(SINGLES|DOUBLES), partnerMode(FIXED|ROTATING|—),
                       format(preset), engine(E1..E5), scheduleType(static|dynamic),
                       params{pointsTo, winBy, hardCap, timeCapSec, courts, rounds, twice, seedBy},
-                      rngSeed, currentRound, status(setup|live|complete), championRef, claimed, createdAt
+                      rngSeed, currentRound, status(setup|live|complete), championRef, claimed,
+                      rrCreatorToken(anon-create token; resolves to uid on claim — N2), createdAt
 RR entrant     PK RR#<eventId>          SK ENTRANT#<eIdx>
                       attrs: name|teamName, members[](1 singles / 2 fixed), rating, seed, byeCount
 RR round       PK RR#<eventId>          SK ROUND#<r>#META   attrs: status(pending|live|done), byes[](eIdx)
@@ -880,7 +890,16 @@ Anon token     PK ANON#<token>          SK META  (TTL)    attrs: lastCourtId
 ```
 Onboarding     onboarded flag + completedSteps[] added to USER/PROFILE attrs  ← Onboarding (§13.8)
 ```
-> **Notifications/alerts deferred.** The `Notification` entity, the Alerts views, channel preferences, and the email/push **delivery providers** are specced in a **separate Notifications PRD** — *not in the initial build*. (Auth emails — verify/reset — are sent by **Firebase Auth**, §2; receipts by **Stripe**, §10.)
+
+**Notifications** *(in the initial build — in-app + email; no push)*
+```
+Notification   PK USER#<uid>            SK NOTIF#<ts>#<id>
+               GSI1 USER#<uid> / NOTIF#<ts>   (my notifications, newest first)
+               attrs: type, title, body, entityRef, readAt|null, channelsSent[](inapp|email),
+                      createdAt
+Notif prefs    perType×channel{inapp,email} toggles + quietHours + unsubscribed[] added to USER/PROFILE attrs
+```
+> **Notifications are in the initial build** (re-instated) — **email via Resend + in-app only; no push** (no web-push/FCM/APNs). A **notification-generation Lambda** writes `NOTIF#` items (e.g. on a new game at a followed court, fan out over `GSI1 COURT#/FOLLOWER#`) and, per the user's channel prefs (§6.3 / UI §6.2), sends a **mirror email via Resend** (SPF/DKIM/DMARC, one-click unsubscribe → suppression list, quiet hours). The in-app surfaces (header bell + `/account/alerts`) read `NOTIF#` and "mark read." Auth emails (verify/reset) still come from **Firebase Auth** (§2); receipts from **Stripe** (§10).
 > **Court contribution/claim entities are deferred.** The pending-court, edit-suggestion, court-claim, and court-manager items + their `MODQUEUE#` GSIs live in [`court-admin.md`](./court-admin.md) §5, since add/edit/claim are not in the initial build. The launch directory is **seeded** (bulk import), so COURT items are written by the import pipeline, not by members.
 
 ### 9.4 Aggregates via DynamoDB Streams
@@ -925,7 +944,7 @@ Onboarding     onboarded flag + completedSteps[] added to USER/PROFILE attrs  �
 | 27 | My groups | `GSI1 = USER#uid`, SK begins `GROUPMEMBER#` |
 | 28 | Groups that play at a court | `PK=COURT#id`, SK begins `GROUP#` |
 
-> **Note on pattern 9** (games at a court): to avoid overloading GSI1 with both organizer-feeds and court-feeds, store a lightweight `OUTINGREF` item `PK=COURT#id / SK=OUTING#<startTs>#<outingId>` written alongside each outing, **projecting `visibility`, `hostType`, `groupId`** so the court/city game queries filter out private (e.g. private-group) meet-ups in a single pass — a private meet-up never surfaces on a public court or city page. Cheap, keeps each query single-partition.
+> **Note on pattern 9** (games at a court): to avoid overloading GSI1 with both organizer-feeds and court-feeds, store a lightweight `OUTINGREF` item `PK=COURT#id / SK=OUTING#<startTs>#<outingId>` written alongside each outing, **projecting `visibility`, `hostType`, `groupId`** so the court/city game queries filter out private (e.g. private-group) meet-ups in a single pass — a private meet-up never surfaces on a public court or city page. Cheap, keeps each query single-partition. The **OUTING + OUTINGREF pair (and any SERIES/MEETUP refs) is written in one `TransactWriteItems`** so an outing can never exist without its court pointer (N15, §9.1).
 
 ### 9.6 Why single-table (trade-offs)
 - **Pro:** every view = 1 round trip; predictable cost; no fan-out joins; aggregates pre-computed.
@@ -957,7 +976,7 @@ The launch directory (read-only, no member contribution — see [`court-admin.md
 | `created_at`/`updated_at`/`schedule_sources_updated_at` | same + `importedAt` = `updated_at` | provenance only; **no "last verified" UI** until a re-verification cadence exists (court-admin deferred) |
 | `has_pickleball` · `description` | `hasPickleball` · `description` | |
 
-**Ingestion pipeline:** parse YAML → normalize/validate → compute `geohash` + `cityKey` → **upsert** COURT/META + GSI projections; create/own missing CITY/STATE/COUNTRY items and roll up `counts` via the §9.4 **batch** path (not per-item Streams); set `popularityRank` (seed by totalCourts + has-photos, refine later). Idempotent on `sourceId` (re-runnable imports). Skip `is_deleted`; store `is_hidden` but exclude it from render/sitemap/index. Only courts with `hasPickleball && !hidden && !deleted` that clear the §14.4 content threshold are indexed; the rest are stored `noindex` (guards against thin/doorway pages — review S2/SEO1).
+**Ingestion pipeline:** parse YAML → normalize/validate → compute `geohash` + `cityKey` → **upsert** COURT/META + GSI projections; create/own missing CITY/STATE/COUNTRY items and roll up `counts` via the §9.4 **batch** path (not per-item Streams); set `popularityRank` (seed by totalCourts + has-photos, refine later); **derive `dedicated`** (= `nets`=permanent ∧ `lines`=permanent — there is no direct seed field for "dedicated," so it is computed; **drop "Reserved" as a court type**, redundant with `access`=reservation — N8); **parse `schedule_details` into structured `openPlay[]`** where machine-parseable, retaining free-text `scheduleDetails` as fallback (N13). Idempotent on `sourceId` (re-runnable imports). Skip `is_deleted`; store `is_hidden` but exclude it from render/sitemap/index. Only courts with `hasPickleball && !hidden && !deleted` that clear the §14.4 content threshold are indexed; the rest are stored `noindex` (guards against thin/doorway pages — review S2/SEO1).
 
 > ⚠️ **Provenance/licensing.** `source: pickleheads.com …` — these records are scraped from a competitor; clear licensing/ToS before launch (review G4). Per-court `source` + `sourceId` and the file-level `scraped_at` are retained for audit, dedup, and refresh.
 
@@ -1029,7 +1048,7 @@ The launch directory (read-only, no member contribution — see [`court-admin.md
 | Organizer hub | `/organize` | SSR | ✅ | ⛔ | Organizer 💲 |
 | Partner invite accept | `/invites/[token]` | SSR | ✅ | ⛔ | Paid (all) 💲 |
 | Saved courts | `/account/courts` | SSR | ✅ | ⛔ | Court Finder |
-| Alerts *(deferred — separate Notifications PRD)* | `/account/alerts` | SSR | ✅ | ⛔ | Account |
+| Alerts (notifications) | `/account/alerts` | SSR | ✅ | ⛔ | Account |
 | Account settings | `/account/settings` | SSR | ✅ | ⛔ | Account |
 | Onboarding | `/welcome` | CSR | ✅ | ⛔ | Profile |
 | Auth pages | `/login·/signup·/forgot-password·/reset-password·/verify-email` | SSR/CSR | — | ⛔ | Account |
@@ -1081,7 +1100,7 @@ Decisions made (override as needed):
 7. **No native app v1**; responsive web (the round-robin console and consoles are PWA-friendly).
 8. **Groups = one entity for informal groups *and* clubs** (`visibility` + `joinPolicy` flags), **private + invite-only by default** (privacy-first, cf. decision 3 — discovery/SEO is opt-in by going public); **meet-ups reuse Outings** (`hostType=GROUP`) rather than a separate scheduler; **group chat deferred** (§6.9).
 9. **DUPR is read-only in v1** — connect/read ratings and gate divisions by them; **no score write-back** (deferred pending a partnership). The UI shows "connected," not "submit."
-10. **Auth = Firebase Auth** (§2); **notifications/alerts + email/push** are carved into a **separate Notifications PRD** (not in the initial build).
+10. **Auth = Firebase Auth** (§2). **Notifications are in the initial build** — **in-app + email via Resend only; no push** (no web-push/FCM/APNs); `Notification` entity + fan-out in §9.3, views in the UI spec. (A richer push/SMS layer remains a later add.)
 
 Open questions for product:
 - Singles vs. doubles support depth for ladders/leagues at launch?
@@ -1149,6 +1168,7 @@ Organic is goal 1, so SEO correctness is a **first-class automated target**, not
 - **Streams aggregation**: insert/modify/remove → expected `ratingAvg`, `checkinsTodayCount`, `registeredCount`, materialized `STANDING#`.
 - **Check-in recency**: a check-in from a prior day drops out of the court's "checked in today" list but **remains in the user's history** (durable, no TTL).
 - **Concurrency / races**: two writers for the **last spot** / waitlist promotion / ladder-challenge accept → **conditional writes** prevent oversell (run parallel writes; exactly one wins).
+- **Composite-write integrity (N15)**: outing+OUTINGREF / group+member+court-pointers / reg+payment+counter are written via `TransactWriteItems` (all-or-nothing — inject a mid-transaction failure → **no partial item persists**); assert the invariants **an outing always appears on its court & city** and **a group always appears at its home court**; the reconcile sweep heals an injected orphan.
 - **Anti-abuse**: anonymous check-in rate-limit holds under burst (presence counts stay trustworthy).
 
 ### 14.7 Accessibility verification
