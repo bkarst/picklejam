@@ -12,7 +12,7 @@
 >
 > **Per-view annotations** (Render/Auth/Indexable) match the PRD master view index (§11). Each view lists **States** because they're part of a complete build. **Data bindings** name the PRD §9 entity/attribute behind each element.
 
-> **🎨 Text-to-image prompts (added per page-level view):** Every standalone view below carries a **Text to Image Prompt** — a bulleted list of that screen's features, content, and actions (no visual or appearance details), ending with: *“Use the attached visual identity guide to design a view with the above features.”* Pair each prompt with the brand / visual identity guide (`design/brand-identity-guide.md`) when generating; layout and all styling are the guide's job.
+> **🎨 Text-to-image prompts (added per page-level view):** Every standalone view below carries a **Text to Image Prompt** — a bulleted list of that screen's features, content, and actions (no visual or appearance details) — each card, list row, or profile in the view is broken out to the **specific fields it displays** (for example, an event listing's date, title, time, venue, skill range, capacity, host, and status; or a profile's name, location, ratings, and stats), never how any of it looks — ending with: *“Use the attached visual identity guide to design a view with the above features.”* Pair each prompt with the brand / visual identity guide (`design/brand-identity-guide.md`) when generating; layout and all styling are the guide's job.
 
 ---
 
@@ -171,6 +171,8 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 > Precedent: PH §4 (home), §5 (finder), §6 (court detail), §8 (directory). Highest-traffic SEO pages; default state must render complete in static HTML (no session dependency).
 
 ## 4.1 Homepage — `/` · ISR(3600)+CSR · public · indexable
+> 🖼️ **View mockup:** [`4.1-homepage.png`](../design/views/4.1-homepage.png)
+
 **Layout:** stacked full-bleed sections, inner content clamped.
 **Wireframe (desktop):**
 ```
@@ -215,11 +217,11 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 > - Headline "Find pickleball near you"
 > - Primary search bar (search courts, cities, or games) with a Search button
 > - Geo-based stat links ("24 courts near you", "50 games this week", "See all in Lenexa")
-> - "Upcoming games near you" — nearby upcoming game listings with a "See all games" link
+> - "Upcoming games near you" — nearby upcoming game listings (each with its date, title, time and timezone, venue, game type and skill range, spots-left or going count, host, and status, plus an RSVP action) and a "See all games" link
 > - "Checked in today" — a same-day check-in count for the metro
 > - Three organizer entry points (Round Robin, Leagues, Tournaments), each with a one-line description and a button
 > - Programmatic directory with tabs (Cities, States, Countries, Court Types, Amenities); city links, each with a place name and counts ("158 locations · 454 courts · 511 games")
-> - "Learn & news" — three article previews and a "Browse all guides" link
+> - "Learn & news" — three article previews (each with a thumbnail, category, title, excerpt, author name, read-time, and date) and a "Browse all guides" link
 > - Stats section — four headline numbers (members, courts, cities, games)
 > - FAQ accordion
 > - Footer with link columns and a newsletter signup
@@ -228,6 +230,8 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 
 
 ## 4.2 Map Finder — `/search` · CSR · public · **noindex**
+> 🖼️ **View mockup:** [`4.2-map-finder.png`](../design/views/4.2-map-finder.png)
+
 **Layout:** full-height app shell. Two panes: **list** (narrower) + **map** (wider). Mobile: full-screen map + draggable **bottom-sheet** list + a List/Map toggle.
 **Wireframe (desktop):**
 ```
@@ -253,18 +257,20 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 > Map-based court finder of a pickleball web app.
 >
 > - Toolbar: places search (sets the map center), a Courts/Games toggle, and a Filters button with an active-filter count
-> - Court results, each with a photo, name, court count and access ("4 courts · Public"), rating and review count ("★4.6 · 32"), and distance ("1.2 mi")
+> - Court results, each with a photo, a save control, name, court count and access ("4 courts · Public"), Indoor/Outdoor and access status labels, rating and review count ("★4.6 · 32"), and distance ("1.2 mi")
 > - Results load more on scroll
 > - Interactive map with location pins, clustered pins showing counts, a selected pin, and zoom / geolocate controls
 > - Map pin popover: a mini court summary with a View link
 > - Result and map pin highlight together on hover
 > - Filters: number of courts, type, access, amenities, surface; plus a "Show N results" action
-> - Games mode: results become event listings with a date stepper and skill filters
+> - Games mode: results become event listings (each with date, title, time, venue, game type and skill range, spots-left or going count, host, and an RSVP action) with a date stepper and skill filters
 >
 > Use the attached visual identity guide to design a view with the above features.
 
 
 ## 4.3 City Directory — `/courts/[country]/[state]/[city]` · ISR(86400) · public · indexable ★money page
+> 🖼️ **View mockup:** [`4.3-city-court-directory.png`](../design/views/4.3-city-court-directory.png)
+
 **Wireframe (desktop):**
 ```
 Home / United States / Kansas / Lenexa                          (breadcrumb)
@@ -296,13 +302,13 @@ Find 5 places to play pickleball in Lenexa, with 23 courts…     (lead)
 > - Breadcrumb (Home / United States / Kansas / Lenexa)
 > - Heading "5 Best Pickleball Courts in Lenexa, KS", a lead sentence ("Find 5 places to play pickleball in Lenexa, with 23 courts…"), and a city stat line
 > - Courts/Games toggle and a Filters button
-> - Court results ranked by popularity, each with a photo, save control, name, court count, distance, Indoor/Outdoor and access labels, and rating
+> - Court results ranked by popularity, each with a photo, save control, name, court count, distance, Indoor/Outdoor and access labels, and rating with review count
 > - Map of the listed courts
-> - "Upcoming games in Lenexa" — event listings
-> - "Tournaments & leagues in Lenexa" — event listings
+> - "Upcoming games in Lenexa" — event listings, each with date, title, time and timezone, venue, game type and skill range, spots-left or going count, host, status, and an RSVP action
+> - "Tournaments & leagues in Lenexa" — event listings, each with date, name, venue, format/type, skill range, fee ("From $X"), spots left, and a registration status label
 > - "Popular searches" — filter options (Indoor, Lighted, Dedicated, Free)
 > - In-feed advertisement slot
-> - "Nearby cities to play" — city links
+> - "Nearby cities to play" — city links, each with a place name and counts (locations · courts · games)
 > - City FAQ accordion
 > - Footer advertisement slot
 > - Site footer
@@ -324,7 +330,7 @@ Breadcrumb + H1 + intro + **child grid** + map + interlink.
 > - Breadcrumb (Home / United States / Kansas)
 > - Heading "Pickleball Courts in Kansas" with a short intro
 > - City links, each with a city name and counts ("454 courts · 511 games"), ordered by court count
-> - "Top courts in Kansas" — court listings
+> - "Top courts in Kansas" — court listings, each with a photo, name, court count, distance, Indoor/Outdoor and access labels, and rating with review count
 > - Map with city pins
 > - Neighboring-state links
 > - Site footer
@@ -333,6 +339,8 @@ Breadcrumb + H1 + intro + **child grid** + map + interlink.
 
 
 ## 4.5 Court Detail — `/courts/[country]/[state]/[city]/[court]` · ISR(3600)+CSR · public · indexable ★crown jewel
+> 🖼️ **View mockup:** [`4.5-court-detail.png`](../design/views/4.5-court-detail.png)
+
 **Layout:** breadcrumb → hero → title band → two columns (wider main + sticky narrower sidebar) → full-width interlink footer.
 **Wireframe (desktop):**
 ```
@@ -387,12 +395,12 @@ Lenexa Community Center               [ Membership ][ Indoor ]
 > - About description
 > - "Surface & Features" checklist (lines, nets, surface materials, indoor/outdoor court counts, lighting, amenities, facility type)
 > - Connect stats (players, games, reviews)
-> - "Upcoming Games" seven-day week schedule: day columns with time/skill game slots and empty slots offering "+ add" to create a game
-> - Reviews: average rating, review count, a rating histogram, sortable reviews, and a "Write a review" action
-> - "Tournaments & leagues here" — event listings
+> - "Upcoming Games" seven-day week schedule: day columns with game slots (each showing time, skill range, and going/RSVP count) and empty slots offering "+ add" to create a game
+> - Reviews: average rating, review count, a rating histogram, a sort control, and review entries — each with the reviewer's avatar and name, star rating, date, body text, attribute tags, a "Helpful" action, and a "verified via check-in" marker where applicable — plus a "Write a review" action
+> - "Tournaments & leagues here" — event listings, each with date, name, venue, format/type, skill range, fee, spots left, and a registration status label
 > - Court FAQ accordion
 > - Location & contact: map with directions, address / phone / website, an "Add an outing" action, and a seven-day weather forecast
-> - Interlink sections: "Nearby courts" and "Nearby cities"
+> - Interlink sections: "Nearby courts" (each court with a photo, name, court count, distance, status labels, and rating) and "Nearby cities" (each with a place name and counts)
 > - Footer
 >
 > Use the attached visual identity guide to design a view with the above features.
@@ -410,7 +418,7 @@ Breadcrumb + H1 ("Indoor Pickleball Courts Near You") + keyword-targeted explain
 > - Breadcrumb
 > - Heading "Indoor Pickleball Courts Near You"
 > - Keyword-focused explainer text
-> - Top indoor courts by city (city links that expand into court listings, or city links to filtered results)
+> - Top indoor courts by city (city links — each with a place name and court count — that expand into court listings with photo, name, court count, distance, status labels, and rating; or city links to filtered results)
 > - "Nearby cities" interlink
 > - FAQ accordion
 > - Footer
@@ -458,7 +466,7 @@ Account shell + main: H1 "My Check-ins" + summary stats (total · favorite court
 > - Heading "My Check-ins"
 > - Summary stats (total check-ins, favorite court, this month)
 > - Filter by court
-> - Check-ins grouped by month, newest first; each entry: a court, the check-in timestamp, and a "Check in again" action
+> - Check-ins grouped by month, newest first; each entry: a court (photo, name, court count, distance, status labels, and rating), the check-in timestamp, and a "Check in again" action
 >
 > Use the attached visual identity guide to design a view with the above features.
 
@@ -468,6 +476,8 @@ Account shell + main: H1 "My Check-ins" + summary stats (total · favorite court
 # PART 6 — PICKLEBALL PROFILE & RATINGS (free)
 
 ## 6.1 Public Player Profile — `/players/[username]` · ISR(3600) · public (privacy-aware) · indexable*
+> 🖼️ **View mockup:** [`6.1-player-profile.png`](../design/views/6.1-player-profile.png)
+
 **Wireframe:**
 ```
 ╔════ cover band ════╗
@@ -544,11 +554,11 @@ Account shell; main = greeting + **quick-action row** (Check In · Create Outing
 > - Account navigation
 > - Personalized greeting
 > - Quick actions: Check In, Create Outing, Host Round Robin, Find Courts
-> - "Next up": nearest upcoming outing or match with a countdown and directions
-> - "Followed courts": their upcoming games
-> - "Your ratings": rating badges with an update link
-> - "Active registrations": a short list
-> - "Recommended": skill-matched games nearby
+> - "Next up": nearest upcoming outing or match with its title, date, time, venue, a countdown, and directions
+> - "Followed courts": their upcoming games (each with date, title, time, venue, skill range, going count, and host)
+> - "Your ratings": rating badges (system and value) with an update link
+> - "Active registrations": a short list (each with event name, date, and registration/payment status)
+> - "Recommended": skill-matched nearby games (each with date, title, time, venue, skill range, going count, host, and an RSVP action)
 > - Empty modules show a prompt and a call to action
 >
 > Use the attached visual identity guide to design a view with the above features.
@@ -598,6 +608,8 @@ Great indoor courts, nets always up. Gets busy after 6pm.
 # PART 8 — CONTENT HUB (free, SEO)
 
 ## 8.1 Content Hub Index — `/learn` · ISR(86400) · indexable
+> 🖼️ **View mockup:** [`8.1-learn-hub.png`](../design/views/8.1-learn-hub.png)
+
 **Wireframe:**
 ```
 Learn Pickleball                                      (H1)
@@ -617,9 +629,9 @@ Guides, rules, strategy & gear — from first dink to tournament day.  (lead)
 >
 > - Heading "Learn Pickleball" with a lead ("Guides, rules, strategy & gear — from first dink to tournament day.")
 > - Guide search field
-> - Featured articles (one lead, two secondary)
+> - Featured articles (one lead, two secondary), each with a thumbnail, category, title, excerpt, author name, read-time, and date
 > - "Browse by topic" with counts (How to Play, Rules, Strategy, Gear, For Beginners)
-> - "Latest" article previews with a "Load more" action
+> - "Latest" article previews (each with a thumbnail, category, title, excerpt, author name, read-time, and date) with a "Load more" action
 > - Newsletter signup
 > - Footer
 >
@@ -627,6 +639,8 @@ Guides, rules, strategy & gear — from first dink to tournament day.  (lead)
 
 
 ## 8.2 Category — `/learn/[category]` · ISR(86400) · indexable
+> 🖼️ **View mockup:** [`8.2-learn-category.png`](../design/views/8.2-learn-category.png)
+
 Breadcrumb + H1 ("Pickleball for Beginners") + keyword-rich intro + sub-topic chips + **ArticleCard grid** + category FAQ + sibling-category links. **SEO:** `BreadcrumbList`+`ItemList`.
 
 **Text to Image Prompt**
@@ -637,7 +651,7 @@ Breadcrumb + H1 ("Pickleball for Beginners") + keyword-rich intro + sub-topic ch
 > - Heading "Pickleball for Beginners"
 > - Keyword-rich intro
 > - Sub-topic filter options
-> - Article previews
+> - Article previews, each with a thumbnail, category, title, excerpt, author name, read-time, and date
 > - Category FAQ accordion
 > - Sibling-category links
 > - Footer
@@ -677,7 +691,7 @@ The Third-Shot Drop: A Complete Guide                   (H1)
 > - Article body: headings, captioned figures, callouts, numbered steps, and a "Key takeaways" box
 > - Local call to action ("Find courts to practice near you")
 > - In-article advertisement slot
-> - "Related guides" — three article previews
+> - "Related guides" — three article previews, each with a thumbnail, category, title, excerpt, author name, read-time, and date
 > - Author bio
 > - Share actions
 > - Footer
@@ -694,7 +708,7 @@ H1 = author name; avatar + bio + credentials (E-E-A-T) + social; **ArticleCard g
 >
 > - Author name as the heading
 > - Avatar with bio, credentials, and social links
-> - The author's article previews
+> - The author's article previews, each with a thumbnail, category, title, excerpt, read-time, and date
 > - Footer
 >
 > Use the attached visual identity guide to design a view with the above features.
@@ -705,6 +719,8 @@ H1 = author name; avatar + bio + credentials (E-E-A-T) + social; **ArticleCard g
 # PART 9 — NEWS HUB (free, SEO + freshness)
 
 ## 9.1 News Index — `/news` · ISR(900) · indexable
+> 🖼️ **View mockup:** [`9.1-news-index.png`](../design/views/9.1-news-index.png)
+
 **Wireframe:**
 ```
 Pickleball News                                       (H1)
@@ -723,9 +739,9 @@ Pickleball News                                       (H1)
 >
 > - Heading "Pickleball News"
 > - Topic filter tabs (All, Pro Tour, Players, Products, Business, Local)
-> - Featured lead story (image, headline, source, "2h ago")
-> - Recent stories
-> - "Latest" article previews, newest first, with relative timestamps and a "Load more" action
+> - Featured lead story (image, headline, source, and relative time "2h ago")
+> - Recent stories, each with a headline, source, and relative time
+> - "Latest" article previews (each with a thumbnail, category, headline, source, and relative timestamp), newest first, with a "Load more" action
 > - Newsletter signup
 > - Footer
 >
@@ -742,7 +758,7 @@ Breadcrumb + H1 ("Pro Tour News") + topic blurb + feed + related evergreen `/lea
 > - Breadcrumb
 > - Heading "Pro Tour News"
 > - Topic blurb
-> - News article previews, newest first
+> - News article previews, newest first, each with a thumbnail, headline, source, and relative timestamp
 > - Related evergreen guide links
 > - Footer
 >
@@ -750,6 +766,8 @@ Breadcrumb + H1 ("Pro Tour News") + topic blurb + feed + related evergreen `/lea
 
 
 ## 9.3 News Article — `/news/[slug]` · ISR(900) · indexable
+> 🖼️ **View mockup:** [`9.3-news-article.png`](../design/views/9.3-news-article.png)
+
 Reading column. Contents: breadcrumb; H1 headline; **dateline** (relative + absolute) + byline/**source attribution** ("via {Source}" → original); hero; body (shorter than evergreen); "Related stories" + "Go deeper" link to an evergreen guide; share. **SEO:** `NewsArticle` JSON-LD; in `news` sitemap.
 
 **Text to Image Prompt**
@@ -771,6 +789,8 @@ Reading column. Contents: breadcrumb; H1 headline; **dateline** (relative + abso
 # PART 10 — OUTINGS (free; recurring & one-off games)
 
 ## 10.1 City Game Finder — `/play/[country]/[state]/[city]` · ISR(3600) · indexable
+> 🖼️ **View mockup:** [`10.1-city-game-finder.png`](../design/views/10.1-city-game-finder.png)
+
 **Wireframe:**
 ```
 Home / US / Kansas / Lenexa / Games                       (breadcrumb)
@@ -806,6 +826,8 @@ Pickleball Games & Open Play in Lenexa, KS                (H1)
 
 
 ## 10.2 Outing Detail — `/outings/[outingId]` · ISR(600)+CSR · public (private=token) · indexable(public)
+> 🖼️ **View mockup:** [`10.2-outing-detail.png`](../design/views/10.2-outing-detail.png)
+
 **Wireframe:**
 ```
 Open Play · Wed Jun 30 · 7:00–9:00 AM CDT                 (eyebrow)
@@ -846,6 +868,8 @@ hosted by ● Ben K.                            [ Share ]
 
 
 ## 10.3 Create / Edit Outing — `/outings/new` (`?edit=`) · CSR wizard · auth
+> 🖼️ **View mockup:** [`10.3-create-outing.png`](../design/views/10.3-create-outing.png)
+
 Centered wizard with a step indicator + sticky footer (Back / Next / Create).
 **Steps:**
 1. **Where** — court combobox (typeahead; "Use my home court"). Selected-court preview. *(If a court is missing, "Add a court" is deferred — see [`court-admin.md`](./court-admin.md).)*
@@ -880,7 +904,7 @@ Account shell; **Tabs: Hosting · Attending**.
 >
 > - Account navigation
 > - Heading "My Outings" with tabs (Hosting, Attending)
-> - Hosting tab: the user's outings with status (event listings)
+> - Hosting tab: the user's outings as event listings, each with date, title, time and timezone, venue, skill range, going/capacity count, and a status label
 > - Per-outing actions (Manage roster, Message attendees, Duplicate, Edit, Cancel)
 >
 > Use the attached visual identity guide to design a view with the above features.
@@ -932,6 +956,8 @@ see standings update as scores come in — in seconds, free.
 
 
 ## 11.2 Create Round Robin — `/round-robin/new` · CSR · no auth required
+> 🖼️ **View mockups:** [`11.2-create-round-robin.png`](../design/views/11.2-create-round-robin.png) · [`11.2-create-round-robin-2.png`](../design/views/11.2-create-round-robin-2.png)
+
 Focused single-screen builder with a **live preview** of the matchup count.
 **Wireframe:**
 ```
@@ -1004,6 +1030,8 @@ Upsell ribbon: "Running this regularly? Turn it into a League with paid signups 
 **States:** **setup** (no scores yet) · **in-progress** · **completed** (champion banner — standings leader or bracket winner — + "Create another"); bye/sit-out rows flagged per round; unclaimed event editable by anyone with the link until claimed. **SEO:** light indexable results page.
 
 ## 11.4 Run Console — `/round-robin/[eventId]/live` · CSR · **noindex**
+> 🖼️ **View mockup:** [`11.4-round-robin-run-console.png`](../design/views/11.4-round-robin-run-console.png)
+
 Operator-optimized, large touch targets (courtside on phone/tablet).
 **Wireframe:**
 ```
@@ -1112,6 +1140,8 @@ Find a Pickleball Tournament                          (H1)
 
 
 ### 12.2.2 Tournament Detail — `/tournaments/[id]` · ISR(600)+CSR · indexable
+> 🖼️ **View mockup:** [`12.2.2-tournament-detail.png`](../design/views/12.2.2-tournament-detail.png)
+
 **Wireframe:**
 ```
 US / Kansas / Lenexa / Tournaments / Lenexa Summer Slam       (breadcrumb)
@@ -1152,6 +1182,8 @@ Lenexa Community Center →  ·  hosted by ● KC Pickle Club
 
 
 ### 12.2.3 Register — `/tournaments/[id]/register` · SSR+Stripe · auth
+> 🖼️ **View mockup:** [`12.2.3-tournament-register.png`](../design/views/12.2.3-tournament-register.png)
+
 Uses §12.1 flow; division pre-selected if arrived from a row. **On-ramp banner** when arriving from a round-robin upsell: "Upgrading your round robin — your roster carried over."
 
 **Text to Image Prompt**
@@ -1167,6 +1199,8 @@ Uses §12.1 flow; division pre-selected if arrived from a row. **On-ramp banner*
 
 
 ### 12.2.4 Live Bracket — `/tournaments/[id]/bracket` · ISR/SSR+CSR · indexable
+> 🖼️ **View mockup:** [`12.2.4-tournament-live-bracket.png`](../design/views/12.2.4-tournament-live-bracket.png)
+
 Division tabs; **bracket tree** (single/double elim: seed, names, scores, winner highlighted, connector lines; horizontal scroll/zoom; pan on mobile); pool-play standings preceding the bracket; live score chips; court assignments + "on deck"; **Display mode**. Read-only public; organizer edits via dashboard. **SEO:** indexable "{tournament} results".
 
 **Text to Image Prompt**
@@ -1183,6 +1217,8 @@ Division tabs; **bracket tree** (single/double elim: seed, names, scores, winner
 
 
 ### 12.2.5 Organizer — Create Tournament — `/organize/tournaments/new` · CSR wizard · auth + Connect
+> 🖼️ **View mockup:** [`12.2.5-organizer-create-tournament.png`](../design/views/12.2.5-organizer-create-tournament.png)
+
 Multi-step wizard (step rail + main + a live **registration-page preview** on wide screens), sticky Save/Next.
 **Steps:** 1 **Basics** (name, venue = court link, dates, description, **cover image** — uploader → S3, crop; placeholder when none). 2 **Divisions** (repeatable: name, skill range, event type MD/WD/MX/Singles, **fee** → Stripe Price, capacity, registration window; duplicate). 3 **Format** (pool→bracket / single / double elim; # courts; court-time estimate). 4 **Registration form** (waiver, custom-field builder, refund policy). 5 **Payments** (Stripe **Connect onboarding** status; fee model toggle absorb vs pass-through; payout account). 6 **Review & publish** (preview public detail + registration page; Publish / Save draft).
 **States:** can't publish until Connect complete + ≥1 division + valid dates; draft autosaves. **On-ramp:** deep-links from `/round-robin/[id]` and outings prefill basics/roster.
@@ -1200,6 +1236,8 @@ Multi-step wizard (step rail + main + a live **registration-page preview** on wi
 
 
 ### 12.2.6 Organizer — Tournament Dashboard — `/organize/tournaments/[id]` · SSR · auth
+> 🖼️ **View mockup:** [`12.2.6-organizer-tournament-dashboard.png`](../design/views/12.2.6-organizer-tournament-dashboard.png)
+
 Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
 - **Registrations** (table: player, division, partner, payment status, date; filters; row actions: refund [Stripe], move division, message; export).
 - **Divisions/Capacity** (edit caps, open/close, waitlist).
@@ -1228,6 +1266,8 @@ Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
 ## 12.3 Leagues (formation + paid registration)
 
 ### 12.3.1 League Hub / Finder — `/leagues` (`/leagues/[c]/[st]/[city]`) · ISR(3600) · indexable
+> 🖼️ **View mockup:** [`12.3.1-league-hub-finder.png`](../design/views/12.3.1-league-hub-finder.png)
+
 **Hub:** hero ("Leagues & ladders on autopilot") + leagues-vs-ladders explainer + 5-step "how it works" (Create → Automate → Format → Live standings → Playoffs) + find-a-league geo finder + **"Run a league"** CTA. **Location finder:** breadcrumb + H1 "Pickleball Leagues in {City}, {ST}" + league EventCards (season dates, weeks, format, skill, From-$, Registering badge, spots) + nearby cities.
 **States:** empty → organizer CTA. **SEO:** `Event`/`ItemList`; targets KW Cat 4 ("leagues near me", high-CPC "league software").
 
@@ -1246,6 +1286,8 @@ Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
 
 
 ### 12.3.2 League Detail — `/leagues/[id]` · ISR(600)+CSR · indexable
+> 🖼️ **View mockup:** [`12.3.2-league-detail.png`](../design/views/12.3.2-league-detail.png)
+
 **Wireframe:**
 ```
 US / KS / Lenexa / Leagues / Wed Night 3.5 Doubles            (breadcrumb)
@@ -1280,6 +1322,8 @@ Wednesday Night 3.5 Doubles League   [ Registering ]
 
 
 ### 12.3.3 Register — `/leagues/[id]/register` · SSR+Stripe · auth
+> 🖼️ **View mockups:** [`12.3.3-league-register.png`](../design/views/12.3.3-league-register.png) · [`12.3.3-league-register-2.png`](../design/views/12.3.3-league-register-2.png)
+
 §12.1 flow + league specifics: choose division/flight; **team vs solo** (register with a partner [invite] OR join the **free-agent pool**); DUPR validation if gated; pay. Confirmation notes the first-match week. **On-ramp:** from outing/round-robin upsell.
 
 **Text to Image Prompt**
@@ -1296,6 +1340,8 @@ Wednesday Night 3.5 Doubles League   [ Registering ]
 
 
 ### 12.3.4 Standings & Schedule — `/leagues/[id]/standings` · ISR/SSR+CSR · indexable
+> 🖼️ **View mockups:** [`12.3.4-league-standings-schedule.png`](../design/views/12.3.4-league-standings-schedule.png) · [`12.3.4-league-standings-schedule-2.png`](../design/views/12.3.4-league-standings-schedule-2.png)
+
 Division tabs + **StandingRow table** (rank, team, W-L, games, points, Δrating, top-3 treatment) + **schedule** accordion by week (matchups, court, time, score; your games highlighted when logged in) + **playoff bracket** post-season + Display mode. **SEO:** indexable "{league} standings".
 
 **Text to Image Prompt**
@@ -1311,6 +1357,8 @@ Division tabs + **StandingRow table** (rank, team, W-L, games, points, Δrating,
 
 
 ### 12.3.5 Organizer — Create League/Ladder — `/organize/leagues/new` · CSR wizard · auth + Connect
+> 🖼️ **View mockup:** [`12.3.5-organizer-create-league-ladder.png`](../design/views/12.3.5-organizer-create-league-ladder.png)
+
 Like §12.2.5 (incl. its **Basics** step — name, description, **cover image** uploader → S3, crop) with league fields: **format select first** (League vs Ladder — sets downstream UI); season (start, # weeks, night/time); **partner mode** (fixed / rotating); divisions/flights (skill bands, caps); scheduling (auto round-robin generation preview; playoff format + bracket size); registration form; payments (Connect, fee model); review & publish. **Ladder branch** swaps "weeks/schedule" for **ladder rules** (challenge range, response window, scoring, movement, skip-week policy, season length). Live preview.
 
 **Text to Image Prompt**
@@ -1328,6 +1376,8 @@ Like §12.2.5 (incl. its **Basics** step — name, description, **cover image** 
 
 
 ### 12.3.6 Organizer — League Dashboard — `/organize/leagues/[id]` · SSR · auth
+> 🖼️ **View mockup:** [`12.3.6-organizer-league-dashboard.png`](../design/views/12.3.6-organizer-league-dashboard.png)
+
 Stat row (Registrations, Revenue, Payout, Weeks elapsed) + Tabs: **Roster/Teams** (assign free agents, divisions), **Schedule** (auto-generate, edit matchups/courts/times, byes/subs), **Standings** (auto from scores; manual override), **Scores** (per-week entry/verify), **Registrations/Payments** (Stripe, refunds), **Messaging** (broadcast/division/team), **Settings**. Ladder variant: **Ladder board** management + challenge oversight. **Data:** LEAGUE/TEAM/REG/WEEK/STANDING.
 
 **Text to Image Prompt**
@@ -1517,7 +1567,7 @@ Account shell; **Tabs: Upcoming · Past**; optional type filter (Tournaments/Lea
 > - Account navigation
 > - Heading "My Registrations" with Upcoming / Past tabs and an event-type filter
 > - "Next up" banner (nearest event with a countdown and a link to its console or detail)
-> - Registration entries (event, status, payment status) with contextual actions (open console, view bracket, receipt, partner status, refund request)
+> - Registration entries — each with the event name and date, registration status, and payment status — with contextual actions (open console, view bracket, receipt, partner status, refund request)
 >
 > Use the attached visual identity guide to design a view with the above features.
 
@@ -1560,7 +1610,7 @@ My Courts                                            (H1)
 >
 > - Account navigation
 > - Heading "My Courts" with tabs (Followed, Recently played, Nearby)
-> - Court entries (name, distance, upcoming-games count, "N checked in today")
+> - Court entries (photo, name, court count, distance, status labels, rating, upcoming-games count, and "N checked in today")
 > - Per-court quick actions (Unfollow, Add an outing)
 >
 > Use the attached visual identity guide to design a view with the above features.
@@ -1975,7 +2025,7 @@ Lenexa Dinkers        [ ● Public ][ 3.0–3.5 ]        [ Join ] (CTA)
 > - Member activity: "Checked in today" among members (with courts and "looking to play")
 > - "Upcoming meet-ups" with inline RSVP
 > - Members roster with status (checked in today / looking to play), admins marked
-> - "Plays at these courts" — court listings
+> - "Plays at these courts" — court listings, each with a photo, name, court count, distance, status labels, and rating
 > - Group info: home courts, skill band, member / admin counts, Invite members, and Manage (for admins)
 > - Other groups in the city
 > - Footer
