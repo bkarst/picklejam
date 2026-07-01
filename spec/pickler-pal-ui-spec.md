@@ -12,6 +12,8 @@
 >
 > **Per-view annotations** (Render/Auth/Indexable) match the PRD master view index (§11). Each view lists **States** because they're part of a complete build. **Data bindings** name the PRD §9 entity/attribute behind each element.
 
+> **🎨 Text-to-image prompts (added per page-level view):** Every standalone view below carries a **Text to Image Prompt** — a bulleted list of that screen's features, content, and actions (no visual or appearance details), ending with: *“Use the attached visual identity guide to design a view with the above features.”* Pair each prompt with the brand / visual identity guide (`design/brand-identity-guide.md`) when generating; layout and all styling are the guide's job.
+
 ---
 
 # PART 1 — PRODUCT & LAYOUT FOUNDATIONS
@@ -205,6 +207,26 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 **Data:** stat chips ← city `counts`; rails ← outings (GSI2); directory ← CITY/STATE items; checked-in-today ← `checkinsTodayCount` / `CITYDAY#` rollup.
 **SEO:** title "Find Pickleball Courts, Games & Tournaments Near You | PicklerPal"; `WebSite`+`Organization`+`FAQPage` JSON-LD.
 
+**Text to Image Prompt**
+
+> Homepage of a pickleball discovery web app (find courts, games, and tournaments near you).
+>
+> - Top navigation: logo, primary menus (Play, Compete, Learn, Organize), a global search field, and Log in / Sign up
+> - Headline "Find pickleball near you"
+> - Primary search bar (search courts, cities, or games) with a Search button
+> - Geo-based stat links ("24 courts near you", "50 games this week", "See all in Lenexa")
+> - "Upcoming games near you" — nearby upcoming game listings with a "See all games" link
+> - "Checked in today" — a same-day check-in count for the metro
+> - Three organizer entry points (Round Robin, Leagues, Tournaments), each with a one-line description and a button
+> - Programmatic directory with tabs (Cities, States, Countries, Court Types, Amenities); city links, each with a place name and counts ("158 locations · 454 courts · 511 games")
+> - "Learn & news" — three article previews and a "Browse all guides" link
+> - Stats section — four headline numbers (members, courts, cities, games)
+> - FAQ accordion
+> - Footer with link columns and a newsletter signup
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 4.2 Map Finder — `/search` · CSR · public · **noindex**
 **Layout:** full-height app shell. Two panes: **list** (narrower) + **map** (wider). Mobile: full-screen map + draggable **bottom-sheet** list + a List/Map toggle.
 **Wireframe (desktop):**
@@ -225,6 +247,22 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 **States:** loading → list skeletons + map placeholder; empty → "No courts in this area — zoom out or search a different place"; geo denied → prompt to search a place.
 **Responsive:** bottom-sheet list; filters as full-screen sheet.
 **Data:** geohash GSI radius (PRD §9.7); Games mode = CITYGAME GSI by date.
+
+**Text to Image Prompt**
+
+> Map-based court finder of a pickleball web app.
+>
+> - Toolbar: places search (sets the map center), a Courts/Games toggle, and a Filters button with an active-filter count
+> - Court results, each with a photo, name, court count and access ("4 courts · Public"), rating and review count ("★4.6 · 32"), and distance ("1.2 mi")
+> - Results load more on scroll
+> - Interactive map with location pins, clustered pins showing counts, a selected pin, and zoom / geolocate controls
+> - Map pin popover: a mini court summary with a View link
+> - Result and map pin highlight together on hover
+> - Filters: number of courts, type, access, amenities, surface; plus a "Show N results" action
+> - Games mode: results become event listings with a date stepper and skill filters
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 4.3 City Directory — `/courts/[country]/[state]/[city]` · ISR(86400) · public · indexable ★money page
 **Wireframe (desktop):**
@@ -251,12 +289,48 @@ Find 5 places to play pickleball in Lenexa, with 23 courts…     (lead)
 **Data:** courts GSI2 by city; rails GSI2; nearby from city item.
 **SEO:** `BreadcrumbList`+`ItemList`+`FAQPage`; self-canonical; in `cities` sitemap.
 
+**Text to Image Prompt**
+
+> City court-directory page of a pickleball web app.
+>
+> - Breadcrumb (Home / United States / Kansas / Lenexa)
+> - Heading "5 Best Pickleball Courts in Lenexa, KS", a lead sentence ("Find 5 places to play pickleball in Lenexa, with 23 courts…"), and a city stat line
+> - Courts/Games toggle and a Filters button
+> - Court results ranked by popularity, each with a photo, save control, name, court count, distance, Indoor/Outdoor and access labels, and rating
+> - Map of the listed courts
+> - "Upcoming games in Lenexa" — event listings
+> - "Tournaments & leagues in Lenexa" — event listings
+> - "Popular searches" — filter options (Indoor, Lighted, Dedicated, Free)
+> - In-feed advertisement slot
+> - "Nearby cities to play" — city links
+> - City FAQ accordion
+> - Footer advertisement slot
+> - Site footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 4.4 State / Country / Hub — `/courts/[country]/[state]`, `/courts/[country]`, `/courts` · ISR(86400) · indexable
 Breadcrumb + H1 + intro + **child grid** + map + interlink.
 - **State:** H1 "Pickleball Courts in {State}"; CityCard grid (by court count); "Top courts in {State}" rail; state map (city pins); neighboring-state links.
 - **Country:** StateCard grid; top-cities rail; country map.
 - **Hub (`/courts`):** CountryCard grid; "Most popular cities" rail; global totals band.
 **States:** standard empty/loading. **Responsive:** grids 4→2→1. **SEO:** `BreadcrumbList`+`ItemList`; states/countries sitemaps.
+
+**Text to Image Prompt**
+
+> State-level pickleball directory page of a web app (the country and hub variants share this structure, listing states or countries instead of cities).
+>
+> - Breadcrumb (Home / United States / Kansas)
+> - Heading "Pickleball Courts in Kansas" with a short intro
+> - City links, each with a city name and counts ("454 courts · 511 games"), ordered by court count
+> - "Top courts in Kansas" — court listings
+> - Map with city pins
+> - Neighboring-state links
+> - Site footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 4.5 Court Detail — `/courts/[country]/[state]/[city]/[court]` · ISR(3600)+CSR · public · indexable ★crown jewel
 **Layout:** breadcrumb → hero → title band → two columns (wider main + sticky narrower sidebar) → full-width interlink footer.
@@ -301,10 +375,48 @@ Lenexa Community Center               [ Membership ][ Indoor ]
 **Data:** COURT/META (name, slug, counts, ratingAvg, photos, address, amenities); CHECKIN live; outings via court pointer; reviews; weather (external).
 **SEO:** title "Play Pickleball at {Court}: Courts, Schedule & Reviews | PicklerPal"; `SportsActivityLocation`+`AggregateRating`+`FAQPage`+`BreadcrumbList`; in `courts` sitemap.
 
+**Text to Image Prompt**
+
+> Court-detail page of a pickleball web app (the primary destination page).
+>
+> - Breadcrumb (Home / US / Kansas / Lenexa / Lenexa Community Center)
+> - Photo gallery of the facility with a save/favorite control
+> - Court name, summary line ("3 courts · Lenexa, KS"), and status labels (access such as Membership, Indoor/Outdoor, Lighted)
+> - Primary actions: Follow and Check In (Check In is the main call to action)
+> - "Checked in today": a count plus member avatars ("6 checked in today — Sarah, +5")
+> - About description
+> - "Surface & Features" checklist (lines, nets, surface materials, indoor/outdoor court counts, lighting, amenities, facility type)
+> - Connect stats (players, games, reviews)
+> - "Upcoming Games" seven-day week schedule: day columns with time/skill game slots and empty slots offering "+ add" to create a game
+> - Reviews: average rating, review count, a rating histogram, sortable reviews, and a "Write a review" action
+> - "Tournaments & leagues here" — event listings
+> - Court FAQ accordion
+> - Location & contact: map with directions, address / phone / website, an "Add an outing" action, and a seven-day weather forecast
+> - Interlink sections: "Nearby courts" and "Nearby cities"
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 4.6 Court-Type & Amenity Landing — `/courts/types/[type]`, `/courts/amenities/[amenity]` · ISR(86400) · indexable
 Breadcrumb + H1 ("Indoor Pickleball Courts Near You") + keyword-targeted explainer + **geo-segmented lists** ("Top {type} courts by city" — CityCards expanding to CourtCards, or a city grid linking to filtered city views) + nearby-cities interlink + FAQ. **Data:** filter on court attribute. **SEO:** `ItemList`+`BreadcrumbList`; targets KW Cat 2–3 low-comp cluster.
 
 > **Add a Court · Suggest an Edit · Claim a Court — deferred.** Crowdsourced court contribution and facility self-service are **not in the initial build** (the directory ships seeded by bulk import). These views, their data schema, and the admin moderation tool are specced separately in [`court-admin.md`](./court-admin.md). The launched product treats courts as read-only directory data — the related CTAs (add/edit/claim/add-photo) are intentionally absent here and re-attach when that PRD ships (see its §6).
+
+**Text to Image Prompt**
+
+> Court-type landing page of a pickleball web app (for example, indoor courts).
+>
+> - Breadcrumb
+> - Heading "Indoor Pickleball Courts Near You"
+> - Keyword-focused explainer text
+> - Top indoor courts by city (city links that expand into court listings, or city links to filtered results)
+> - "Nearby cities" interlink
+> - FAQ accordion
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -338,6 +450,19 @@ Account shell + main: H1 "My Check-ins" + summary stats (total · favorite court
 **States:** empty → "You haven't checked in yet — find a court near you" + [ Find courts ]; loading skeleton rows.
 **Responsive:** account nav collapses to top tabs/select. **Data:** CHECKIN via GSI1 USER#uid.
 
+**Text to Image Prompt**
+
+> "My Check-ins" account page of a pickleball web app.
+>
+> - Account navigation (Dashboard, Profile & Ratings, Check-ins [current], Outings, Registrations, Payments, Help, Log out)
+> - Heading "My Check-ins"
+> - Summary stats (total check-ins, favorite court, this month)
+> - Filter by court
+> - Check-ins grouped by month, newest first; each entry: a court, the check-in timestamp, and a "Check in again" action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ---
 
 # PART 6 — PICKLEBALL PROFILE & RATINGS (free)
@@ -360,6 +485,20 @@ Account shell + main: H1 "My Check-ins" + summary stats (total · favorite court
 **States:** own profile → "Edit profile"; sparse profile hides empty sections.
 **SEO:** `Person` JSON-LD (sport-scoped); `noindex` when private.
 
+**Text to Image Prompt**
+
+> Public player profile page of a pickleball web app.
+>
+> - Player avatar, display name ("Ben K."), and city ("Lenexa, KS")
+> - Rating badges per connected system ("DUPR 3.74" with a verified marker, "UTR-P 5.2", "Self 3.5")
+> - Message action
+> - Recent public activity (hosted outings, events played, reviews written)
+> - Light stats (games, win%)
+> - Details: home court, member-since, skill band, achievement badges
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 6.2 Edit Profile & Ratings — `/account/profile` · SSR+CSR · auth · noindex
 Account shell; main = **sectioned form** (cards) + a "Save changes" bar that appears when dirty.
 **Sections:**
@@ -379,9 +518,41 @@ Default rating source:  ( DUPR ▾ )
 **Behavior:** dirty-tracked Save bar (disabled until valid); inline validation; username change warns about URL change; save → button loading → success toast.
 **States:** loading skeleton; conflict (username taken) → field error. **Data:** USER/PROFILE + RATING#<system>.
 
+**Text to Image Prompt**
+
+> "Edit Profile & Ratings" account settings page of a pickleball web app.
+>
+> - Account navigation
+> - Identity: avatar upload with crop, display name, username with a live availability check and a "/players/ben-k" slug preview, gender, home city, home court
+> - Ratings (one entry per system): DUPR with connect/verify and Manage, UTR-P with Edit, WPR/CTPR with Add, a self-rated selector, a default-rating-source selector, and a "How ratings work" link
+> - Contact: multiple emails (one primary), phone, and verification states
+> - Notifications: per-type by per-channel (in-app / email) toggles and quiet hours
+> - Privacy: profile visibility, check-in visibility, and a searchable toggle
+> - "Save changes" bar shown when there are unsaved edits
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 6.3 Member Dashboard — `/account` · SSR · auth · noindex
 Account shell; main = greeting + **quick-action row** (Check In · Create Outing · Host Round Robin · Find Courts) + **module grid** (cards): **Next up** (nearest upcoming outing/match + countdown + directions), **Followed courts** (upcoming games rail), **Your ratings** (RatingBadges + update), **Active registrations** (mini-list), **Recommended** (skill-matched games nearby). Each module links to its full view; empty modules show a prompt + CTA.
 **Responsive:** modules 2-col → 1-col. **Data:** aggregates of user's outings/RSVPs/registrations/follows.
+
+**Text to Image Prompt**
+
+> Member dashboard of a pickleball web app.
+>
+> - Account navigation
+> - Personalized greeting
+> - Quick actions: Check In, Create Outing, Host Round Robin, Find Courts
+> - "Next up": nearest upcoming outing or match with a countdown and directions
+> - "Followed courts": their upcoming games
+> - "Your ratings": rating badges with an update link
+> - "Active registrations": a short list
+> - "Recommended": skill-matched games nearby
+> - Empty modules show a prompt and a call to action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -440,8 +611,39 @@ Guides, rules, strategy & gear — from first dink to tournament day.  (lead)
 ```
 **Contents:** H1 + lead; guide search; **Featured** (1 large + 2 small ArticleCards); **category tiles** (5, with counts) → category pages; **Latest** grid (Load-more); newsletter. **SEO:** `CollectionPage`; title "Learn Pickleball: How-To Guides, Rules & Gear | PicklerPal".
 
+**Text to Image Prompt**
+
+> "Learn" content hub index of a pickleball web app.
+>
+> - Heading "Learn Pickleball" with a lead ("Guides, rules, strategy & gear — from first dink to tournament day.")
+> - Guide search field
+> - Featured articles (one lead, two secondary)
+> - "Browse by topic" with counts (How to Play, Rules, Strategy, Gear, For Beginners)
+> - "Latest" article previews with a "Load more" action
+> - Newsletter signup
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 8.2 Category — `/learn/[category]` · ISR(86400) · indexable
 Breadcrumb + H1 ("Pickleball for Beginners") + keyword-rich intro + sub-topic chips + **ArticleCard grid** + category FAQ + sibling-category links. **SEO:** `BreadcrumbList`+`ItemList`.
+
+**Text to Image Prompt**
+
+> Content category page of a pickleball web app.
+>
+> - Breadcrumb
+> - Heading "Pickleball for Beginners"
+> - Keyword-rich intro
+> - Sub-topic filter options
+> - Article previews
+> - Category FAQ accordion
+> - Sibling-category links
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 8.3 Article — `/learn/[category]/[slug]` · ISR(86400) MDX · indexable
 **Layout:** centered reading column + optional sticky TOC rail on wide screens.
@@ -463,8 +665,40 @@ The Third-Shot Drop: A Complete Guide                   (H1)
 **Contents:** breadcrumb; H1; byline (author link + "Updated {date}" + read-time); hero; **TOC** (from H2s, scroll-spy on wide screens, accordion otherwise); body (styled headings, captioned figures, video embeds, callouts, step lists, score tables); **Key takeaways** box; **local CTA** ("Find courts near you" → geo city page); **Related guides**; author bio; share row. Comments off (v1).
 **SEO:** `Article`+author `Person`+`BreadcrumbList` (+`FAQPage` where Q/A present); in `content` sitemap.
 
+**Text to Image Prompt**
+
+> Long-form article page of a pickleball web app.
+>
+> - Breadcrumb (Home / Learn / Strategy / Third-Shot Drop)
+> - Title "The Third-Shot Drop: A Complete Guide"
+> - Byline (author with avatar, "Updated Jun 2026", "8 min read")
+> - Lead image
+> - Table of contents ("On this page") that tracks the reading position
+> - Article body: headings, captioned figures, callouts, numbered steps, and a "Key takeaways" box
+> - Local call to action ("Find courts to practice near you")
+> - In-article advertisement slot
+> - "Related guides" — three article previews
+> - Author bio
+> - Share actions
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 8.4 Author — `/learn/authors/[author]` · ISR · indexable
 H1 = author name; avatar + bio + credentials (E-E-A-T) + social; **ArticleCard grid** of their posts. `ProfilePage`+`Person`.
+
+**Text to Image Prompt**
+
+> Author profile page of a pickleball web app.
+>
+> - Author name as the heading
+> - Avatar with bio, credentials, and social links
+> - The author's article previews
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -483,11 +717,56 @@ Pickleball News                                       (H1)
 ```
 **Contents:** H1; **topic filter tabs** (→ topic pages); **lead story** (large) + side list of recent; **Latest** feed (reverse-chron, Load-more); newsletter. Relative dates ("2h ago"). **SEO:** `CollectionPage`; Google News sitemap.
 
+**Text to Image Prompt**
+
+> Pickleball news index page of a web app.
+>
+> - Heading "Pickleball News"
+> - Topic filter tabs (All, Pro Tour, Players, Products, Business, Local)
+> - Featured lead story (image, headline, source, "2h ago")
+> - Recent stories
+> - "Latest" article previews, newest first, with relative timestamps and a "Load more" action
+> - Newsletter signup
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 9.2 News Topic — `/news/topics/[topic]` · ISR(900) · indexable
 Breadcrumb + H1 ("Pro Tour News") + topic blurb + feed + related evergreen `/learn` links. `BreadcrumbList`+`ItemList`.
 
+**Text to Image Prompt**
+
+> News topic page of a pickleball web app.
+>
+> - Breadcrumb
+> - Heading "Pro Tour News"
+> - Topic blurb
+> - News article previews, newest first
+> - Related evergreen guide links
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 9.3 News Article — `/news/[slug]` · ISR(900) · indexable
 Reading column. Contents: breadcrumb; H1 headline; **dateline** (relative + absolute) + byline/**source attribution** ("via {Source}" → original); hero; body (shorter than evergreen); "Related stories" + "Go deeper" link to an evergreen guide; share. **SEO:** `NewsArticle` JSON-LD; in `news` sitemap.
+
+**Text to Image Prompt**
+
+> News article page of a pickleball web app.
+>
+> - Breadcrumb
+> - Headline
+> - Dateline (relative and absolute time) with source attribution ("via {Source}")
+> - Lead image
+> - Concise article body
+> - "Related stories" and a "Go deeper" link to an evergreen guide
+> - Share actions
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 # PART 10 — OUTINGS (free; recurring & one-off games)
 
@@ -508,6 +787,23 @@ Pickleball Games & Open Play in Lenexa, KS                (H1)
 **Contents:** H1 "Pickleball Games & Open Play in {City}, {ST}"; **date stepper** (drives query); filters (skill range, indoor, time-of-day, public-only); **EventCard list** for the day + synced mini-map; "Host a game" CTA; nearby-cities interlink.
 **States:** empty day → "No games in {City} on {date} — host the first one" + [ Create outing ] (still renders nearby + host CTA); loading → EventCard skeletons.
 **Responsive:** map collapses; date stepper sticky. **Data:** outings CITYGAME GSI by `city#date`. **SEO:** `ItemList` of `SportsEvent`.
+
+**Text to Image Prompt**
+
+> City game / open-play finder of a pickleball web app.
+>
+> - Breadcrumb (Home / US / Kansas / Lenexa / Games)
+> - Heading "Pickleball Games & Open Play in Lenexa, KS"
+> - Date stepper that drives the results
+> - Filters (skill range, indoor, time of day, public-only)
+> - Event listings for the selected day (date, title, time, venue, skill, capacity like "6/8 going", host, and an RSVP action)
+> - Synced map of game pins
+> - "Host a game in Lenexa" call to action
+> - "Nearby cities" links
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 10.2 Outing Detail — `/outings/[outingId]` · ISR(600)+CSR · public (private=token) · indexable(public)
 **Wireframe:**
@@ -531,6 +827,24 @@ hosted by ● Ben K.                            [ Share ]
 **States:** full → waitlist UI + "N ahead of you"; past → read-only + "View the series"; private → invite-token gate; unauth RSVP → Auth modal then completes (optimistic); host → adds "Manage" → my-outings.
 **Responsive:** sidebar → **sticky bottom RSVP bar**; lists stack. **Data:** OUTING/META + RSVP#; weather external. **SEO:** `SportsEvent`; `/sessions/[id]`→301; public outings in `outings` sitemap.
 
+**Text to Image Prompt**
+
+> Game / outing detail page of a pickleball web app.
+>
+> - Eyebrow line (type, date, time with timezone — "Open Play · Wed Jun 30 · 7:00–9:00 AM CDT")
+> - Title "Morning Open Play at Lenexa Community Center"
+> - Host attribution ("hosted by Ben K.") and a Share action
+> - Venue summary linking to the court
+> - Meta info (skill 2.5–3.5, 8 spots, Open Play)
+> - About description
+> - Weather ("72° Partly cloudy")
+> - "Who's coming (6/8)" with Going / Maybe / Waitlist tabs listing players (avatar, name, skill, guests)
+> - Recurring "This series" block: recurrence summary and next dates
+> - RSVP controls: "Are you going?" (Going / Maybe / Can't), a guest-count stepper, the Going and Waitlist lists, and "Add to calendar"
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 10.3 Create / Edit Outing — `/outings/new` (`?edit=`) · CSR wizard · auth
 Centered wizard with a step indicator + sticky footer (Back / Next / Create).
 **Steps:**
@@ -542,11 +856,35 @@ Centered wizard with a step indicator + sticky footer (Back / Next / Create).
 **Free→paid nudge** (Review step): "Collecting money or running a season? **Turn this into a League →**" (→ `/organize/leagues/new`, carries court + roster).
 **States:** per-step validation; edit mode pre-fills + warns when changing time after RSVPs exist (notifies attendees); recurring edit → "this occurrence / whole series". **Data:** writes OUTING (+ SERIES master) + court OUTINGREF.
 
+**Text to Image Prompt**
+
+> "Create a game" wizard of a pickleball web app.
+>
+> - Step indicator (Where, When, Details, Visibility & invites, Review) with the "When" step active
+> - Date and start/end time inputs
+> - Repeat option (Doesn't repeat / Weekly / Biweekly / Custom) that reveals day-of-week selectors and an end condition
+> - Back and Next actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 10.4 My Outings — `/account/outings` · SSR · auth · noindex
 Account shell; **Tabs: Hosting · Attending**.
 - **Hosting:** your outings (EventCard + status) with an actions menu (Manage roster, Message attendees, Duplicate, Edit, Cancel). **Manage roster** → drawer: Going/Maybe/Waitlist lists, promote from waitlist, remove, add guest, export, broadcast composer.
 - **Attending:** your RSVPs (upcoming/past) with "Change RSVP" + "Add to calendar".
 **States:** empty per tab → prompt + CTA. **Data:** GSI1 USER#uid (OUTING# / RSVP#).
+
+**Text to Image Prompt**
+
+> "My Outings" account page of a pickleball web app.
+>
+> - Account navigation
+> - Heading "My Outings" with tabs (Hosting, Attending)
+> - Hosting tab: the user's outings with status (event listings)
+> - Per-outing actions (Manage roster, Message attendees, Duplicate, Edit, Cancel)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -574,6 +912,25 @@ see standings update as scores come in — in seconds, free.
 ```
 **Contents:** hero (H1, value prop, **Create** CTA, product preview/demo); **format gallery** — the 8 presets (PRD §6.8); each card opens an **explainer** (how it plays, partners fixed/rotating, ideal player & court count, best-for); **how it works** (4 steps); **format quiz** entry (§11.5); testimonials; **paid cross-sell** band (Pool→Bracket and recurring play → Tournaments/Leagues); FAQ. **SEO:** title "Free Pickleball Round Robin Generator | PicklerPal"; `SoftwareApplication`+`FAQPage`.
 
+**Text to Image Prompt**
+
+> Landing page for a free pickleball round-robin generator tool.
+>
+> - Headline "Free Pickleball Round Robin Generator"
+> - Value proposition ("Ditch the spreadsheet. Generate matchups, enter scores, see standings update — in seconds, free.")
+> - "Create a round robin" call to action
+> - Product preview / demo
+> - "8 fun formats" (Singles RR, Team RR, Mixer, Popcorn, Up & Down the River, King of the Court, Gauntlet, Pool→Bracket), each with a name and a one-line description
+> - "How it works" — four steps (Add players, Pick format, Play & score, Standings)
+> - Format-quiz entry ("Take the 20-sec quiz")
+> - Testimonials
+> - Paid cross-sell (Run a Tournament, Run a League)
+> - FAQ
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 11.2 Create Round Robin — `/round-robin/new` · CSR · no auth required
 Focused single-screen builder with a **live preview** of the matchup count.
 **Wireframe:**
@@ -594,12 +951,46 @@ Preview: 7 rounds · 21 matches · ~7 games each · 2 sit per round · ~75 min
 **Contents:** event name; **player entry** (inline chips, optional rating each; "Paste a list"; "Import from past event" if logged in); court stepper; **format select** (+ explainer) — the control set **adapts to the format**: partner mode (doubles), **time cap** (foregrounded for court-movement), **seeding** (rating/random; required for Swiss/Pool), **pools + advance count** (Pool→Bracket); **scoring** (to 11/15/21, win-by, optional hard cap); **rounds** (auto/manual — auto = full design for RR/Mixer, `⌈log₂N⌉` for Swiss); a **format-aware live preview** (rounds · matches · games-each · sit-outs/round · est. duration) recomputed on change; **Generate** CTA; optional "Save to my account" (light signup after generate, never blocks).
 **States:** below the format's minimum → Generate disabled + hint; **per-format constraint validation** (fixed partners need an even count; court movement wants ≈ 4×courts → else a rotating sub box; Swiss needs ≥ 2×rounds players; Pool→Bracket needs ≥ 2 pools × bracket size) + soft warnings (mixer past balanced-table coverage → "we'll auto-balance"). **No auth gate** — the critical low-friction moment.
 
+**Text to Image Prompt**
+
+> Round-robin builder screen of a pickleball web app.
+>
+> - Heading "New Round Robin"
+> - Event-name field
+> - Player entry: removable player chips, an inline add, a "Paste a list" option, and an optional per-player rating
+> - Courts stepper
+> - Format selector (e.g., Popcorn) with a partners mode (Rotate / Fixed)
+> - Scoring controls (points to win, win-by, optional time cap)
+> - Rounds selector
+> - Live preview of the generated event ("7 rounds · 21 matches · ~7 games each · 2 sit per round · ~75 min")
+> - "Generate round robin" action
+> - Optional "Save to my account"
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 11.3 Round Robin Event (public/shareable) — `/round-robin/[eventId]` · ISR/SSR · public · indexable
 **Wireframe:**
 ```
 Tuesday Night RR · Popcorn · 8 players · 3 courts        [ Share ][ ▶ Run / Score ]
 ( Standings | Schedule )
 STANDINGS                                              [ Display on TV ]
+
+**Text to Image Prompt**
+
+> Shareable round-robin event page of a pickleball web app.
+>
+> - Header: event name, format, and counts ("Tuesday Night RR · Popcorn · 8 players · 3 courts")
+> - Share and "Run / Score" actions
+> - Standings / Schedule tabs
+> - Standings table (rank, player, W-L, points, point differential) with the top three emphasized
+> - "Display on TV" action
+> - Schedule: a round selector, and per-court matchups with scores
+> - Persistent upsell to turn the event into a paid league
+> - State: in progress, with some scores entered
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 # Player        W-L   Pts   +/-
 1 ● Cara        6-1   88   +22
 2 ● Bob         5-2   80   +12
@@ -626,6 +1017,22 @@ Sitting this round: ● Ivy ● Jed                      (bye / sub box)
 **Contents:** round header + pager + timer; per-court **score steppers** (large +/- or keypad), save per match (any player can enter); **bye/sub box** (who's sitting; for court movement, the waiting box); **late-arrival add** + **drop**; **"End round → next"** — static formats reveal the preset next round, **dynamic** formats compute it (E3 reassigns courts/partners by movement, E4 pairs by record, E5 builds the bracket; §6.8); standings drawer; court reassignment. Optimistic writes; offline-tolerant (queue + sync).
 **States:** unsaved scores flagged; **conflict resolution** if two enter different scores (flagged → pick one); incomplete round warns before advancing; "all rounds done → **Crown champion**". **Data:** RR# items (ENTRANT / ROUND#META / ROUND#MATCH / STANDING; §9.3).
 
+**Text to Image Prompt**
+
+> Courtside run / score console of a pickleball round-robin tool (tablet).
+>
+> - Round header ("Round 3 / 7") with previous / next round controls
+> - Add-late-player and drop controls
+> - Round timer
+> - Per-court rows: the two sides and a score entry with increment / decrement controls and a save action (e.g., "Court 1 — Ann/Bob 11 – 7 Cara/Dan")
+> - "Sitting this round" — players on bye
+> - "End round → next" action
+> - Access to standings
+> - State: a round in progress
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 11.5 Format Quiz — `/round-robin/quiz` · CSR · no auth · indexable (light)
 > Referenced by Round Robin Landing "Take the 20-sec quiz."
 **Wireframe:**
@@ -642,6 +1049,18 @@ Alternatives: Gauntlet · Pool Play
 ```
 **Contents/behavior:** short question set (**player count** · **competitive vs social** · **fixed vs rotating partners** · **# courts** · **time available**); progress indicator; back-navigable; **result card** (recommended preset + why + alternatives) mapped to the §6.8 gallery — e.g. social + rotating → **Popcorn / Mixer**; many players + many courts + short games → **Up & Down the River**; fixed partners + competitive → **Team RR** or **Gauntlet** (Swiss); want a champion/bracket → **Pool Play → Bracket**; CTA deep-links to `/round-robin/new` **prefilled** with the chosen format + params.
 **States:** mid-quiz · result · restart. **SEO:** light indexable landing ("how to pick a pickleball round robin format").
+
+**Text to Image Prompt**
+
+> Round-robin format quiz of a pickleball web app.
+>
+> - Heading "Find your perfect round robin format"
+> - Question progress indicator ("Question 1 of 4")
+> - Current question ("How many players?") with single-select options (4–8 / 9–16 / 17+)
+> - Back and Next actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -677,6 +1096,21 @@ Find a Pickleball Tournament                          (H1)
 **Location finder** (`…/[city]`): breadcrumb + H1 "Pickleball Tournaments in {City}, {ST}" + upcoming EventCards (date, venue→court, divisions, From-$ fee, spots / Registering badge) + nearby cities.
 **States:** empty → "No tournaments in {City} yet — host one" + organizer CTA. **SEO:** `ItemList` of `Event`+`Offer`; targets KW Cat 4 (+900% "tournaments near me").
 
+**Text to Image Prompt**
+
+> Tournament finder of a pickleball web app.
+>
+> - Heading "Find a Pickleball Tournament"
+> - Search row (city or venue, date, skill)
+> - "Featured / upcoming" event listings (date, name, venue, divisions, "From $25", spots left, and a Registering status label)
+> - "Tournaments near you" with a map
+> - "Run your own tournament" promo with a "Create a tournament" action
+> - FAQ
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.2.2 Tournament Detail — `/tournaments/[id]` · ISR(600)+CSR · indexable
 **Wireframe:**
 ```
@@ -700,16 +1134,70 @@ Lenexa Community Center →  ·  hosted by ● KC Pickle Club
 **Contents:** breadcrumb; title + **status badge** + dates; venue (→ court) + organizer; About/format/rules; **Divisions table** (name, skill, event type, fee, spots left / Full→waitlist, per-row **Register**); schedule; venue card (map, weather); **bracket/results link**; refund policy; organizer message. **Sidebar:** From-$ fee, deadline countdown, **Register** CTA (anchors to division select), what's-included, refund link.
 **States:** not-yet-open ("Registration opens {date}" + remind-me); closed ("Registration closed" + bracket link); full divisions → waitlist. **SEO:** `Event`+`Offer`; in `tournaments` sitemap.
 
+**Text to Image Prompt**
+
+> Tournament detail page of a pickleball web app.
+>
+> - Breadcrumb
+> - Title "Lenexa Summer Slam 2026" with a Registering status label and dates ("Jul 18–19")
+> - Venue link and organizer
+> - About / format / rules
+> - Divisions table (division, skill, event type, fee, spots left, and a per-row Register action — e.g., "Men's 3.5 · MD · $30 · 4/16", "Women's 3.0 · full")
+> - Schedule
+> - Venue summary with map and weather
+> - Bracket / results link
+> - Registration: from-price fee, registration deadline, a Register action, a what's-included list, and a refund-policy link
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.2.3 Register — `/tournaments/[id]/register` · SSR+Stripe · auth
 Uses §12.1 flow; division pre-selected if arrived from a row. **On-ramp banner** when arriving from a round-robin upsell: "Upgrading your round robin — your roster carried over."
 
+**Text to Image Prompt**
+
+> Tournament registration checkout of a pickleball web app.
+>
+> - Three-step progress indicator (Select, Details, Payment) with the Payment step active
+> - Fee summary (entry fee, service fee, total)
+> - Card-entry (Stripe) element
+> - Pay-and-register action ("Pay $30 & register")
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.2.4 Live Bracket — `/tournaments/[id]/bracket` · ISR/SSR+CSR · indexable
 Division tabs; **bracket tree** (single/double elim: seed, names, scores, winner highlighted, connector lines; horizontal scroll/zoom; pan on mobile); pool-play standings preceding the bracket; live score chips; court assignments + "on deck"; **Display mode**. Read-only public; organizer edits via dashboard. **SEO:** indexable "{tournament} results".
+
+**Text to Image Prompt**
+
+> Live tournament bracket page of a pickleball web app.
+>
+> - Division tabs
+> - Single / double-elimination bracket with seeds, player names, scores, advancement lines, and the winner of each match indicated
+> - Live score chips and court assignments
+> - Display mode action
+> - State: matches in progress
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ### 12.2.5 Organizer — Create Tournament — `/organize/tournaments/new` · CSR wizard · auth + Connect
 Multi-step wizard (step rail + main + a live **registration-page preview** on wide screens), sticky Save/Next.
 **Steps:** 1 **Basics** (name, venue = court link, dates, description, **cover image** — uploader → S3, crop; placeholder when none). 2 **Divisions** (repeatable: name, skill range, event type MD/WD/MX/Singles, **fee** → Stripe Price, capacity, registration window; duplicate). 3 **Format** (pool→bracket / single / double elim; # courts; court-time estimate). 4 **Registration form** (waiver, custom-field builder, refund policy). 5 **Payments** (Stripe **Connect onboarding** status; fee model toggle absorb vs pass-through; payout account). 6 **Review & publish** (preview public detail + registration page; Publish / Save draft).
 **States:** can't publish until Connect complete + ≥1 division + valid dates; draft autosaves. **On-ramp:** deep-links from `/round-robin/[id]` and outings prefill basics/roster.
+
+**Text to Image Prompt**
+
+> Organizer wizard to create a tournament in a pickleball web app.
+>
+> - Step rail (Basics, Divisions, Format, Registration form, Payments, Review & publish) with the Divisions step active
+> - Repeatable division rows (name, skill range, event type, fee, capacity, registration window) with a duplicate control
+> - Live preview of the public registration page
+> - Save / Next actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ### 12.2.6 Organizer — Tournament Dashboard — `/organize/tournaments/[id]` · SSR · auth
 Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
@@ -722,6 +1210,19 @@ Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
 - **Settings** (edit detail, refund policy, cancel event → triggers refunds).
 **States:** pre-publish draft banner; refund confirm modal (amount, reason). **Data:** TOURNEY/DIVISION/REG/BRACKET + Stripe.
 
+**Text to Image Prompt**
+
+> Organizer tournament dashboard of a pickleball web app.
+>
+> - Stats: Registrations, Revenue, Payout pending, Spots left
+> - Tabs (Registrations, Divisions/Capacity, Seeding & Bracket, Schedule, Payments, Messaging, Settings) with the Registrations tab active
+> - Registrants table (player, division, partner, payment status, date) with filters
+> - Per-row actions (refund, move division, message)
+> - Export action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ---
 
 ## 12.3 Leagues (formation + paid registration)
@@ -729,6 +1230,20 @@ Top **stat row** (Registrations, Revenue, Payout pending, Spots left) + Tabs:
 ### 12.3.1 League Hub / Finder — `/leagues` (`/leagues/[c]/[st]/[city]`) · ISR(3600) · indexable
 **Hub:** hero ("Leagues & ladders on autopilot") + leagues-vs-ladders explainer + 5-step "how it works" (Create → Automate → Format → Live standings → Playoffs) + find-a-league geo finder + **"Run a league"** CTA. **Location finder:** breadcrumb + H1 "Pickleball Leagues in {City}, {ST}" + league EventCards (season dates, weeks, format, skill, From-$, Registering badge, spots) + nearby cities.
 **States:** empty → organizer CTA. **SEO:** `Event`/`ItemList`; targets KW Cat 4 ("leagues near me", high-CPC "league software").
+
+**Text to Image Prompt**
+
+> Leagues finder of a pickleball web app.
+>
+> - Heading "Leagues & ladders on autopilot"
+> - Leagues-vs-ladders explainer
+> - "How it works" — five steps (Create, Automate, Format, Live standings, Playoffs)
+> - League finder: event listings (season dates, weeks, format, skill, "From $X", a Registering status label, spots)
+> - "Run a league" action
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ### 12.3.2 League Detail — `/leagues/[id]` · ISR(600)+CSR · indexable
 **Wireframe:**
@@ -748,17 +1263,83 @@ Wednesday Night 3.5 Doubles League   [ Registering ]
 **Contents:** title + status badge; season length/start + venue + organizer; About/format/partner-mode/skill/divisions; **schedule overview** (week list); **standings preview** (→ full standings); rules + refund; **sidebar** fee, deadline countdown, **Register** CTA, included, message.
 **States:** registering / opens-soon / full (free-agent waitlist) / in-progress (→ standings + "join interest list") / completed (champion + archive). **SEO:** `Event`+`Offer`; in `leagues` sitemap.
 
+**Text to Image Prompt**
+
+> League detail page of a pickleball web app.
+>
+> - Breadcrumb
+> - Title "Wednesday Night 3.5 Doubles League" with a Registering status label
+> - Summary ("8 weeks · starts Jul 9 · Lenexa CC") and organizer
+> - About / format / partner-mode / skill
+> - Schedule overview of the weeks
+> - Standings preview (top 5) linking to full standings
+> - Rules and refund policy
+> - Registration: "$80 / player", registration deadline and spots, a Register action, a what's-included list, and a message-organizer link
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.3.3 Register — `/leagues/[id]/register` · SSR+Stripe · auth
 §12.1 flow + league specifics: choose division/flight; **team vs solo** (register with a partner [invite] OR join the **free-agent pool**); DUPR validation if gated; pay. Confirmation notes the first-match week. **On-ramp:** from outing/round-robin upsell.
+
+**Text to Image Prompt**
+
+> League registration checkout of a pickleball web app.
+>
+> - Three-step progress indicator (Select, Details, Payment) with the Select step active
+> - Division / flight options
+> - Team-vs-solo choice (register with a partner via a player search, or join the free-agent pool)
+> - Fee line
+> - Continue action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ### 12.3.4 Standings & Schedule — `/leagues/[id]/standings` · ISR/SSR+CSR · indexable
 Division tabs + **StandingRow table** (rank, team, W-L, games, points, Δrating, top-3 treatment) + **schedule** accordion by week (matchups, court, time, score; your games highlighted when logged in) + **playoff bracket** post-season + Display mode. **SEO:** indexable "{league} standings".
 
+**Text to Image Prompt**
+
+> League standings and schedule page of a pickleball web app.
+>
+> - Division tabs
+> - Standings table (rank, team, W-L, games, points, rating change) with the top three emphasized
+> - Week-by-week schedule (matchups, court, time, score)
+> - Display mode action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.3.5 Organizer — Create League/Ladder — `/organize/leagues/new` · CSR wizard · auth + Connect
 Like §12.2.5 (incl. its **Basics** step — name, description, **cover image** uploader → S3, crop) with league fields: **format select first** (League vs Ladder — sets downstream UI); season (start, # weeks, night/time); **partner mode** (fixed / rotating); divisions/flights (skill bands, caps); scheduling (auto round-robin generation preview; playoff format + bracket size); registration form; payments (Connect, fee model); review & publish. **Ladder branch** swaps "weeks/schedule" for **ladder rules** (challenge range, response window, scoring, movement, skip-week policy, season length). Live preview.
 
+**Text to Image Prompt**
+
+> Organizer wizard to create a league or ladder in a pickleball web app.
+>
+> - Step rail
+> - Format step: choose League vs Ladder
+> - League fields (season start, number of weeks, night/time, partner mode fixed/rotating, and divisions/flights with skill bands and caps)
+> - Ladder branch: ladder rules (challenge range, response window, scoring, movement) instead of scheduling
+> - Live preview
+> - Save / Next actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.3.6 Organizer — League Dashboard — `/organize/leagues/[id]` · SSR · auth
 Stat row (Registrations, Revenue, Payout, Weeks elapsed) + Tabs: **Roster/Teams** (assign free agents, divisions), **Schedule** (auto-generate, edit matchups/courts/times, byes/subs), **Standings** (auto from scores; manual override), **Scores** (per-week entry/verify), **Registrations/Payments** (Stripe, refunds), **Messaging** (broadcast/division/team), **Settings**. Ladder variant: **Ladder board** management + challenge oversight. **Data:** LEAGUE/TEAM/REG/WEEK/STANDING.
+
+**Text to Image Prompt**
+
+> Organizer league dashboard of a pickleball web app.
+>
+> - Stats: Registrations, Revenue, Payout, Weeks elapsed
+> - Tabs (Roster/Teams, Schedule, Standings, Scores, Registrations/Payments, Messaging, Settings) with the Schedule tab active
+> - Editable week-by-week matchups with courts and times
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -779,6 +1360,20 @@ Wednesday Night 3.5 Doubles · You: 3rd of 12          [ League standings → ]
 **Contents:** your standing chip + link to full standings; **This week** card (opponent, court, time, weather, directions, **score entry/confirm** — you submit, opponent confirms); **My schedule** (season, your games highlighted); **Availability** per week (I'm in / Need a sub → notifies organizer + sub-pool); **team chat / broadcast**; **registration** summary (paid, receipt, **DUPR rating — read-only/connected**; no score write-back in v1).
 **States:** pre-season (schedule TBA); bye week; sub-needed flagged; playoffs (bracket). **Responsive:** This-week card pinned; tabs for schedule/chat/availability. **Data:** LEAGUE WEEK#/STANDING#/AVAIL#/REG.
 
+**Text to Image Prompt**
+
+> League participant console of a pickleball web app.
+>
+> - Header: league name and the player's standing ("You: 3rd of 12") linking to full standings
+> - "This week": opponent, court, time, weather, a directions action, and score entry / confirm
+> - "My schedule" for the season with the player's own games emphasized
+> - "Availability" per week (I'm in / Need a sub)
+> - Team chat / broadcast
+> - Registration summary (amount paid, receipt, connected rating shown read-only)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.4.2 My Leagues (in account) — section of `/account/registrations`
 Active + past leagues; "next match across all leagues" banner; cards → each console. (Detailed under §13.2.)
 
@@ -791,6 +1386,20 @@ Active + past leagues; "next match across all leagues" banner; cards → each co
 ```
 Lenexa Open Ladder · 3.0–4.0 · 24 players      [ Join the ladder ] (CTA, paid)
 Rules: challenge up to 2 spots above · 7-day response · first to 11
+
+**Text to Image Prompt**
+
+> Ladder board page of a pickleball web app.
+>
+> - Header: ladder name, skill band, and player count ("Lenexa Open Ladder · 3.0–4.0 · 24 players")
+> - "Join the ladder" action
+> - Rules summary (challenge range, response window, scoring)
+> - Ranked standings (position, player, rating, recent "last 5" form, and a movement indicator)
+> - Challenge action on eligible opponents
+> - "Recent matches" feed
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 #  Player        Rating  Last 5   Move
 1  ● Cara        3.9     ●●●○●     —
 2  ● Dan         3.8     ●●●●○     ▲1     [ Challenge ] (if eligible & joined)
@@ -809,8 +1418,31 @@ Tabs **Issue · Incoming · Outgoing · History**.
 - **History:** completed + results; **report result** (both confirm) → board auto re-ranks (optimistic + toast "You moved to #2").
 **States:** no eligible opponents ("you're at the top — defend your spot"); expiring-soon highlight; dispute → organizer. **Data:** LADDER RUNG#/CHALLENGE#; GSI1 for incoming.
 
+**Text to Image Prompt**
+
+> Ladder challenges page of a pickleball web app.
+>
+> - Tabs (Issue, Incoming, Outgoing, History) with the Incoming tab active
+> - Incoming challenges (challenger, proposed times) with Accept, Decline, and Propose-alternate actions
+> - A response countdown per challenge
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ### 12.5.3 Join Ladder — `/ladders/[id]/register` · SSR+Stripe · auth
 §12.1 flow (single registrant); **placement** = self-rated entry or DUPR-seeded (organizer setting). Confirmation → "You're on the ladder at #{pos} — issue your first challenge".
+
+**Text to Image Prompt**
+
+> Ladder join / registration checkout of a pickleball web app.
+>
+> - Three-step progress indicator
+> - Single-registrant flow with a placement choice (self-rated or seeded by connected rating)
+> - Fee summary
+> - Pay-and-join action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 12.6 Organizer Hub / All-Events Dashboard — `/organize` · SSR · auth · noindex
 > The "Organize" nav has destinations but no home. This is the cross-event command center.
@@ -827,6 +1459,19 @@ Organize                                             (H1)        [ + New event �
 **Contents/behavior:** **Stripe Connect status** banner (onboarding CTA if incomplete); **+ New event** menu (Round Robin / Tournament / League / Ladder); **Your events** tabs (Active / Upcoming / Drafts / Past) — rows link to each organizer dashboard (§12.2.6 / §12.3.6); **quick-start** tiles; **payouts** summary (→ Stripe Express).
 **States:** no events → "Run your first event" + quick-start tiles; Connect incomplete → prominent onboard banner. **Responsive:** tabs collapse to a select. **Data:** GSI1 USER#organizerId across TOURNEY/LEAGUE/RR; Stripe balance.
 
+**Text to Image Prompt**
+
+> Organizer hub of a pickleball web app (a cross-event command center).
+>
+> - Heading "Organize" with a "+ New event" menu (Round Robin, Tournament, League, Ladder)
+> - "Get paid" Stripe Connect status
+> - "Your events" with tabs (Active, Upcoming, Drafts, Past): events with name, type, date, registrations, revenue, and status, linking to their dashboards
+> - "Quick start" entry points
+> - "Payouts" summary (balance, next payout, manage on Stripe)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 12.7 Partner Invite Acceptance — `/invites/[token]` (+ emailed link) · SSR · auth · noindex
 > Referenced by registration "partner pending acceptance."
 **Wireframe:**
@@ -839,6 +1484,18 @@ Your share: $40        (or "Ben covered your entry — you're all set")
 ```
 **Contents/behavior:** inviter + event + division summary + **fee responsibility** (split / covered). **Accept** → routes into the §12.1 payment step for the invitee's share (or straight to confirmation if covered); **Decline** → notifies inviter, frees the slot.
 **States:** valid / expired / already-accepted / event-full (→ waitlist); unauth → Auth modal then resume. **Data:** REG partner link; updates registration pending→confirmed.
+
+**Text to Image Prompt**
+
+> Partner-invite acceptance page of a pickleball web app.
+>
+> - Heading "You're invited to partner up"
+> - Summary of inviter, event, and division ("Ben K. invited you to play in Wednesday Night 3.5 Doubles League · starts Jul 9")
+> - Fee responsibility ("Your share: $40", or a note that it is covered)
+> - Accept-and-register and Decline actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -853,8 +1510,32 @@ Account shell; **Tabs: Upcoming · Past**; optional type filter (Tournaments/Lea
 **Contents:** "Next up" banner (nearest event across all, countdown + console/detail link). Registration rows (EventCard + status + payment status): **leagues/ladders** → "Open console" (→ §12.4.1 / §12.5.2); **tournaments** → "View bracket"/"Details"; each → receipt, partner status, refund-request (within policy).
 **States:** empty → "You haven't registered for anything yet" + CTAs. **Data:** GSI1 USER#uid REG#.
 
+**Text to Image Prompt**
+
+> "My Registrations" account page of a pickleball web app.
+>
+> - Account navigation
+> - Heading "My Registrations" with Upcoming / Past tabs and an event-type filter
+> - "Next up" banner (nearest event with a countdown and a link to its console or detail)
+> - Registration entries (event, status, payment status) with contextual actions (open console, view bracket, receipt, partner status, refund request)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 13.3 Payments — `/account/payments` · SSR · auth · noindex
 **Contents:** **Payment methods** (Stripe-managed; add via Stripe Element; default selector; remove); **Payment history** (table: date, event, amount, status, receipt); **Payouts** (organizers with Connect only: balance, schedule, "Manage on Stripe"). Card data only via Stripe Elements; full card numbers never displayed. **Data:** Payment items + Stripe.
+
+**Text to Image Prompt**
+
+> "Payments" account page of a pickleball web app.
+>
+> - Account navigation
+> - Payment methods (Stripe-managed cards, a default selector, add / remove)
+> - Payment history (date, event, amount, status, receipt)
+> - Payouts for organizers (balance, schedule, manage on Stripe)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 13.4 Auth modal (global)
 Triggered by any auth-gated action. **Log in / Sign up** tabs; email + password; **Continue with Google / Apple**; "Forgot password"; legal microcopy. On success → close + **resume the original intent** (RSVP, register, follow, write review). Sign-up collects only email + name + password (profile completion deferred). Never blocks anonymous-allowed actions (check-in, round robin).
@@ -873,6 +1554,18 @@ My Courts                                            (H1)
 **Contents:** tabs (Followed / Recently played / Nearby); CourtCard list with upcoming-games count + live check-in count + quick actions (unfollow, add outing).
 **States:** empty → "Follow courts to track games and get invited" + [ Find courts ]. **Data:** FOLLOW#COURT via GSI1 USER#uid.
 
+**Text to Image Prompt**
+
+> "My Courts" account page of a pickleball web app.
+>
+> - Account navigation
+> - Heading "My Courts" with tabs (Followed, Recently played, Nearby)
+> - Court entries (name, distance, upcoming-games count, "N checked in today")
+> - Per-court quick actions (Unfollow, Add an outing)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 13.6 Notifications & Alerts — `/account/alerts` · SSR · auth · noindex
 > **In the initial build** — **in-app + email (via Resend); no push.** The header bell (§3.2) is the dropdown; this page is the full list + preferences. (Auth emails come from Firebase Auth (§13.9); receipts from Stripe.)
 **Wireframe:**
@@ -888,6 +1581,18 @@ Alerts                                    [ Mark all read ] [ Settings ]
 **Contents:** filter (All / Unread); grouped reverse-chron alert rows (type, summary, time, read state) each linking to its source; mark-read; **preferences** (per-type × per-channel toggles, mirrors §6.2).
 **States:** empty → "You're all caught up"; loading skeleton rows. **Data:** `NOTIF#` items per user (PRD §9.3).
 
+**Text to Image Prompt**
+
+> "Alerts" account page of a pickleball web app.
+>
+> - Account navigation
+> - "Mark all read" and Settings actions, and an All / Unread filter
+> - Alerts, newest first (type, summary, relative time, read state) linking to their sources — e.g., "RSVP — Sarah is going to your Tue game · 2h", "Waitlist — a spot opened in Summer Slam · 5h", "Challenge — Dan challenged you · 1d"
+> - "Alert preferences": per-type by per-channel (in-app / email) toggles and quiet hours
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 13.7 Account Settings & Security — `/account/settings` · SSR+CSR · auth · noindex
 > Profile edit (§6.2) covers profile fields; this covers account + security.
 **Wireframe:**
@@ -902,6 +1607,19 @@ Account Settings                                     (H1)
 **Contents/behavior:** login & security (change email w/ re-verify, change password, 2FA toggle, active-session list w/ revoke); connected accounts (OAuth + DUPR connect/disconnect); communication prefs link; **danger zone** (export data; delete account → typed-confirm modal listing consequences). Sensitive actions require **re-authentication**; credential/2FA flows hand off to the auth provider (PicklerPal never stores raw credentials).
 **States:** per-action loading + confirm modals.
 
+**Text to Image Prompt**
+
+> "Account Settings" page of a pickleball web app.
+>
+> - Account navigation
+> - "Login & security" (email change / verify, change password, two-factor toggle, active sessions with sign-out)
+> - "Connected accounts" (Google, Apple, DUPR connect / disconnect)
+> - Communication preferences
+> - "Danger zone" (export my data, delete account)
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 13.8 First-Run Onboarding — `/welcome` (post-signup; resumable) · CSR · auth · noindex
 > The spec defers profile completion "to first relevant moment" but never specced the surface.
 **Wireframe:**
@@ -913,6 +1631,17 @@ Welcome to PicklerPal                                step 1 of 3 · [ Skip ]
 ```
 **Contents/behavior:** 3 lightweight, each-skippable steps (location · rating · first action) with progress; final step routes to a relevant first action. Triggered once after signup; **resumable** from a dashboard banner if skipped.
 **States:** skip-any; completion sets an onboarded flag. **Data:** patches USER profile + RATING.
+
+**Text to Image Prompt**
+
+> First-run onboarding of a pickleball web app (shown just after signup).
+>
+> - Heading "Welcome" with a step indicator ("step 1 of 3") and a Skip option
+> - Step 1 "Where do you play?": a home-city field and an optional home-court field
+> - Next action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 13.9 Auth Pages — `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` · public · noindex
 > The Auth modal (§13.4) covers the in-context happy path; these are the standalone routes for deep links, emailed links, and fallback.
@@ -928,6 +1657,20 @@ Forgot password?  ·  New here? Create an account
 - **/reset-password** (`?token`) — new password + confirm → success → login; invalid/expired → "Link expired — request a new one."
 - **/verify-email** (`?token`) — auto-verifies on load → success / "Link expired — resend." Unverified users see a persistent app-wide "Verify your email" banner.
 **States:** success / expired / invalid / loading; rate-limited; generic messaging.
+
+**Text to Image Prompt**
+
+> Authentication page of a pickleball web app.
+>
+> - Logo
+> - Log in / Sign up tabs
+> - Social sign-in (Continue with Google, Continue with Apple)
+> - Email and password fields
+> - Continue action
+> - "Forgot password?" and "Create an account" links
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -1081,17 +1824,81 @@ Per-registration service fee explained (absorb vs pass-through) + Stripe fees no
 ```
 **Contents:** H1 + positioning; **comparison table** (Free player / Organizer) of features; the **fee model** (per paid registration; absorb vs pass-through; Stripe fees); a **Facility tier shown as "coming soon"** (claim / manage / promote depend on court-admin, deferred — a lead-gen "get notified" row only, not a buyable plan); FAQ; CTAs. **SEO:** `FAQPage`; title "Pricing | PicklerPal".
 
+**Text to Image Prompt**
+
+> Pricing page of a pickleball web app.
+>
+> - Heading "Simple pricing" with positioning ("Free for players, forever. Organizers pay only when they collect.")
+> - Comparison across tiers (Player (Free), Organizer, Facility (coming soon)) with feature rows
+> - Explanation of the per-registration fee model (absorb vs pass-through, plus payment-processing fees)
+> - Calls to action ("Start free", "Run an event", "Get notified")
+> - FAQ
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 16.2 About — `/about` · ISR · public · indexable
 H1 + mission + story + team + endorsements/partners + press + links (careers/contact). **SEO:** `AboutPage`/`Organization`.
+
+**Text to Image Prompt**
+
+> About page of a pickleball web app.
+>
+> - Heading and mission statement
+> - Story section
+> - Team
+> - Endorsements / partners
+> - Press mentions
+> - Links to careers / contact
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 16.3 Contact — `/contact` · ISR · public · indexable
 Contact options (help assistant, email, social) + a **contact form** (name, email, topic, message) with facility/press routing. **States:** validation / success / error. Form submit confirms before sending.
 
+**Text to Image Prompt**
+
+> Contact page of a pickleball web app.
+>
+> - Heading "Contact"
+> - Contact options (help assistant, email, social)
+> - Contact form (name, email, topic, message) with a submit action
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 16.4 Legal — `/legal/[doc]` (terms · privacy · cookies · accessibility · refund · community-guidelines) · ISR · public · indexable
 Reading column: H1 (doc title) + "last updated" + section TOC + body. Footer links resolve here.
 
+**Text to Image Prompt**
+
+> Legal document page of a pickleball web app (for example, Terms or Privacy).
+>
+> - Document-title heading
+> - "Last updated" line
+> - Section table of contents
+> - Long-form legal body text organized into sections
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 16.5 Error & Not-Found — `/404`, `/500` (+ offline) · special · noindex
 Standalone pages: centered message + (404) search box + popular links / (500) Retry + status. Mirrors the §14.2 patterns as dedicated routes.
+
+**Text to Image Prompt**
+
+> 404 not-found page of a pickleball web app.
+>
+> - A message that the page was not found
+> - Search box
+> - Popular links to help the user recover
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ---
 
@@ -1115,6 +1922,20 @@ Pickleball Groups & Clubs in Lenexa, KS                    (H1)
 **Contents:** (hub) search; featured + nearby **public** groups; **Start a group** CTA; groups-vs-leagues explainer. (city) breadcrumb; H1; **GroupCard** grid (name, public badge, skill band, member count, home court, next meet-up, "N checked in today"); nearby-cities interlink. *(Finders + the `groups` sitemap list **public** groups only — private is the default, so most groups are members-only and excluded.)*
 **States:** empty → "No groups in {City} yet — start one" + CTA (keep nearby + FAQ for SEO); loading skeletons.
 **Responsive:** grid 3→2→1. **Data:** GROUPLOC GSI by city. **SEO:** `ItemList` + `BreadcrumbList`; in `groups` sitemap.
+
+**Text to Image Prompt**
+
+> Groups / clubs city finder of a pickleball web app.
+>
+> - Breadcrumb (Home / US / Kansas / Lenexa / Groups)
+> - Heading "Pickleball Groups & Clubs in Lenexa, KS"
+> - Groups search field and a "Start a group" action
+> - Group listings (name, public/private label, skill band "3.0–3.5", member count "124 members", home court, next meet-up, and "N checked in today")
+> - "Nearby cities" links
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 17.2 Group Detail — `/groups/[groupId]` · ISR(3600)+CSR · public (privacy-aware) · indexable* ★
 **Layout:** header band → two columns (main + sticky sidebar) → interlink footer.
@@ -1143,6 +1964,25 @@ Lenexa Dinkers        [ ● Public ][ 3.0–3.5 ]        [ Join ] (CTA)
 **Responsive:** sidebar reflows under header; **Join becomes a sticky bottom action bar**; roster → list.
 **Data:** GROUP/META + MEMBER# + MEETUP refs (→ OUTING) + members' CHECKIN/RSVP for status. **SEO:** `Organization` + `ItemList` of `SportsEvent`; `noindex` when private/unlisted; in `groups` sitemap. *(\*indexable only when public.)*
 
+**Text to Image Prompt**
+
+> Group / club detail page of a pickleball web app.
+>
+> - Breadcrumb
+> - Header: group name ("Lenexa Dinkers"), public/private and skill labels, member count, and home court
+> - Membership action (Join / Request to join / Invite only, per the group's policy)
+> - About
+> - Member activity: "Checked in today" among members (with courts and "looking to play")
+> - "Upcoming meet-ups" with inline RSVP
+> - Members roster with status (checked in today / looking to play), admins marked
+> - "Plays at these courts" — court listings
+> - Group info: home courts, skill band, member / admin counts, Invite members, and Manage (for admins)
+> - Other groups in the city
+> - Footer
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 17.3 Create / Edit Group — `/groups/new` (`?edit`) · CSR wizard · auth · noindex
 **Wireframe:**
 ```
@@ -1155,6 +1995,19 @@ Start a group                                        (H1) · step 1 of 3
 ```
 **Contents/behavior:** 3 steps (Basics · Play · Access); cover upload (S3, crop); home-court combobox; skill dual-slider; visibility + join-policy selects with inline explainers, **defaulting to Private + Invite-only** (a new group is members-only until an admin opens it up). Create → success: share link + **Invite members** + **Schedule your first meet-up** (→ Outing create §10.3 prefilled with group + court). Edit mode pre-fills.
 **States:** validation (name required; ≥1 home court); auth gate resumes the wizard on sign-in. **Data:** writes GROUP + creator as `admin` MEMBER + `COURT#→GROUP#` pointers.
+
+**Text to Image Prompt**
+
+> "Start a group" wizard of a pickleball web app.
+>
+> - Heading "Start a group" with a step indicator
+> - Basics step (name, description, cover upload)
+> - Play step (home court, skill band, city)
+> - Access step (visibility Public / Unlisted / Private and join policy Open / Request / Invite-only, defaulting to Private and Invite-only, with inline explainers)
+> - Back and "Create group" actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 17.4 Manage Group — `/groups/[groupId]/manage` · SSR+CSR · auth (admin) · noindex
 **Wireframe:**
@@ -1172,10 +2025,34 @@ MEET-UPS  [ + Schedule meet-up ] → Outing create (group prefilled)
 **Contents:** tabs — **Roster** (search; per-member role + actions: promote/demote/remove); **Requests** (approve/deny join requests; count badge); **Meet-ups** (group outings; **+ Schedule** → Outing create §10.3 prefilled with group + home court; edit/cancel occurrence or series); **Settings** (visibility, join policy, home courts, skill band, cover, **transfer ownership**, **delete group** → typed-confirm); **Invites** (link / email + role).
 **States:** **last-admin guard** (can't demote/leave as the only admin); delete → typed-confirm modal listing consequences. **Data:** MEMBER transitions; OUTING writes (`hostType=GROUP`) + MEETUP refs.
 
+**Text to Image Prompt**
+
+> Group-management page of a pickleball web app (admin).
+>
+> - Heading "Manage · Lenexa Dinkers"
+> - Tabs (Roster with count, Requests with count, Meet-ups, Settings, Invites) with the Roster tab active
+> - Searchable member rows (name, rating, role) with per-member actions (promote / demote, remove)
+> - Requests with Approve / Deny actions
+>
+> Use the attached visual identity guide to design a view with the above features.
+
+
 ## 17.5 My Groups — `/account/groups` · SSR · auth · noindex
 Account shell; **Tabs: Member · Admin** + a **Requests** badge.
 **Contents:** GroupCard list per tab (name, role, member count, **next meet-up**, "N checked in today" among members); quick links (View, Manage). Requests badge → pending approvals (admin) / pending joins (member). Empty → "Find or start a group" + [ Find groups ].
 **Data:** `GSI1 USER#uid` `GROUPMEMBER#`.
+
+**Text to Image Prompt**
+
+> "My Groups" account page of a pickleball web app.
+>
+> - Account navigation
+> - Heading "My Groups" with tabs (Member, Admin) and a Requests badge
+> - Group entries (name, role, member count, next meet-up, "N checked in today" among members)
+> - View and Manage links
+>
+> Use the attached visual identity guide to design a view with the above features.
+
 
 ## 17.6 Components & cross-refs
 - **GroupCard** (extends §2.5 card family): cover/avatar, name, public/private badge, skill-range chip, member count, home court, next meet-up, **"N checked in today"** (members). Whole card → group detail.
