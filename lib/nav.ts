@@ -32,7 +32,7 @@ export const primaryNav: NavColumn[] = [
     label: "Play",
     intent: "Discovery",
     links: [
-      { label: "Find Courts", href: "/courts", description: "Browse courts near you" },
+      { label: "Find Courts", href: "/search", description: "Browse courts near you" },
       { label: "Find Games", href: "/search", description: "Open play & outings" },
       { label: "Find Groups", href: "/groups", description: "Clubs & crews" },
       { label: "Check In", href: "/courts", description: "Show you're playing today" },

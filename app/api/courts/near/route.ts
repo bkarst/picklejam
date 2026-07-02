@@ -5,12 +5,13 @@
  */
 import type { NextRequest } from "next/server";
 import { getCourtsNear } from "@/lib/data/courts";
+import { DEFAULT_NEAR_RADIUS_M, MAX_NEAR_RADIUS_M } from "@/lib/geo/constants";
 
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const lat = Number(p.get("lat"));
   const lng = Number(p.get("lng"));
-  const radius = Math.min(Number(p.get("radius")) || 25000, 80000); // cap 80km
+  const radius = Math.min(Number(p.get("radius")) || DEFAULT_NEAR_RADIUS_M, MAX_NEAR_RADIUS_M); // default 15mi, cap 50mi
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return Response.json({ error: "lat and lng required" }, { status: 400 });
   }
@@ -26,8 +27,13 @@ export async function GET(req: NextRequest) {
       totalCourts: c.totalCourts,
       indoorCourts: c.indoorCourts,
       outdoorCourts: c.outdoorCourts,
-      access: c.access,
-      lighted: c.lighted,
+      access: c.access ?? null,
+      lighted: Boolean(c.lighted),
+      dedicated: Boolean(c.dedicated),
+      hasReservations: Boolean(c.hasReservations),
+      facilityType: c.facilityType ?? null,
+      amenities: c.amenities ?? [],
+      surface: c.surface ?? [],
       distanceMeters: c.distanceMeters,
     })),
   });

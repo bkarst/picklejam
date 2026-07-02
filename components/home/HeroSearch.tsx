@@ -1,40 +1,26 @@
 "use client";
 
 /**
- * HeroSearch — the homepage hero search box (§6.1). Stage 1: submits to the map
- * finder (`/search?q=`). The rich typeahead (PLACES + COURTS) lands in Stage 1.5.
+ * HeroSearch — the homepage hero search box (§6.1). A location-aware typeahead:
+ * clicking the empty input requests the visitor's location and pre-fills a
+ * PLACES + COURTS dropdown (nearest city + nearest courts); typing switches to
+ * name suggestions. Selecting a suggestion opens the static page; the Search
+ * button (or Enter) runs a full-text search on the map finder (`/search?q=`).
  */
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@heroui/react";
+import { SearchTypeahead } from "@/components/search/SearchTypeahead";
 
 export function HeroSearch() {
-  const router = useRouter();
-  const [q, setQ] = useState("");
   return (
-    <form
-      role="search"
-      className="flex w-full max-w-xl gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        router.push(q.trim() ? `/search?q=${encodeURIComponent(q.trim())}` : "/search");
-      }}
-    >
-      <label htmlFor="hero-search" className="sr-only">
-        Search courts, cities, or games
-      </label>
-      <input
-        id="hero-search"
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
+    <div className="w-full max-w-xl">
+      <SearchTypeahead
         placeholder="Search courts, cities, or games…"
-        className="h-12 min-w-0 flex-1 rounded-full border border-border bg-field px-5 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        ariaLabel="Search courts, cities, or games"
+        prepopulateNearby
+        showSubmitButton
+        submitLabel="Search"
+        inputClassName="h-12 w-full rounded-full border border-border bg-field px-5 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       />
-      <Button type="submit" variant="primary" size="lg">
-        Search
-      </Button>
-    </form>
+    </div>
   );
 }

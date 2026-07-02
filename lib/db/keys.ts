@@ -12,6 +12,8 @@
 
 // ── primitives ──────────────────────────────────────────────────────────────
 
+import { GEO_PARTITION_PRECISION } from "@/lib/geo/constants";
+
 export const SEP = "#";
 const META = "META";
 
@@ -127,9 +129,9 @@ export const courtKeys = {
   }),
   courtSlugPk: (cityKey: string, slug: string): string =>
     `COURTSLUG${SEP}${cityKey}${SEP}${slug}`,
-  /** GSI4 — geohash radius search (§9.5 #3, §9.7). prefix = geohash6, full = geohash9. */
+  /** GSI4 — geohash radius search (§9.5 #3, §9.7). prefix = geohash4, full = geohash9. */
   geo: (courtId: string, geohash: string): Gsi4Key => ({
-    gsi4pk: `GEO${SEP}${geohash.slice(0, 6)}`,
+    gsi4pk: `GEO${SEP}${geohash.slice(0, GEO_PARTITION_PRECISION)}`,
     gsi4sk: `${geohash}${SEP}${courtId}`,
   }),
   geoPk: (geohashPrefix: string): string => `GEO${SEP}${geohashPrefix}`,

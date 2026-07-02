@@ -7,7 +7,6 @@
  * ordering happens here in the read layer (rank is a non-key attribute, §9.3).
  */
 
-import { unstable_cache } from "next/cache";
 import { getItem, query } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { courtKeys, cityKeyOf } from "@/lib/db/keys";
@@ -15,38 +14,6 @@ import { coverSet, haversineMeters } from "@/lib/geo/geohash";
 import { getStatesInCountry, getCitiesInState } from "@/lib/data/geo";
 import type { CourtItem } from "@/lib/db/types";
 
-/** Minimal court shape for the search typeahead + client map markers. */
-export interface CourtLite {
-  courtId: string;
-  name: string;
-  slug: string;
-  cityKey: string;
-  lat: number;
-  lng: number;
-  totalCourts: number;
-  indoorCourts: number;
-  outdoorCourts: number;
-  lighted: boolean;
-  dedicated: boolean;
-  access: CourtItem["access"];
-}
-
-function toLite(c: CourtItem): CourtLite {
-  return {
-    courtId: c.courtId,
-    name: c.name,
-    slug: c.slug,
-    cityKey: c.cityKey,
-    lat: c.lat,
-    lng: c.lng,
-    totalCourts: c.totalCourts,
-    indoorCourts: c.indoorCourts ?? 0,
-    outdoorCourts: c.outdoorCourts ?? 0,
-    lighted: Boolean(c.lighted),
-    dedicated: Boolean(c.dedicated),
-    access: c.access ?? null,
-  };
-}
 
 export type CourtWithDistance = CourtItem & { distanceMeters: number };
 
@@ -106,19 +73,36 @@ export async function getCourtsInCity(
  * #3 — courts within `radiusMeters` of a point (GSI4 geohash cover-set, §9.7).
  * Fans out one Query per cover cell, filters by exact distance, sorts nearest-first.
  */
+/** All courts in one GSI4 geo partition, fully paginated (partitions are coarse). */
+async function queryGeoCell(cell: string): Promise<CourtItem[]> {
+  const out: CourtItem[] = [];
+  let startKey: Record<string, unknown> | undefined;
+  do {
+    const { items, lastKey } = await query<CourtItem>({
+      index: GSI.byGeo,
+      pk: courtKeys.geoPk(cell),
+      startKey,
+    });
+    out.push(...items);
+    startKey = lastKey;
+  } while (startKey);
+  return out;
+}
+
 export async function getCourtsNear(
   lat: number,
   lng: number,
   radiusMeters: number,
   limit = 60,
 ): Promise<CourtWithDistance[]> {
-  const cells = coverSet(lat, lng, radiusMeters, 6);
-  const results = await Promise.all(
-    cells.map((cell) => query<CourtItem>({ index: GSI.byGeo, pk: courtKeys.geoPk(cell) })),
-  );
+  // coverSet defaults to GEO_PARTITION_PRECISION (4) → a ~15mi radius is a handful
+  // of partitions, not thousands. Each partition can be large at this precision,
+  // so paginate it fully (else a dense metro cell would silently drop courts).
+  const cells = coverSet(lat, lng, radiusMeters);
+  const results = await Promise.all(cells.map((cell) => queryGeoCell(cell)));
   const seen = new Set<string>();
   const out: CourtWithDistance[] = [];
-  for (const { items } of results) {
+  for (const items of results) {
     for (const c of items) {
       if (seen.has(c.courtId) || !isVisible(c)) continue;
       seen.add(c.courtId);
@@ -154,28 +138,6 @@ export async function getCourtsMatching(
   }
   return out.sort(byPopularity);
 }
-
-/**
- * All indexable courts (lite), cached hourly — backs the search typeahead's
- * COURTS group. In-memory at directory scale (v1; OpenSearch later, §13). No scan.
- */
-export const getAllCourtsLite = unstable_cache(
-  async (country: string): Promise<CourtLite[]> => {
-    const states = await getStatesInCountry(country);
-    const out: CourtLite[] = [];
-    for (const state of states) {
-      const cities = await getCitiesInState(country, state.code);
-      const perCity = await Promise.all(
-        cities.map((c) => getCourtsInCity(country, state.code, c.slug)),
-      );
-      for (const courts of perCity)
-        for (const c of courts) if (c.indexable !== false) out.push(toLite(c));
-    }
-    return out;
-  },
-  ["all-courts-lite"],
-  { revalidate: 3600, tags: ["courts"] },
-);
 
 /** Nearby courts to a given court (excludes itself) — court-detail interlink. */
 export async function getNearbyCourts(

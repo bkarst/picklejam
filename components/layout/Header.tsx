@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "@heroui/react";
+import { Disclosure, Drawer, useOverlayState, useTheme } from "@heroui/react";
 import { Logo } from "@/components/ui/Logo";
 import { AccountMenu } from "@/components/account/AccountMenu";
 import { NotificationBell } from "@/components/community/NotificationBell";
@@ -63,26 +63,25 @@ function ThemeToggle() {
 export function Header() {
   const pathname = usePathname();
   const { user, signOut, openAuth } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const mobile = useOverlayState(); // HeroUI Drawer state (backdrop, focus-trap, Esc, scroll-lock)
   const navRef = useRef<HTMLElement>(null);
 
-  // Close transient menus when the route changes (sync UI ↔ navigation).
+  // Close menus when the route changes (sync UI ↔ navigation).
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setOpenMenu(null);
-    setMobileOpen(false);
+    mobile.close();
     /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // Esc closes; outside click closes desktop menu.
+  // Esc + outside click close the desktop mega-menu (the Drawer handles its own).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpenMenu(null);
-        setMobileOpen(false);
-      }
+      if (e.key === "Escape") setOpenMenu(null);
     };
     const onClick = (e: MouseEvent) => {
       if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null);
@@ -94,14 +93,6 @@ export function Header() {
       document.removeEventListener("mousedown", onClick);
     };
   }, []);
-
-  // Lock scroll when the mobile drawer is open.
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -162,102 +153,129 @@ export function Header() {
         <Link href="/search" aria-label="Search" className="inline-flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <Icon path={ICONS.search} />
         </Link>
-        <ThemeToggle />
-        <NotificationBell />
+        {/* Desktop-only actions — on mobile these live inside the menu drawer. */}
+        <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle />
+          <NotificationBell />
+        </div>
         <AccountMenu />
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — opens the menu drawer */}
         <button
           type="button"
           aria-label="Open menu"
-          aria-expanded={mobileOpen}
-          onClick={() => setMobileOpen(true)}
+          aria-expanded={mobile.isOpen}
+          onClick={mobile.open}
           className="inline-flex size-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
         >
           <Icon path={ICONS.menu} />
         </button>
       </nav>
 
-      {/* Mobile full-screen drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background lg:hidden">
-          <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <Logo />
-            <button type="button" aria-label="Close menu" onClick={() => setMobileOpen(false)} className="inline-flex size-11 items-center justify-center rounded-full hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              <Icon path={ICONS.close} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <ul className="flex flex-col gap-1">
-              {primaryNav.map((col) => {
-                const isExp = expanded === col.label;
-                return (
-                  <li key={col.label} className="border-b border-border">
-                    <button
-                      type="button"
-                      aria-expanded={isExp}
-                      onClick={() => setExpanded(isExp ? null : col.label)}
-                      className="flex w-full items-center justify-between py-3 text-left text-base font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                    >
-                      {col.label}
-                      <Icon path={ICONS.chevron} className={`size-5 transition-transform ${isExp ? "rotate-180" : ""}`} />
-                    </button>
-                    {isExp && (
-                      <ul className="flex flex-col gap-1 pb-3 pl-3">
-                        {col.links.map((l) => (
-                          <li key={l.href + l.label}>
-                            <Link href={l.href} className="block rounded-lg px-2 py-2 text-sm text-foreground hover:bg-surface-secondary">
+      {/* Mobile menu — HeroUI Drawer (backdrop, focus-trap, Esc + scroll-lock built in) */}
+      <Drawer.Backdrop isOpen={mobile.isOpen} onOpenChange={mobile.setOpen}>
+        <Drawer.Content placement="right">
+          <Drawer.Dialog className="w-full sm:max-w-sm">
+            <Drawer.Header className="flex items-center justify-between border-b border-border">
+              <Logo />
+              <Drawer.Heading className="sr-only">Menu</Drawer.Heading>
+              <Drawer.CloseTrigger
+                aria-label="Close menu"
+                className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                <Icon path={ICONS.close} />
+              </Drawer.CloseTrigger>
+            </Drawer.Header>
+
+            <Drawer.Body className="py-2">
+              <ul className="flex flex-col">
+                {primaryNav.map((col) => (
+                  <li key={col.label}>
+                    <Disclosure className="border-b border-border">
+                      <Disclosure.Heading>
+                        <Disclosure.Trigger className="flex w-full items-center justify-between py-3 text-left text-base font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                          {col.label}
+                          <Disclosure.Indicator className="size-5 shrink-0 text-accent" />
+                        </Disclosure.Trigger>
+                      </Disclosure.Heading>
+                      <Disclosure.Content>
+                        <Disclosure.Body className="flex flex-col gap-1 pb-3 pl-3">
+                          {col.links.map((l) => (
+                            <Link
+                              key={l.href + l.label}
+                              href={l.href}
+                              onClick={mobile.close}
+                              className="block rounded-lg px-2 py-2 text-sm text-foreground hover:bg-surface-secondary"
+                            >
                               {l.label}
                             </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                          ))}
+                        </Disclosure.Body>
+                      </Disclosure.Content>
+                    </Disclosure>
                   </li>
-                );
-              })}
-            </ul>
-            {user ? (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="px-2 pb-2 text-sm font-semibold text-foreground">
-                  {user.displayName ?? user.email ?? "Account"}
-                </p>
-                <ul className="flex flex-col gap-1">
-                  {accountNav.map((l) => (
-                    <li key={l.href}>
-                      <Link href={l.href} className="block rounded-lg px-2 py-2 text-sm text-foreground hover:bg-surface-secondary">
-                        {l.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                ))}
+              </ul>
+
+              {/* Appearance (theme) — lives here on mobile since the toggle is desktop-only. */}
+              <button
+                type="button"
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className="flex w-full items-center justify-between border-b border-border py-3 text-left text-base font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                Appearance
+                <span className="flex items-center gap-2 text-sm font-normal text-muted">
+                  <Icon path={isDark ? ICONS.sun : ICONS.moon} className="size-4" />
+                  {isDark ? "Dark" : "Light"}
+                </span>
+              </button>
+
+              {user ? (
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="px-2 pb-2 text-sm font-semibold text-foreground">
+                    {user.displayName ?? user.email ?? "Account"}
+                  </p>
+                  <ul className="flex flex-col gap-1">
+                    {accountNav.map((l) => (
+                      <li key={l.href}>
+                        <Link
+                          href={l.href}
+                          onClick={mobile.close}
+                          className="block rounded-lg px-2 py-2 text-sm text-foreground hover:bg-surface-secondary"
+                        >
+                          {l.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      mobile.close();
+                      void signOut();
+                    }}
+                    className="mt-2 block w-full rounded-lg px-2 py-2 text-left text-sm font-medium text-danger hover:bg-danger/10"
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
                   onClick={() => {
-                    setMobileOpen(false);
-                    void signOut();
+                    mobile.close();
+                    openAuth("login");
                   }}
-                  className="mt-2 block w-full rounded-lg px-2 py-2 text-left text-sm font-medium text-danger hover:bg-danger/10"
+                  className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-4 font-semibold text-accent-foreground"
                 >
-                  Log out
+                  <Icon path={ICONS.user} className="size-5" />
+                  Sign in
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  openAuth("login");
-                }}
-                className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-4 font-semibold text-accent-foreground"
-              >
-                <Icon path={ICONS.user} className="size-5" />
-                Sign in
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+              )}
+            </Drawer.Body>
+          </Drawer.Dialog>
+        </Drawer.Content>
+      </Drawer.Backdrop>
     </header>
   );
 }

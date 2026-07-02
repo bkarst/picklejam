@@ -21,6 +21,7 @@ import { batchWrite } from "@/lib/db/client";
 import { TABLE_NAME } from "@/lib/db/table";
 import { mapSeedCourtToItem, type SeedCourt } from "@/lib/ingest/map";
 import { GeoAccumulator } from "@/lib/ingest/pipeline";
+import { courtToLite, cityToLite, writeSearchIndex, type CourtSearchLite } from "@/lib/search/index-store";
 import type { CourtItem } from "@/lib/db/types";
 
 interface StateFile {
@@ -57,6 +58,7 @@ async function main() {
   console.log(`Ingesting → ${TABLE_NAME}${dryRun ? " (DRY RUN)" : ""} · ${files.length} state file(s)`);
 
   const geo = new GeoAccumulator();
+  const courtLites: CourtSearchLite[] = []; // accumulated in-memory → precomputed search index
   let totalCourts = 0;
   let totalSkipped = 0;
 
@@ -77,6 +79,7 @@ async function main() {
       const item = mapSeedCourtToItem(seed);
       items.push(item);
       geo.ingest(item, doc.state);
+      if (!item.hidden && item.indexable !== false) courtLites.push(courtToLite(item));
     }
     if (!dryRun) await batchWrite(items as unknown as Record<string, unknown>[]);
     totalCourts += items.length;
@@ -88,6 +91,16 @@ async function main() {
     await batchWrite(cities as unknown as Record<string, unknown>[]);
     await batchWrite(states as unknown as Record<string, unknown>[]);
     await batchWrite(countries as unknown as Record<string, unknown>[]);
+  }
+
+  // Precompute the typeahead search index (§6.1) from the in-memory data — only on
+  // a full run, so a --state/--limit ingest never clobbers the complete index.
+  if (!dryRun && !state && !limit) {
+    const cityLites = cities.map(cityToLite);
+    await writeSearchIndex("us", { courts: courtLites, cities: cityLites });
+    console.log(`Search index: ${courtLites.length} courts · ${cityLites.length} cities`);
+  } else if (!dryRun) {
+    console.log("Search index: skipped (partial run — run a full ingest to rebuild it)");
   }
 
   console.log(

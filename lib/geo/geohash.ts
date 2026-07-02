@@ -1,17 +1,23 @@
 /**
  * geohash.ts — geohash encoding + radius cover-set (PRD §9.7).
  *
- * GSI4 partitions courts on a 6-char geohash prefix (`GEO#<geohash6>`) with the
+ * GSI4 partitions courts on a 4-char geohash prefix (`GEO#<geohash4>`) with the
  * full 9-char geohash in the sort key. A "near me" radius query computes the
  * covering set of geohash cells over the radius's bounding box, issues one Query
  * per cell (single-partition each — never a scan), then filters the union by
  * precise haversine distance. Directory pages do NOT use this (they're static).
+ *
+ * Precision is deliberately coarse: a 4-char cell (~39km × 20km) means a
+ * ~15-mile radius is covered by a handful of partitions (~one Query each), not
+ * the thousands a 6-char prefix required — which saturated the DynamoDB socket
+ * pool. The trade-off (bigger partitions → more rows per Query) is paid down by
+ * the precise haversine filter + per-cell pagination in `getCourtsNear`.
  */
 
 import ngeohash from "ngeohash";
+import { GEO_PARTITION_PRECISION } from "./constants";
 
-/** Default GSI4 partition precision (6 chars ≈ 1.2km × 0.6km cell). */
-export const GEO_PARTITION_PRECISION = 6;
+export { GEO_PARTITION_PRECISION };
 /** Full geohash precision stored in the GSI4 sort key. */
 export const GEO_FULL_PRECISION = 9;
 

@@ -10,9 +10,10 @@
  */
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { DEFAULT_NEAR_RADIUS_M } from "@/lib/geo/constants";
 import type { Suggestion } from "@/lib/search/suggest";
 
-/** A court returned by /api/courts/near (lite shape + distance). */
+/** A court returned by /api/courts/near (lite shape + distance + facet fields). */
 export interface NearCourt {
   courtId: string;
   name: string;
@@ -25,6 +26,12 @@ export interface NearCourt {
   outdoorCourts: number;
   access: string | null;
   lighted: boolean;
+  // facet fields (§6.1 More Filters)
+  dedicated: boolean;
+  hasReservations: boolean;
+  facilityType: string | null;
+  amenities: string[];
+  surface: string[];
   distanceMeters: number;
 }
 
@@ -40,24 +47,36 @@ async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Typeahead suggestions (PLACES + COURTS, §6.1). Debounce `q` at the call site. */
-export function useSearchSuggest(q: string) {
+/**
+ * Typeahead suggestions (PLACES + COURTS, §6.1). Debounce `q` at the call site.
+ * Optional `coords` add distance + nearest-first ranking to court results;
+ * they're rounded (~100 m) so GPS jitter doesn't churn the query key.
+ */
+export function useSearchSuggest(q: string, coords?: { lat: number; lng: number } | null) {
   const term = q.trim();
+  const rlat = coords ? Math.round(coords.lat * 1000) / 1000 : undefined;
+  const rlng = coords ? Math.round(coords.lng * 1000) / 1000 : undefined;
   return useQuery({
-    queryKey: queryKeys.searchSuggest(term),
-    queryFn: ({ signal }) =>
-      fetchJson<{ cities: Suggestion[]; courts: Suggestion[] }>(
-        `/api/search?q=${encodeURIComponent(term)}`,
+    queryKey: [...queryKeys.searchSuggest(term), rlat ?? null, rlng ?? null],
+    queryFn: ({ signal }) => {
+      const loc = rlat !== undefined ? `&lat=${rlat}&lng=${rlng}` : "";
+      return fetchJson<{ cities: Suggestion[]; courts: Suggestion[] }>(
+        `/api/search?q=${encodeURIComponent(term)}${loc}`,
         signal,
-      ),
-    enabled: term.length >= 2,
+      );
+    },
+    // ≥2 chars → global name search; empty + coords → location-aware prepopulate.
+    enabled: term.length >= 2 || (term.length === 0 && rlat !== undefined),
     placeholderData: keepPreviousData, // keep last results while typing
     staleTime: 5 * 60_000,
   });
 }
 
 /** Courts within a radius of a point (GSI4 geohash cover-set, §9.7). */
-export function useCourtsNear(coords: { lat: number; lng: number } | null, radius = 25000) {
+export function useCourtsNear(
+  coords: { lat: number; lng: number } | null,
+  radius = DEFAULT_NEAR_RADIUS_M,
+) {
   return useQuery({
     queryKey: coords
       ? queryKeys.courtsNear(coords.lat, coords.lng, radius)
