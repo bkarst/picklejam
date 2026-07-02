@@ -141,6 +141,20 @@ export const courtKeys = {
     gsi1sk: `REVIEW${SEP}${ts}`,
   }),
   reviewPrefix: (): string => `REVIEW${SEP}`,
+  /**
+   * One-per-user review at a STABLE key `REVIEW#<uid>` (Stage 3) so an edit
+   * targets the SAME item — no `ts` in the SK means re-reviewing overwrites rather
+   * than creating a duplicate row. GSI1 `USER#uid`/`REVIEW#<createdTs>` still
+   * orders "my reviews" by recency; the base-table SK still begins with `REVIEW#`
+   * so `reviewPrefix()` listing keeps working. `createdTs` is only needed on the
+   * write (for GSI1 ordering); point ops (GetItem/Delete) narrow to `{pk,sk}`.
+   */
+  reviewByUser: (courtId: string, uid: string, createdTs = ""): PrimaryKey & Gsi1Key => ({
+    pk: `COURT${SEP}${courtId}`,
+    sk: `REVIEW${SEP}${uid}`,
+    gsi1pk: `USER${SEP}${uid}`,
+    gsi1sk: `REVIEW${SEP}${createdTs}`,
+  }),
   /** Durable check-in row + GSI1 (my check-ins) (§9.5 #5, #6). uid null for anon. */
   checkin: (
     courtId: string,
@@ -419,6 +433,13 @@ export const paymentKeys = {
     pk: `STRIPEEVENT${SEP}${evtId}`,
     sk: META,
   }),
+  /** A user's payments list (GetItem/Query on the USER partition, PAYMENT# prefix). */
+  paymentPrefix: (): string => `PAYMENT${SEP}`,
+} as const;
+
+/** Stripe Connect (Express) account — one reusable account per organizer. */
+export const connectKeys = {
+  account: (uid: string): PrimaryKey => ({ pk: `USER${SEP}${uid}`, sk: `CONNECT${SEP}${META}` }),
 } as const;
 
 export const notifKeys = {
@@ -435,7 +456,31 @@ export const notifKeys = {
 export const systemKeys = {
   /** Ephemeral anonymous browser token (TTL). */
   anonToken: (token: string): PrimaryKey => ({ pk: `ANON${SEP}${token}`, sk: META }),
+  /**
+   * Per-(anon token, court, court-local day) check-in dedupe marker (TTL, §6.2).
+   * Lives in the token's own partition so an anonymous check-in can be deduped +
+   * burst-capped without a GSI (anon check-ins carry no uid). Stores NO PII — only
+   * courtId/day and a pointer to the durable check-in row.
+   */
+  anonCheckin: (token: string, day: string, courtId: string): PrimaryKey => ({
+    pk: `ANON${SEP}${token}`,
+    sk: `CHECKIN${SEP}${day}${SEP}${courtId}`,
+  }),
+  /** Prefix to list an anon token's check-in markers for a day (dedupe + burst cap). */
+  anonCheckinDayPrefix: (day: string): string => `CHECKIN${SEP}${day}${SEP}`,
 } as const;
+
+// ── Username uniqueness reservation (§9.5 #12, Stage 2) ──────────────────────
+
+/**
+ * A username-reservation row that makes username uniqueness race-safe. Its own
+ * partition (`USERNAME#<username>` / `META`) lets a conditional `attribute_not_exists(pk)`
+ * `Put` inside a `transactWrite` claim a username atomically alongside the
+ * USER/PROFILE write — two users can never end up owning the same slug.
+ */
+export function usernameKey(username: string): PrimaryKey {
+  return { pk: `USERNAME${SEP}${username}`, sk: META };
+}
 
 /** All key builders, grouped, for ergonomic imports + exhaustive round-trip tests. */
 export const keys = {
@@ -451,6 +496,7 @@ export const keys = {
   league: leagueKeys,
   ladder: ladderKeys,
   payment: paymentKeys,
+  connect: connectKeys,
   notif: notifKeys,
   system: systemKeys,
 } as const;

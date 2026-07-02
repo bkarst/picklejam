@@ -258,7 +258,41 @@ export async function transactWrite(items: TransactItem[]): Promise<void> {
       `transactWrite: ${items.length} items exceeds the DynamoDB 100-item limit (N15)`,
     );
   }
+  // LOCAL ONLY: dynalite (the pure-JS local store) has no TransactWriteItems.
+  // When DYNAMO_EMULATE_TRANSACTIONS=1, apply the items sequentially with their
+  // conditions + best-effort rollback. Prod + CI (real DynamoDB / dynamodb-local)
+  // NEVER set this and use the atomic TransactWriteItems (N15).
+  if (process.env.DYNAMO_EMULATE_TRANSACTIONS === "1") {
+    return emulateTransactWrite(items);
+  }
   await getDocClient().send(new TransactWriteCommand({ TransactItems: items }));
+}
+
+/** Sequential, best-effort stand-in for TransactWriteItems (local dynalite only). */
+async function emulateTransactWrite(items: TransactItem[]): Promise<void> {
+  const client = getDocClient();
+  const undo: PrimaryKey[] = [];
+  try {
+    for (const item of items) {
+      if (item.Put) {
+        await client.send(new PutCommand(item.Put));
+        const it = item.Put.Item as PrimaryKey | undefined;
+        if (it) undo.push({ pk: it.pk, sk: it.sk });
+      } else if (item.Delete) {
+        await client.send(new DeleteCommand(item.Delete));
+      } else if (item.Update) {
+        await client.send(new UpdateCommand(item.Update));
+      } else {
+        throw new Error("emulateTransactWrite: unsupported transact item (local mode)");
+      }
+    }
+  } catch (err) {
+    // Best-effort rollback of any Puts already applied (local dev integrity aid).
+    for (const key of undo.reverse()) {
+      await client.send(new DeleteCommand({ TableName: TABLE_NAME, Key: key })).catch(() => {});
+    }
+    throw err;
+  }
 }
 
 /** Build a Put transact item scoped to the app table. */

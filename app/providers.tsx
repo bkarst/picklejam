@@ -16,6 +16,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 function makeQueryClient(): QueryClient {
   return new QueryClient({
@@ -47,7 +48,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <I18nProvider locale="en-US">
         <RouterProvider navigate={(href: string) => router.push(href)}>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </RouterProvider>
       </I18nProvider>
     </QueryClientProvider>

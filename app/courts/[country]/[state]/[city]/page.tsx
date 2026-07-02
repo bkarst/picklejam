@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
-import { getCourtsInCity } from "@/lib/data/courts";
+import { getCourtsInCity, getCourt } from "@/lib/data/courts";
+import { getCityGames } from "@/lib/data/outings";
+import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
+import { OutingCard } from "@/components/outings/OutingCard";
+import { cityGamesPath } from "@/lib/urls";
 import { buildMetadata, cityTitle } from "@/lib/seo/metadata";
 import { itemListJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
@@ -52,6 +56,19 @@ export default async function CityPage({ params }: { params: Params }) {
   const totalCourts = cityItem.counts?.courts ?? courts.reduce((s, c) => s + c.totalCourts, 0);
   const nearby = await getCitiesByKeys((cityItem.nearbyCityKeys ?? []).slice(0, 6));
   const faq = cityFaq(cityItem.name, courts);
+  const cityDay = courtLocalDay({ lng: cityItem.centroidLng ?? -98 }, nowMs());
+  const upcomingGames = (await getCityGames(cityItem.cityKey, cityDay)).slice(0, 3);
+  // Hydrate the (≤3) games' court names so the cards link to the venue.
+  const upcomingCourts = new Map(
+    (
+      await Promise.all(
+        [...new Set(upcomingGames.map((g) => g.courtId))].map(async (cid) => {
+          const c = await getCourt(cid);
+          return c ? ([cid, { name: c.name, href: courtUrl(c) }] as const) : null;
+        }),
+      )
+    ).filter(Boolean) as [string, { name: string; href: string }][],
+  );
 
   const popularSearches = [
     { label: "Indoor", href: courtTypePath("indoor") },
@@ -123,13 +140,30 @@ export default async function CityPage({ params }: { params: Params }) {
 
         {/* Aside */}
         <aside className="flex flex-col gap-6">
-          {/* Upcoming games — lights up in Stage 4 */}
+          {/* Upcoming games in the city (§6.7) → full finder at /play */}
           <section className="rounded-2xl border border-border bg-surface p-4">
-            <h2 className="font-display text-lg font-bold text-foreground">Upcoming games in {cityItem.name}</h2>
-            <p className="mt-2 text-sm text-muted">No games scheduled yet.</p>
-            <Link href="/outings/new" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
-              Host the first game →
-            </Link>
+            <div className="flex items-baseline justify-between">
+              <h2 className="font-display text-lg font-bold text-foreground">Upcoming games in {cityItem.name}</h2>
+              <Link href={cityGamesPath(country, state, city)} className="text-sm font-semibold text-accent hover:underline">
+                See all →
+              </Link>
+            </div>
+            {upcomingGames.length > 0 ? (
+              <ul className="mt-3 flex flex-col gap-3">
+                {upcomingGames.map((g) => (
+                  <li key={g.outingId}>
+                    <OutingCard outing={g} court={upcomingCourts.get(g.courtId) ?? null} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <>
+                <p className="mt-2 text-sm text-muted">No games scheduled today.</p>
+                <Link href="/outings/new" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+                  Host the first game →
+                </Link>
+              </>
+            )}
           </section>
 
           {/* Tournaments & leagues — Stage 6/7 */}

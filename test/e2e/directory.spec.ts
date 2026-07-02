@@ -8,6 +8,19 @@ import AxeBuilder from "@axe-core/playwright";
 
 const CITY = "/courts/us/kansas/lawrence";
 
+// Deterministic client: dev-auth (no live Firebase init) + consent pre-decided
+// (so the consent banner doesn't overlay interactive surfaces).
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem("pl-auth-mode", "dev");
+      localStorage.setItem("pl-consent", JSON.stringify({ analytics: false, ads: false, decided: true }));
+    } catch {
+      /* ignore */
+    }
+  });
+});
+
 test.describe("court directory — SEO/render moat", () => {
   test("city page renders complete crawlable HTML with JS disabled", async ({ browser }) => {
     const ctx = await browser.newContext({ javaScriptEnabled: false });
@@ -31,15 +44,12 @@ test.describe("court directory — SEO/render moat", () => {
     expect(types).toContain('"FAQPage"');
   });
 
-  test("court detail: SportsActivityLocation JSON-LD, no empty AggregateRating", async ({ page }) => {
-    await page.goto(CITY);
-    const firstCourt = await page.locator(`a[href^="${CITY}/"]`).first().getAttribute("href");
-    expect(firstCourt).toBeTruthy();
-    await page.goto(firstCourt!);
+  test("court detail: SportsActivityLocation JSON-LD, empty-safe AggregateRating", async ({ page }) => {
+    // A review-less court (no seeded review) must NOT emit an AggregateRating.
+    await page.goto(`${CITY}/lyons-park-in-north-lawrence`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const ld = (await page.locator('script[type="application/ld+json"]').allTextContents()).join(" ");
     expect(ld).toContain('"SportsActivityLocation"');
-    // Empty-safe: a review-less court must not emit AggregateRating.
     expect(ld).not.toContain('"AggregateRating"');
   });
 

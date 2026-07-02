@@ -73,6 +73,8 @@ jobs:
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
       NEXT_PUBLIC_SITE_URL: https://pickleloko.com
+      # Non-prod dev auth for deterministic J8 (no live Firebase in CI).
+      ALLOW_DEV_AUTH: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -82,13 +84,14 @@ jobs:
       - run: npm ci
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - name: Provision + seed the Test table (Kansas)
+      - name: Provision + seed the Test table (Kansas + E2E users)
         run: |
           node scripts/provision-table.mjs --recreate
           npm run ingest -- --state kansas
+          npx tsx scripts/seed-e2e-users.ts
       - name: Build (reads the seeded DB for prerender)
         run: npm run build
-      - name: Run E2E (walking skeleton + directory + J2)
+      - name: Run E2E (skeleton + directory + J2 + J8 + profiles)
         run: npm run test:e2e
 
   lighthouse:

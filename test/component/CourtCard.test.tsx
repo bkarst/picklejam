@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import { renderWithProviders as render } from "@/test/util/render";
 import { CourtCard } from "@/components/directory/CourtCard";
 import { courtUrl } from "@/lib/urls";
 import type { CourtItem } from "@/lib/db/types";

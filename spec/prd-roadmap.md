@@ -51,11 +51,11 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 |---|---|---|---|---|---|
 | **0** ✅ | **Preflight / Foundation** (platform, no features) | §2, §9.1–9.2, §14 | — (harness only) | Walking-skeleton smoke ✅ | shell |
 | **1** ✅ | **Court Directory** (SEO head, read-path) ★ | §3, §6.1, §9.8 | 1, 2, 3, 7 | **J2** ✅ + SEO/render moat (§14.4) | ✅ core |
-| **2** | **Identity** (auth, profiles, ratings, account shell) | §2 (auth), §6.3 | 12, 13 | **J8** | ✅ profiles* |
-| **3** | **Community on courts** (check-ins, reviews, follows, notif-min) | §6.2, §6.4, §9.3 (notif) | 4, 5, 6 | **J1, J9** | ✅ freshness |
-| **4** | **Outings** (games, city game finder, RSVP) | §6.7 | 8, 9, 10, 11 | **J3** | ✅ events |
-| **5** | **Round Robin engine** (the free wedge) | §6.8 | 16 | **J4** | ✅ tool |
-| **6** | **Payments + Tournaments** 💲 | §7.1, §10 | 17, 18, 19, 23 | **J5, J6** | ✅ finders |
+| **2** ✅ | **Identity** (auth, profiles, ratings, account shell) | §2 (auth), §6.3 | 12, 13 | **J8** ✅ | ✅ profiles* |
+| **3** ✅ | **Community on courts** (check-ins, reviews, follows, notif-min) | §6.2, §6.4, §9.3 (notif) | 4, 5, 6 | **J1, J9** ✅ | ✅ freshness |
+| **4** ✅ | **Outings** (games, city game finder, RSVP) | §6.7 | 8, 9, 10, 11 | **J3** ✅ | ✅ events |
+| **5** ✅ | **Round Robin engine** (the free wedge) | §6.8 | 16 | **J4** ✅ | ✅ tool |
+| **6** ✅ | **Payments + Tournaments** 💲 | §7.1, §10 | 17, 18, 19, 23 | **J5, J6** ✅ | ✅ finders |
 | **7** | **Leagues, League Participation, Ladders** 💲 | §7.2–7.4 | 20, 21, 22 | **J7** | ✅ finders |
 | **8** | **Groups & Clubs** | §6.9 | 24, 25, 26, 27, 28 | Group→meet-up→court | ✅ public* |
 | **9** | **Content Hub + News** (authority, top-of-funnel) | §6.5, §6.6 | 14, 15 | Content render + JSON-LD | ✅ content |
@@ -202,6 +202,26 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **J8 — Auth-gated resume** (required): a gated action opens the Auth modal and **resumes the original intent** on success (UI §2.11).
 - Profile create/edit → **public profile renders** with `Person` JSON-LD; **private profile → `noindex` + minimal card**; keyboard-only pass through auth; delete-account precondition flow blocks correctly.
 
+### ✅ Stage 2 — BUILD NOTES (status: complete, 2026-07-01)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **90** (unit + component + integration vs live DynamoDB) ✓ · Playwright **36** (chromium + mobile: skeleton + directory + J2 + **J8** + public/private profiles) ✓ · `next build` ✓. **Chrome pass done** (dev-auth mode): login page, sign-in → DB-backed dashboard, public profile with verified DUPR rating badge.
+
+**Auth architecture (key decisions):**
+- **Real Firebase in the browser** — the public web config from the README is wired into `.env` (client-safe; also in `.env.example`). Client email/pw + Google/Apple + email verify/reset via Firebase.
+- **Server verifies ID tokens with `jose` against Google's JWKS** (`securetoken@system` JWK set), checking `iss`/`aud` against project `pickleloko` — **no service-account needed** for verification. `requireAuth(req)` gates every write route (401 otherwise).
+- **Dev auth provider** (`lib/auth/dev.ts`) for non-prod: when Firebase isn't configured OR `localStorage.pl-auth-mode="dev"`, an unsigned dev token is issued; the server accepts it ONLY when `ALLOW_DEV_AUTH=1` and never in Production. This makes J8 + integration + E2E deterministic without a live Firebase (no Java → no Auth Emulator here). CI E2E uses it.
+- **Auth modal with intent-preservation + resume (J8)** — a gated action (`requireAuth(intent)`) opens the modal and runs the intent on success. The court **save-heart** is the wired gated action.
+- Standalone `/login·/signup·/forgot-password·/reset-password·/verify-email` (noindex); `/welcome` resumable onboarding; account shell + dashboard + `/account/profile` (dirty-save bar, live username availability) + `/account/settings` (privacy toggles, delete preconditions).
+- **Profile writes**: username uniqueness is race-safe via a `USERNAME#` reservation item written in a `TransactWriteItems` with the profile (409 on conflict). DUPR is **read-only connect** (stub; no score write-back, §13 decision 9).
+
+**Deviations / infra notes:**
+- **dynalite has no `TransactWriteItems`** (`UnknownOperationException`) — so profile create/username-change (which use a transaction) can't run on the local store. Added an opt-in **`DYNAMO_EMULATE_TRANSACTIONS=1`** path in `transactWrite` that applies items sequentially with conditions + best-effort rollback (LOCAL DEV ONLY, in `.env`). CI (`amazon/dynamodb-local`) + prod always use the real atomic transaction.
+- **Account creation / real password auth was NOT performed** in the Chrome pass (prohibited action) — verified via **dev-auth mode** instead (a local stand-in; no real account, no real credentials). Real Firebase sign-in is wired for prod/manual use.
+- `checkinVisibility`/`searchable` toggles are sent forward-compatibly but not yet persisted by the profile handler (Stage 3 adds them). Home-court editing is deferred to check-in (Stage 3); home-city autocomplete works.
+- Fixed a real bug found in integration: `GetItem`/`Delete`/`BatchGet` now narrow `Key` to `{pk,sk}` (already patched Stage 1) — and made the auth `save-heart` compatible with a shared `renderWithProviders` test helper.
+
+> **Not committed** — staged in the working tree (trunk-based).
+
 ---
 
 # Stage 3 — Community graph on courts: Check-ins, Reviews, Follows, Notifications (min rail)
@@ -231,6 +251,18 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **J9 — Review submit** (required): one-per-user-per-court; **Stream updates `ratingAvg`/`reviewCount`**; **`Review` JSON-LD present**; court AggregateRating now populated (re-assert §14.4).
 - Freshness: checked-in-today block updates on ISR revalidation (no polling); a11y keyboard pass on check-in + review flows.
 
+### ✅ Stage 3 — BUILD NOTES (status: complete, 2026-07-01)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **125** (unit + component + integration vs live DynamoDB) ✓ · Playwright **44** (chromium + mobile: skeleton + directory + J2 + J8 + profiles + **J1** + **J9**) ✓ · `next build` ✓. **Chrome-verified:** court detail check-in flow (anon + authed), Reviews module (avg **recomputed to 4.5** via Streams after a 4★ review, histogram, "Write a review"), notification bell in header.
+
+**Implemented:** durable check-ins (§6.2) + anonymous path (ANON# TTL, no PII, per-day dedupe + burst cap) · one-per-user reviews (stable `REVIEW#<uid>` key) with tags/photo/verified-via-checkin + crawlable Reviews module + composer (optimistic display) · court follows (`FOLLOW#COURT#` + follower GSI1) + Saved Courts · notification rail (NOTIF# + bell + `/account/alerts` prefs/quiet-hours + Resend mirror with one-click unsubscribe) · My Check-ins / My Reviews. Court detail now renders check-in + checked-in-today + reviews (Review + AggregateRating JSON-LD). Patterns **4/5/6**.
+
+**Streams (§9.4):** `reviewCount`/`ratingAvg` + `checkinsTodayCount`/`CITYDAY#`/`playerCount`. There is no real DynamoDB Stream over dynalite/DynamoDB-Local, so a route handler calls the aggregator INLINE when **`STREAMS_INLINE=1`** (`lib/streams/inline.ts`); prod leaves it unset (the real Lambda owns it). Local `.env` + CI integration/e2e set it.
+
+**Real bug fixed (was latent since Stage 2, affecting ALL authed writes):** `lib/auth/dev.ts` preferred `Buffer` when defined, but Next's client bundle injects a `buffer` shim whose `toString("base64url")` throws → `encodeDevToken` threw → `getToken()` rejected → every authed mutation failed before `fetch` (check-in surfaced it visibly). Fixed by using `btoa`/`atob` + `TextEncoder` (no `"base64url"`). Caught via Chrome network/DOM inspection.
+
+> **Not committed** — staged in the working tree (trunk-based).
+
 ---
 
 # Stage 4 — Outings (games) & City Game Finder
@@ -259,6 +291,21 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **J3 — Create outing → RSVP → waitlist** (required): OUTING + OUTINGREF + RSVP items; capacity enforced; waitlist position; **series RRULE expansion**.
 - SEO/render on city game finder + outing detail (`SportsEvent`/`ItemList`, public-only `outings` sitemap, `/sessions` 301); a11y.
 
+### ✅ Stage 4 — BUILD NOTES (status: complete, 2026-07-02)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **160** (unit + component + integration vs live DynamoDB) ✓ · Playwright **50** (chromium + mobile: skeleton + directory + J2 + J8 + profiles + J1 + J9 + **J3**) ✓ · `next build` ✓. **Chrome-verified:** outing detail (live **Open-Meteo** weather chip "91° Thunderstorm", RSVP segmented control flipping to **Join Waitlist** on a full game, "Who's coming (1/1)"), city-finder **OutingCards** (fixed chip + hydrated court link) — clean console, no horizontal overflow at 390px.
+
+**Implemented:** composite atomic **createOuting** (`OUTING + OUTINGREF + SERIES? + group MEETUP?` in one `TransactWriteItems`, N15, create-only guarded/idempotent) · **capacity concurrency** — a `going` RSVP claims a spot via a CONDITIONAL atomic counter (`goingCount < capacity`), so racers for the last spot get exactly one winner and the rest **waitlist** (never oversold) · waitlist positions + `promoteFromWaitlist` on cancel · RSVP API (going/maybe/declined/waitlist + guests) · outing **wizard** `/outings/new` (5 steps, court search + `?court=` prefill, **RRULE** weekly/biweekly) · **outing detail** `/outings/[id]` (ISR(600) + CSR RSVP, `SportsEvent` + BreadcrumbList JSON-LD, court card, weather chip, `.ics`, recurring-series dates, private=token/noindex) · **city game finder** `/play/.../[city]` (date stepper, `ItemList`) · **My Outings** `/account/outings` · `/sessions/[id]` **301→canonical** · **court detail** Upcoming-Games week grid + **"+ add a game"** on-ramp · city page "Upcoming games" aside. Reads **8/9/10/11** each one keyed Query (BatchGet hydration). Weather via **Open-Meteo** (keyless; `null` → chip hidden). Streams: `counts.games`/court `gamesCount`.
+
+**Real fixes found via the gate:**
+1. **`lib/streams/inline.ts` now lazy-imports the aggregator** (was a static import). The aggregator statically imports `server-only`, which plain-Node (`tsx`) can't resolve — so importing the data layer from a **seed/backfill script** threw at load. Now `applyStreamRecord` is dynamically imported only when `STREAMS_INLINE=1`; with the flag unset the guard is never loaded, so scripts can `import { createOuting }`. Build-time `server-only` protection is unchanged (Next still resolves it in the server bundle).
+2. **a11y contrast (WCAG AA):** the OutingCard "Open Play" chip and the RSVP confirmation banner used `text-success` (#3fa35b) on a light success tint → **~2.7:1**, below the 4.5:1 threshold. Switched to `text-foreground` on the green tint (chip, mirroring the existing "Private" chip) + a success-colored check *icon* beside dark text (banner). Surfaced by the **directory axe E2E** once a public game rendered on the city page.
+3. city-page upcoming **OutingCards now hydrate court names** (were falling back to the literal "Court").
+
+**Known limitation (acceptable for Stage 4):** the outing-detail `RsvpControl` isn't handed `initialRsvp` server-side (the page is ISR(600), no per-user auth at render) — a returning attendee's own status is reflected client-side after they act and in the server-rendered "Who's coming" list after revalidation.
+
+> **Not committed** — staged in the working tree (trunk-based).
+
 ---
 
 # Stage 5 — Round Robin Generator (the free organizer wedge)
@@ -284,6 +331,25 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 ### E2E gate (exit)
 - **J4 — Round robin: create → run → standings** (required, the wedge, across engines): **static schedule = engine output for the `rngSeed`**; **dynamic rounds = engine output for `rngSeed` + confirmed scores**; score entry → materialized STANDING; champion; **the no-login path never blocks**.
 - SEO on landing + public event; a11y keyboard score entry; `round_robin_created`/`scored`/`upgrade_clicked` events asserted (carry `rrCreatorToken`, §2.1 N2).
+
+### ✅ Stage 5 — BUILD NOTES (status: complete, 2026-07-02)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **246** (44 files; +86 for RR: **53 engine property/unit** + 27 component + 6 integration) ✓ · Playwright **54** (chromium + mobile: + **J4**) ✓ · `next build` ✓. **Chrome-verified:** create builder (live in-browser engine preview), public board (Champion callout + ranked standings + TV mode), run console — **console clean** after the #418 fix below.
+
+**How it was built:** the integrator authored the correctness spine — the pure engine contract (`lib/roundrobin/types.ts`) and the sole seeded PRNG (`lib/roundrobin/rng.ts`, mulberry32) — then **three parallel subagents** filled in against it: the engine, the data+API, and the UI. File ownership was partitioned so they never collided.
+
+**Engine (pure, seeded — `lib/roundrobin/`):** E1 circle-method RR (meets-once/twice, bye fairness), E2 mixer (balanced tables, greedy-with-repair, **Popcorn** hard no-repeat-partner clamped to the feasible max), E3 court movement (Up-&-Down / King), E4 Swiss (nearest-record, no-rematch, bye≤1), E5 pools→bracket (snake seed, `winnerTo` linkage, champion). `generateSchedule` = f(seed); `nextRound` = f(seed + confirmed scores); canonical **tiebreak ladder** (wins → diff → PF → head-to-head [E1/E4/E5] → fewest byes → seed → stable rng); `validateConfig` guards. **fast-check** property tests assert reproducibility, per-format invariants, tiebreak rungs, and champion correctness.
+**Data + API:** `RR#` items (`RREVENT`/`RRENTRANT`/`RRROUND`/`RRMATCH`/`RRSTANDING`), **pattern 16** = one keyed Query reconstructing the full event; standings **re-materialized synchronously on each score** (the Streams path in prod); **NO-LOGIN** create/score/advance gated by a `creatorToken` (**`X-RR-Token`** header), `claim`→uid + GSI1. A big event exceeds the 25-item transaction limit, so create uses batched (best-effort, non-financial) writes.
+**UI:** landing (`SoftwareApplication`+`FAQPage`), `/round-robin/new` (no-auth, the live preview calls the pure engine in the browser), public board (native standings + champion + `?tv=1` TV mode), run console (keyboard-accessible score entry), quiz.
+
+**Deliberate engine simplifications (documented):** E3 `upDown` is modeled dynamically (winner-up/loser-down is result-dependent); **E5 `double` elim is single-elim + a 3rd-place match** — the full losers bracket is deferred to Stage 6's generalized bracket renderer (per the roadmap's "reused renderers" note).
+
+**Real bugs found via the gate / Chrome:**
+1. **React #418 hydration mismatch on the public board** (prod-only; dev was clean) — isolated (branch-by-branch in Chrome) to the HeroUI v3 react-aria `Table` inside `StandingsTable`. Replaced with a **native semantic `<table>`** (`<th scope>`; server-rendered, crawlable, zero client JS) → console clean. Lesson: reserve HeroUI's interactive `Table` for grids that need it; a read-only leaderboard is a native table.
+2. **a11y contrast (WCAG AA):** OutingCard's "Full — join waitlist" used `text-secondary` (#ff6b9d, ~2.67:1) → `text-foreground` (same remedy as the Stage-4 chip). Caught by the directory **axe** E2E once a full game surfaced on the city page. (`text-secondary`/`text-success` are only safe as icon/solid-bg colors, never as body text on a light tint.)
+3. **React-compiler lint:** `MatchScoreRow` read a ref during render (dead once rows are `key`ed by `match.id`) — removed; mount-time `localStorage` reads take the repo's targeted `set-state-in-effect` disable.
+
+> **Not committed** — staged in the working tree (trunk-based).
 
 ---
 
@@ -312,6 +378,25 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **J5 — Paid registration → Checkout → webhook → confirmation** (required): PaymentIntent (test mode); **webhook idempotent** (replay = no double-charge); `registeredCount` via Streams; receipt + **`payment_succeeded ⚙`** event.
 - **J6 — Organizer: create event + Connect onboarding** (required): **cannot publish until Connect complete + ≥1 division**; draft autosave; **absorb-vs-pass-through fee math**.
 - Full **payments verification (§14.5)**; SEO on tournament finder/detail/bracket (`Event`+`Offer`); a11y; **no ad adjacent to any Stripe surface** (§2.2).
+
+### ✅ Stage 6 — BUILD NOTES (status: complete, 2026-07-02)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **311** (52 files; +65 for Stage 6: 13 money + 8 payments/webhook + 15 tournaments integration + tournament/bracket component/axe) ✓ · Playwright **58** (chromium + mobile: + **J5, J6**) ✓ · `next build` ✓. **Chrome-verified:** tournament detail (native divisions table, `formatMoney` "$20.00", spots-left, Register), organizer create wizard (Basics → Divisions → Payments → Review) — **console clean**. **Stripe runs in test/FAKE mode — no real payment credentials anywhere.**
+
+**How it was built:** the integrator authored the exact-money spine — `lib/money.ts` (integer minor units + ISO-4217 + absorb/pass-through fee math, NO floats) and `lib/stripe/types.ts` (the `PaymentGateway` seam) — plus pre-declared every Stage-6 DynamoDB entity + `connectKeys` so **three parallel subagents** (payments / tournaments-data / UI) never collided on shared files.
+
+**Payments foundation (`lib/stripe/*`, `lib/data/payments.ts`, `lib/data/connect.ts`):** a REAL Stripe gateway (destination charges: `application_fee_amount` + `transfer_data.destination`, `capture_method:manual` for deferred capture) when `STRIPE_SECRET_KEY` is set, else a deterministic FAKE (monotonic `cs_/pi_/acct_/re_fake_<n>` ids). Webhook signature verification is ALWAYS real (Stripe SDK `constructEvent`, offline HMAC) so idempotency + signature tests exercise the true path. Idempotency (pattern 23) = create-only `STRIPEEVENT#<id>` row (+30-day TTL) → replay returns false → skip. Refunds retain the platform fee on registrant-cancel, refund it on organizer-cancel.
+**Tournaments (`lib/data/tournaments.ts` + routes):** patterns **17/18/19** each ONE Query; **capacity** via the outings conditional-atomic-counter (`registeredCount < capacity`, never oversold); register → destination-charge Checkout with `computeFees`; **Connect-gated publish** (403 unless Connect `complete` + ≥1 division, then projects GSI2/GSI3); webhook fulfilment flips REG→paid + writes one Payment + reconciles `registeredCount` (REG.paid ↔ one Payment ↔ count); mass-refund on cancel; deferred-capture + partner-pending lifecycles; single-elim bracket seed/advance (+3rd place).
+**UI:** hub + city finder (`Event` ItemList), detail (`Event`+`Offer`, native divisions table), register (Checkout hand-off, DUPR gate, partner), a **generalized `BracketRenderer`** (RR E5 can adopt), organizer create wizard (Connect gate) + dashboard, `/account/registrations` + `/account/payments`. **No `AdSlot` on any payment surface (§2.2).**
+
+**Real bugs found via the gate:**
+1. **Next.js route conflict** — `/tournaments/[id]` (detail) + `/tournaments/[country]/[state]/[city]` (finder) are two different dynamic slugs at the SAME path level; `next build` passed but `next start` threw *"You cannot use different slug names for the same dynamic path ('country' !== 'id')"*. Moved the finder under a static segment: **`/tournaments/in/[country]/[state]/[city]`** (updated `tournamentsCityPath`). Lesson: a `[id]` detail and a `[country]/...` finder can't share the first dynamic segment.
+2. A Stage-0 `lib/stripe.ts` file **shadowed** the new `lib/stripe/` directory at `@/lib/stripe`; folded its `getStripe()` into `lib/stripe/index.ts` and deleted the file.
+3. Wired the two account GET routes the client hooks expected (`/api/account/registrations`, `/api/account/payments`).
+
+**J5** (E2E): register (endpoint the "Continue to payment" button POSTs) → fake Checkout hands off to the success URL → a REAL Stripe-signed webhook fixture → REG paid + receipt; **replaying the same event ⇒ still one payment** (no double-charge); a bad signature ⇒ 400. **J6**: an organizer with a division but no completed Connect **cannot publish (403)**; the seeded Connect-complete tournament is public with `Event`+`Offer` JSON-LD.
+
+> **Not committed** — staged in the working tree (trunk-based).
 
 ---
 

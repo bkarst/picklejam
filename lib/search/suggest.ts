@@ -17,6 +17,8 @@ export interface Suggestion {
   label: string;
   sublabel?: string;
   url: string;
+  /** Court id for `type:"court"` results (Stage 4 outing wizard court picker). */
+  courtId?: string;
 }
 
 function score(name: string, q: string): number {
@@ -61,6 +63,7 @@ export async function suggestSearch(
         label: c.name,
         sublabel: `${c.totalCourts} courts · ${city.replace(/-/g, " ")}, ${stateAbbr(state)}`,
         url: courtPath(co, state, city, c.slug),
+        courtId: c.courtId,
       };
     });
 

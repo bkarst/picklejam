@@ -96,3 +96,12 @@ export function courtIsIndexable(court: CourtItem): boolean {
 export function noindexRobots(): NonNullable<Metadata["robots"]> {
   return { index: false, follow: false };
 }
+
+/**
+ * Whether a player profile is indexable (Stage 2, §6.3). Only `public` profiles
+ * are crawlable; `private` and `unlisted` profiles emit `noindex` and must be
+ * excluded from the players sitemap + `Person` JSON-LD.
+ */
+export function profileIsIndexable(user: import("@/lib/db/types").UserProfileItem): boolean {
+  return user.visibility === "public";
+}

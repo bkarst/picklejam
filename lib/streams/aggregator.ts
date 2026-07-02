@@ -311,6 +311,31 @@ async function onMatch(record: StreamRecord): Promise<void> {
   else if (tid) await materializeStandings("TOURNEY", tid);
 }
 
+// ── OUTINGREF insert/remove → COURT/META gamesCount (§9.4, Stage 4) ──────────
+
+/**
+ * A court→outing pointer (`COURT#<id>` / `OUTING#<startTs>#<outingId>`) landing or
+ * leaving bumps the court's denormalized `gamesCount`. Insert-only +1 / remove-only
+ * -1 (an `ADD` atomic counter, healed by the reconcile sweep like every counter).
+ * The geo `counts.games` rollup is handled separately on the OUTING/META insert.
+ */
+async function onOutingRef(record: StreamRecord): Promise<void> {
+  let delta = 0;
+  if (record.eventName === "INSERT") delta = 1;
+  else if (record.eventName === "REMOVE") delta = -1;
+  else return;
+  const img = currentImage(record);
+  if (!img) return;
+  const pk = str(img, "pk");
+  const courtId = pk ? stripPrefix(pk, "COURT#") : undefined;
+  if (!courtId) return;
+  await updateItem({
+    key: courtKeys.meta(courtId),
+    update: "ADD gamesCount :d",
+    values: { ":d": delta },
+  });
+}
+
 // ── dispatcher ───────────────────────────────────────────────────────────────
 
 /**
@@ -329,6 +354,7 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
     if (sk === "META") await onCreateGeoCount(record, "courts", "cityKey");
     else if (sk.startsWith("REVIEW#")) await onReview(record);
     else if (sk.startsWith("CHECKIN#")) await onCheckin(record);
+    else if (sk.startsWith("OUTING#")) await onOutingRef(record);
     return;
   }
 

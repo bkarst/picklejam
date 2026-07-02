@@ -4,12 +4,21 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCourtBySlug, getNearbyCourts } from "@/lib/data/courts";
 import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
+import { getCourtCheckinsToday } from "@/lib/data/checkins";
+import { getCourtReviews } from "@/lib/data/reviews";
+import { getCourtGames } from "@/lib/data/outings";
+import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
+import { UpcomingGamesGrid } from "@/components/outings/UpcomingGamesGrid";
 import { buildMetadata, courtTitle } from "@/lib/seo/metadata";
-import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
+import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd, reviewJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs, CourtCard } from "@/components/directory";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { CheckInSheet } from "@/components/community/CheckInSheet";
+import { CheckedInTodayList } from "@/components/community/CheckedInTodayList";
+import { ReviewsModule } from "@/components/community/ReviewsModule";
+import { FollowButton } from "@/components/community/FollowButton";
 import { cityUrlFromKey, courtUrl, metersToMiles } from "@/lib/urls";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
@@ -47,17 +56,32 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
   const courtItem = await getCourtBySlug(country, state, city, court);
   if (!courtItem) notFound();
 
-  const [cityItem, stateItem, nearbyCourts] = await Promise.all([
+  const today = courtLocalDay(courtItem);
+  const [cityItem, stateItem, nearbyCourts, checkinsToday, reviewsPage, courtGames] = await Promise.all([
     getCity(country, state, city),
     getState(country, state),
     getNearbyCourts(courtItem),
+    getCourtCheckinsToday(courtItem.courtId, today),
+    getCourtReviews(courtItem.courtId, { sort: "recent", limit: 20 }),
+    getCourtGames(courtItem.courtId),
   ]);
+  // Bucket upcoming games into a Today→+6d week grid (court-local days).
+  const DAY_MS = 86_400_000;
+  const startMs = nowMs();
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const day = courtLocalDay(courtItem, startMs + i * DAY_MS);
+    return {
+      date: day,
+      games: courtGames.filter((g) => courtLocalDay(courtItem, Date.parse(g.startTs)) === day),
+    };
+  });
   const cityName = cityItem?.name ?? court;
   const st = stateAbbr(state);
   const base = brand.siteUrl;
   const nearbyCities = await getCitiesByKeys((cityItem?.nearbyCityKeys ?? []).slice(0, 5));
   const faq = courtFaq(courtItem);
   const features = surfaceFeatures(courtItem);
+  const reviews = reviewsPage.items;
   const photos = (courtItem.photos ?? []).filter((p) => p.visible);
   const hero = photos[0];
   const tags = [
@@ -81,6 +105,12 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
           ]),
           courtJsonLd(courtItem, { cityName, stateCode: st }),
           faqPageJsonLd(faq),
+          ...reviews.map((r) =>
+            reviewJsonLd(
+              { rating1to5: r.rating1to5, title: r.title, body: r.body, createdAt: r.createdAt },
+              courtItem.name,
+            ),
+          ),
         ]}
       />
 
@@ -123,14 +153,10 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
               </span>
             ))}
           </div>
+          {/* Follow + Check In (auth-gated; check-in also allows anonymous) */}
           <div className="mt-4 flex flex-wrap gap-3">
-            {/* Follow + Check In are wired in Stage 2/3 (auth). */}
-            <Link href="/login" className="inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 font-semibold text-foreground hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              + Follow
-            </Link>
-            <Link href="/login" className="inline-flex h-11 items-center gap-2 rounded-full bg-secondary px-5 font-semibold text-secondary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              Check In
-            </Link>
+            <FollowButton courtId={courtItem.courtId} />
+            <CheckInSheet courtId={courtItem.courtId} />
           </div>
           {/* Community band */}
           <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -139,6 +165,12 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             <div><dt className="inline text-muted">Reviews </dt><dd className="inline font-semibold text-foreground">{courtItem.reviewCount ?? 0}</dd></div>
             <div><dt className="inline text-muted">Groups </dt><dd className="inline font-semibold text-foreground">{courtItem.groupCount ?? 0}</dd></div>
           </dl>
+          {/* Checked in today (day-fresh, no live polling) */}
+          {checkinsToday.length > 0 && (
+            <div className="mt-4">
+              <CheckedInTodayList checkins={checkinsToday} count={checkinsToday.length} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -187,21 +219,25 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             )
           )}
 
-          {/* Upcoming Games — Stage 4 */}
+          {/* Upcoming Games — weekly grid + "+ add a game" on-ramp (§6.7) */}
           <section>
             <h2 className="font-display text-xl font-bold text-foreground">Upcoming games</h2>
-            <div className="mt-3 rounded-2xl border border-border bg-surface p-6 text-center text-muted">
-              No games scheduled here yet.{" "}
-              <Link href="/outings/new" className="font-semibold text-accent hover:underline">Add a game</Link>
+            <div className="mt-3">
+              <UpcomingGamesGrid days={weekDays} courtId={courtItem.courtId} />
             </div>
           </section>
 
-          {/* Reviews — Stage 3 (AggregateRating stays empty-safe until reviews exist) */}
+          {/* Reviews — crawlable server-rendered list + client composer (§6.4).
+              Review + AggregateRating JSON-LD emitted above. */}
           <section>
             <h2 className="font-display text-xl font-bold text-foreground">Reviews</h2>
-            <div className="mt-3 rounded-2xl border border-border bg-surface p-6 text-center text-muted">
-              No reviews yet — be the first to{" "}
-              <Link href="/login" className="font-semibold text-accent hover:underline">write a review</Link>.
+            <div className="mt-3">
+              <ReviewsModule
+                courtId={courtItem.courtId}
+                initialReviews={reviews}
+                ratingAvg={courtItem.ratingAvg ?? 0}
+                reviewCount={courtItem.reviewCount ?? 0}
+              />
             </div>
           </section>
 

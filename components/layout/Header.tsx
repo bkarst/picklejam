@@ -14,7 +14,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@heroui/react";
 import { Logo } from "@/components/ui/Logo";
-import { primaryNav } from "@/lib/nav";
+import { AccountMenu } from "@/components/account/AccountMenu";
+import { NotificationBell } from "@/components/community/NotificationBell";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { primaryNav, accountNav } from "@/lib/nav";
 
 function Icon({ path, className }: { path: string; className?: string }) {
   return (
@@ -59,6 +62,7 @@ function ThemeToggle() {
 
 export function Header() {
   const pathname = usePathname();
+  const { user, signOut, openAuth } = useAuth();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -159,10 +163,8 @@ export function Header() {
           <Icon path={ICONS.search} />
         </Link>
         <ThemeToggle />
-        <Link href="/login" className="hidden h-11 items-center gap-2 rounded-full bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:inline-flex">
-          <Icon path={ICONS.user} className="size-4" />
-          Sign in
-        </Link>
+        <NotificationBell />
+        <AccountMenu />
 
         {/* Mobile hamburger */}
         <button
@@ -215,10 +217,44 @@ export function Header() {
                 );
               })}
             </ul>
-            <Link href="/login" className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-4 font-semibold text-accent-foreground">
-              <Icon path={ICONS.user} className="size-5" />
-              Sign in
-            </Link>
+            {user ? (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="px-2 pb-2 text-sm font-semibold text-foreground">
+                  {user.displayName ?? user.email ?? "Account"}
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {accountNav.map((l) => (
+                    <li key={l.href}>
+                      <Link href={l.href} className="block rounded-lg px-2 py-2 text-sm text-foreground hover:bg-surface-secondary">
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    void signOut();
+                  }}
+                  className="mt-2 block w-full rounded-lg px-2 py-2 text-left text-sm font-medium text-danger hover:bg-danger/10"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  openAuth("login");
+                }}
+                className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-4 font-semibold text-accent-foreground"
+              >
+                <Icon path={ICONS.user} className="size-5" />
+                Sign in
+              </button>
+            )}
           </div>
         </div>
       )}

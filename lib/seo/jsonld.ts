@@ -16,7 +16,8 @@
 import { brand } from "@/brand.config";
 import { courtUrl } from "@/lib/urls";
 import { parseCityKey } from "@/lib/db/keys";
-import type { CourtItem } from "@/lib/db/types";
+import { minorUnitDigits } from "@/lib/money";
+import type { CourtItem, OutingItem, TourneyItem, DivisionItem } from "@/lib/db/types";
 
 /** A JSON-LD document (schema.org). Kept loose — schema.org is open-ended. */
 export type JsonLd = Record<string, unknown>;
@@ -182,6 +183,183 @@ export function courtJsonLd(
  * Each item's `url` is normalized to absolute: an already-absolute URL is kept
  * as-is, a relative path (e.g. from `cityUrl`) is prefixed with `brand.siteUrl`.
  */
+/**
+ * `Review` JSON-LD (§3.4) — one per court review, embedded on the court page so
+ * SERP review snippets render. Pair with the court's `AggregateRating` (already
+ * in `courtJsonLd`, empty-safe until reviewCount>0).
+ */
+export function reviewJsonLd(
+  review: { rating1to5: number; title?: string; body?: string; author?: string; createdAt?: string },
+  courtName: string,
+): JsonLd {
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Review",
+    itemReviewed: { "@type": "SportsActivityLocation", name: courtName },
+    reviewRating: { "@type": "Rating", ratingValue: review.rating1to5, bestRating: 5, worstRating: 1 },
+    ...(review.title ? { name: review.title } : {}),
+    ...(review.body ? { reviewBody: review.body } : {}),
+    author: { "@type": "Person", name: review.author || "PickleLoko player" },
+    ...(review.createdAt ? { datePublished: review.createdAt } : {}),
+  };
+}
+
+/**
+ * `SportsEvent` — an outing/game (Stage 4, §3.4 / §6.7). Rendered on the outing
+ * detail page alongside a `BreadcrumbList`; public outings only (the page gates
+ * private/unlisted out of the crawlable markup).
+ *
+ * EMPTY-SAFE: optional fields (`endDate`, `description`,
+ * `maximumAttendeeCapacity`) are omitted when absent. The `location` is a
+ * `Place` (the court venue). A free `Offer` (price 0) is emitted so the event can
+ * qualify for event rich-results without implying a paid ticket.
+ */
+export function sportsEventJsonLd(
+  outing: OutingItem,
+  opts: { courtName: string; url: string; cityName?: string; stateCode?: string },
+): JsonLd {
+  const absoluteUrl = opts.url.startsWith("http") ? opts.url : `${brand.siteUrl}${opts.url}`;
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "SportsEvent",
+    name: outing.title,
+    sport: "Pickleball",
+    url: absoluteUrl,
+    startDate: outing.startTs,
+    ...(outing.endTs ? { endDate: outing.endTs } : {}),
+    ...(outing.description ? { description: outing.description } : {}),
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: opts.courtName,
+      ...(opts.cityName || opts.stateCode
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              ...(opts.cityName ? { addressLocality: opts.cityName } : {}),
+              ...(opts.stateCode ? { addressRegion: opts.stateCode } : {}),
+            },
+          }
+        : {}),
+    },
+    ...(typeof outing.capacity === "number" && outing.capacity > 0
+      ? { maximumAttendeeCapacity: outing.capacity }
+      : {}),
+    organizer: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+    offers: {
+      "@type": "Offer",
+      price: 0,
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl,
+    },
+  };
+}
+
+/**
+ * `SoftwareApplication` — the free Round-Robin generator tool (Stage 5, §6.8).
+ *
+ * Rendered on the round-robin landing (and each public event page) so the tool
+ * can qualify for the software rich-result. It is a free, browser-based utility,
+ * so a zero-price `Offer` is emitted (`price: "0"`) and the app category is
+ * `SportsApplication`. `url`/`name`/`description` default to the tool's brand
+ * values but every field is overridable for per-event pages.
+ */
+export function softwareApplicationJsonLd(opts?: {
+  name?: string;
+  description?: string;
+  url?: string;
+}): JsonLd {
+  const absoluteUrl = opts?.url
+    ? opts.url.startsWith("http")
+      ? opts.url
+      : `${brand.siteUrl}${opts.url}`
+    : `${brand.siteUrl}/round-robin`;
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "SoftwareApplication",
+    name: opts?.name ?? `${brand.identity.name} Round Robin Generator`,
+    description:
+      opts?.description ??
+      "Free round-robin generator for pickleball — build fair, balanced schedules for round robins, mixers, Swiss, and pool-play brackets in seconds. No sign-up required.",
+    url: absoluteUrl,
+    applicationCategory: "SportsApplication",
+    operatingSystem: "Web",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    publisher: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+  };
+}
+
+/**
+ * `Event` + `Offer` — a paid tournament (Stage 6, §3.4 / §7.1). Rendered on the
+ * tournament detail page alongside a `BreadcrumbList`. One `Offer` is emitted per
+ * division (schema.org accepts an array), each priced from the division's `price`
+ * (major units, computed from the stored minor units) with an `availability` that
+ * flips to `SoldOut` once a capped division fills. Emitting per-division offers
+ * lets a "from $X" price + per-division rich result render.
+ *
+ * EMPTY-SAFE: `endDate`, `description`, and `location.address` are omitted when
+ * absent; a tournament with no divisions carries no `offers`.
+ */
+export function tournamentEventJsonLd(
+  tournament: TourneyItem,
+  divisions: DivisionItem[],
+  opts: { url: string; cityName?: string; stateCode?: string; venueName?: string },
+): JsonLd {
+  const absoluteUrl = opts.url.startsWith("http") ? opts.url : `${brand.siteUrl}${opts.url}`;
+
+  const offers = divisions.map((d): JsonLd => {
+    const digits = minorUnitDigits(d.price.currency);
+    const isFull =
+      typeof d.capacity === "number" && d.capacity > 0 && d.registeredCount >= d.capacity;
+    return {
+      "@type": "Offer",
+      name: d.name,
+      price: (d.price.amount / 10 ** digits).toFixed(digits),
+      priceCurrency: d.price.currency.toUpperCase(),
+      availability: isFull ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+      url: absoluteUrl,
+    };
+  });
+
+  const venue = opts.venueName ?? tournament.venueName;
+
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Event",
+    name: tournament.title,
+    url: absoluteUrl,
+    startDate: tournament.startDate,
+    ...(tournament.endDate ? { endDate: tournament.endDate } : {}),
+    ...(tournament.description ? { description: tournament.description } : {}),
+    eventStatus:
+      tournament.status === "cancelled"
+        ? "https://schema.org/EventCancelled"
+        : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: venue ?? "Pickleball venue",
+      ...(opts.cityName || opts.stateCode
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              ...(opts.cityName ? { addressLocality: opts.cityName } : {}),
+              ...(opts.stateCode ? { addressRegion: opts.stateCode } : {}),
+            },
+          }
+        : {}),
+    },
+    organizer: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+    ...(offers.length > 0 ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
+  };
+}
+
 export function itemListJsonLd(items: { name: string; url: string }[]): JsonLd {
   return {
     "@context": SCHEMA_CONTEXT,
@@ -192,5 +370,35 @@ export function itemListJsonLd(items: { name: string; url: string }[]): JsonLd {
       name: item.name,
       url: item.url.startsWith("http") ? item.url : `${brand.siteUrl}${item.url}`,
     })),
+  };
+}
+
+/**
+ * `Person` — a player's public profile (Stage 2, §3.4 / §6.3). Sport-scoped via
+ * `knowsAbout`. `url` is the canonical brand-sourced player page. Only public,
+ * non-sensitive fields are emitted (never gender/email); the caller must gate on
+ * {@link profileIsIndexable} before rendering. `homeLocation` (with a
+ * `PostalAddress` locality) is included only when a city name is supplied.
+ */
+export function personJsonLd(
+  user: import("@/lib/db/types").UserProfileItem,
+  opts?: { cityName?: string },
+): JsonLd {
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Person",
+    name: user.displayName,
+    url: `${brand.siteUrl}/players/${user.username}`,
+    knowsAbout: "Pickleball",
+    ...(user.avatarUrl ? { image: user.avatarUrl } : {}),
+    ...(opts?.cityName
+      ? {
+          homeLocation: {
+            "@type": "Place",
+            name: opts.cityName,
+            address: { "@type": "PostalAddress", addressLocality: opts.cityName },
+          },
+        }
+      : {}),
   };
 }

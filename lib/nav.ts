@@ -112,6 +112,7 @@ export const accountNav: NavLink[] = [
   { label: "Dashboard", href: "/account" },
   { label: "Profile & Ratings", href: "/account/profile" },
   { label: "My Check-ins", href: "/account/checkins" },
+  { label: "My Reviews", href: "/account/reviews" },
   { label: "My Outings", href: "/account/outings" },
   { label: "My Registrations", href: "/account/registrations" },
   { label: "Saved Courts", href: "/account/courts" },

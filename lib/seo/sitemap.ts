@@ -16,10 +16,21 @@ import type { MetadataRoute } from "next";
 import { siteUrl } from "@/brand.config";
 import { getCountries, getStatesInCountry, getCitiesInState } from "@/lib/data/geo";
 import { getCourtsInCity } from "@/lib/data/courts";
-import { countryUrl, stateUrl, cityUrl, courtUrl } from "@/lib/urls";
+import { getCityGames } from "@/lib/data/outings";
+import { getTournamentsInCity } from "@/lib/data/tournaments";
+import { parseCityKey } from "@/lib/db/keys";
+import {
+  countryUrl,
+  stateUrl,
+  cityUrl,
+  courtUrl,
+  outingPath,
+  tournamentPath,
+  tournamentsCityPath,
+} from "@/lib/urls";
 import type { StateItem, CityItem } from "@/lib/db/types";
 
-/** The nine §3.7 sitemap segment ids. */
+/** The §3.7 sitemap segment ids (+ `outings`, added Stage 4). */
 export type SitemapSegmentId =
   | "courts"
   | "cities"
@@ -29,7 +40,8 @@ export type SitemapSegmentId =
   | "leagues"
   | "groups"
   | "content"
-  | "news";
+  | "news"
+  | "outings";
 
 export interface SitemapSegment {
   id: SitemapSegmentId;
@@ -146,8 +158,36 @@ export const sitemapSegments: Record<SitemapSegmentId, SitemapSegment> = {
   tournaments: {
     id: "tournaments",
     entries: async () => {
-      // TODO(Stage 6): populate from TOURNEY items + city/location finder pages.
-      return [];
+      // Published tournaments + the city finder pages that list them. Bounded
+      // traversal: one GSI2 Query per city (§9.5 #17), fanned out with Promise.all.
+      //
+      // !! SCALE CAVEAT !! O(#cities) Queries — fine at seed scale behind a
+      // scheduled regeneration (same caveat as the `courts`/`outings` segments).
+      // TODO(scale): back this with a dedicated upcoming-tournaments index and page
+      // across `generateSitemaps` ids once tournaments grow past 50k URLs.
+      const cities = await allCities();
+      const perCity = await Promise.all(
+        cities.map(async (city) => ({ city, tournaments: await getTournamentsInCity(city.cityKey) })),
+      );
+      const seen = new Set<string>();
+      const out: MetadataRoute.Sitemap = [];
+      for (const { city, tournaments } of perCity) {
+        if (tournaments.length === 0) continue;
+        // The city finder landing.
+        const { country, state, city: citySlug } = parseCityKey(city.cityKey);
+        out.push(
+          directoryEntry(tournamentsCityPath(country, state, citySlug), undefined, "daily", 0.6),
+        );
+        // Each published tournament detail page (deduped across nearby-city lists).
+        for (const t of tournaments) {
+          if (seen.has(t.tid)) continue;
+          seen.add(t.tid);
+          out.push(
+            directoryEntry(tournamentPath(t.tid), lastmodOf({ updatedAt: t.updatedAt }), "daily", 0.7),
+          );
+        }
+      }
+      return out;
     },
   },
   leagues: {
@@ -179,7 +219,57 @@ export const sitemapSegments: Record<SitemapSegmentId, SitemapSegment> = {
       return [];
     },
   },
+  outings: {
+    id: "outings",
+    entries: async () => {
+      // Public outings only. Bounded traversal: every city × the next ~7 days via
+      // getCityGames (§9.5). Recurring/multi-day games surface once (dedup by id).
+      //
+      // !! SCALE CAVEAT !! O(#cities × 7) Queries — fine at seed scale behind a
+      // scheduled regeneration, same caveat as the `courts` segment above.
+      // TODO(scale): back this with a dedicated upcoming-outings GSI / precomputed
+      // index and page across `generateSitemaps` ids once games grow past 50k URLs.
+      const cities = await allCities();
+      const days = nextDaysYyyymmdd(7);
+      const perCity = await Promise.all(
+        cities.map(async (city) => {
+          const lists = await Promise.all(days.map((d) => getCityGames(city.cityKey, d)));
+          return lists.flat();
+        }),
+      );
+      const seen = new Set<string>();
+      const out: MetadataRoute.Sitemap = [];
+      for (const outing of perCity.flat()) {
+        if (outing.visibility !== "public" || seen.has(outing.outingId)) continue;
+        seen.add(outing.outingId);
+        out.push(
+          directoryEntry(
+            outingPath(outing.outingId),
+            lastmodOf({ updatedAt: outing.updatedAt }),
+            "daily",
+            0.6,
+          ),
+        );
+      }
+      return out;
+    },
+  },
 };
+
+/** yyyymmdd for today .. today+N-1 (UTC), for the bounded games traversal. */
+function nextDaysYyyymmdd(count: number): string[] {
+  const out: string[] = [];
+  const base = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(base);
+    d.setUTCDate(base.getUTCDate() + i);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    out.push(`${y}${m}${day}`);
+  }
+  return out;
+}
 
 /**
  * The §3.7 `lastmod` rule as a pure function:

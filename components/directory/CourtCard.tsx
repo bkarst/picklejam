@@ -177,7 +177,7 @@ export function CourtCard({
           </h3>
           {/* z-10 keeps the heart above the name link's ::after overlay */}
           <span className="relative z-10 -mr-1 -mt-1 shrink-0">
-            <SaveHeartButton name={court.name} />
+            <SaveHeartButton name={court.name} courtId={court.courtId} />
           </span>
         </div>
 

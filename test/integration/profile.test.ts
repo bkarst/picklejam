@@ -1,0 +1,124 @@
+import { describe, it, expect, beforeAll } from "vitest";
+import {
+  getUserProfile,
+  getUserByUsername,
+  getUserRatings,
+  isUsernameAvailable,
+  buildProfileItem,
+  buildRatingItem,
+  putProfileWithUsername,
+  upsertRating,
+  deleteRating,
+  UsernameTakenError,
+} from "@/lib/data/users";
+import { verifyRequest } from "@/lib/auth/verify";
+import { encodeDevToken } from "@/lib/auth/dev";
+
+/**
+ * Stage 2 profile & ratings spine integration against DynamoDB Local: §9.5
+ * patterns #12 (profile by username) & #13 (a user's ratings) as ONE query each,
+ * create→update, race-safe username uniqueness, and ratings upsert/delete.
+ * Skipped when DYNAMODB_ENDPOINT is unset (CI provides it + PickleLokoAppTest).
+ *
+ * Parallel-safe + re-runnable: a per-run token makes every uid/username unique,
+ * so leftover reservation rows from a prior run never collide with a fresh run.
+ */
+const d = process.env.DYNAMODB_ENDPOINT ? describe : describe.skip;
+
+const RUN = Math.random().toString(36).slice(2, 8);
+const uid1 = `user-itest-${RUN}-1`;
+const uid2 = `user-itest-${RUN}-2`;
+const name1 = `itest-${RUN}-alpha`;
+const name2 = `itest-${RUN}-beta`;
+
+d("profile & ratings spine (DynamoDB Local)", () => {
+  beforeAll(async () => {
+    await putProfileWithUsername(
+      buildProfileItem({ uid: uid1, username: name1, displayName: "Itest One", visibility: "public" }),
+    );
+    await upsertRating(
+      buildRatingItem({ uid: uid1, system: "DUPR", value: 4.2, verified: true, source: "dupr" }),
+    );
+    await upsertRating(
+      buildRatingItem({ uid: uid1, system: "UTRP", value: 4.0, verified: false, source: "self" }),
+    );
+  });
+
+  it("#12 public profile by username resolves in one Query (GSI3)", async () => {
+    const found = await getUserByUsername(name1);
+    expect(found?.uid).toBe(uid1);
+    expect(found?.displayName).toBe("Itest One");
+  });
+
+  it("#13 a user's ratings resolve in one Query", async () => {
+    const ratings = await getUserRatings(uid1);
+    expect(ratings.map((r) => r.system).sort()).toEqual(["DUPR", "UTRP"]);
+    expect(ratings.every((r) => r.uid === uid1)).toBe(true);
+  });
+
+  it("username uniqueness: a second uid cannot claim a taken username → 409/false", async () => {
+    await expect(
+      putProfileWithUsername(
+        buildProfileItem({ uid: uid2, username: name1, displayName: "Itest Two", visibility: "public" }),
+      ),
+    ).rejects.toBeInstanceOf(UsernameTakenError);
+
+    expect(await isUsernameAvailable(name1)).toBe(false); // taken
+    expect(await isUsernameAvailable(name1, uid1)).toBe(true); // owner
+    expect(await isUsernameAvailable(name1, uid2)).toBe(false); // someone else
+  });
+
+  it("create → update: editable fields change, username unchanged is a plain put", async () => {
+    const current = await getUserProfile(uid1);
+    await putProfileWithUsername(
+      buildProfileItem({
+        uid: uid1,
+        username: name1,
+        displayName: "Itest One Updated",
+        visibility: "private",
+        createdAt: current?.createdAt,
+      }),
+      name1, // oldUsername === new → no reservation churn
+    );
+    const updated = await getUserProfile(uid1);
+    expect(updated?.displayName).toBe("Itest One Updated");
+    expect(updated?.visibility).toBe("private");
+  });
+
+  it("ratings upsert/delete: removing a system leaves the rest", async () => {
+    await deleteRating(uid1, "UTRP");
+    const ratings = await getUserRatings(uid1);
+    expect(ratings.map((r) => r.system)).toEqual(["DUPR"]);
+  });
+
+  it("username change releases the old reservation and moves the GSI3 pointer", async () => {
+    const current = await getUserProfile(uid1);
+    await putProfileWithUsername(
+      buildProfileItem({
+        uid: uid1,
+        username: name2,
+        displayName: current?.displayName ?? "Itest One",
+        visibility: "public",
+        createdAt: current?.createdAt,
+      }),
+      name1, // old username → reserved-new + delete-old, atomically
+    );
+    expect((await getUserByUsername(name2))?.uid).toBe(uid1);
+    expect(await getUserByUsername(name1)).toBeUndefined();
+    expect(await isUsernameAvailable(name1)).toBe(true); // old slug freed
+  });
+
+  it("requireAuth path: verifyRequest rejects without a token, resolves a dev token", async () => {
+    process.env.ALLOW_DEV_AUTH = "1"; // APP_ENV=Test (never Production) → dev tokens accepted
+
+    await expect(verifyRequest(new Request("https://x/api/account/profile"))).rejects.toThrow();
+
+    const token = encodeDevToken({ uid: uid1, email: "itest@example.com", name: "Itest" });
+    const req = new Request("https://x/api/account/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const user = await verifyRequest(req);
+    expect(user.uid).toBe(uid1);
+    expect(user.email).toBe("itest@example.com");
+  });
+});
