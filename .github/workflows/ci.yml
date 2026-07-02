@@ -1,0 +1,109 @@
+name: CI
+
+# The standing quality gate (PRD §14.9): runs on every push to main + PRs.
+# static + unit + component + integration + E2E + build must all be green.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Static + Unit + Component + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit + component tests
+        run: npm run test
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://pickleloko.com
+
+  integration:
+    name: Integration (DynamoDB Local)
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports: ["8000:8000"]
+    env:
+      APP_ENV: Test
+      DYNAMODB_ENDPOINT: http://localhost:8000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Provision the Test table
+        run: node scripts/provision-table.mjs --recreate
+      - name: Integration tests (one query per §9.5, no scans)
+        run: npm run test:integration
+
+  e2e:
+    name: E2E (Playwright, DB-wired)
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:latest
+        ports: ["8000:8000"]
+    env:
+      APP_ENV: Test
+      DYNAMODB_ENDPOINT: http://localhost:8000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      NEXT_PUBLIC_SITE_URL: https://pickleloko.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Provision + seed the Test table (Kansas)
+        run: |
+          node scripts/provision-table.mjs --recreate
+          npm run ingest -- --state kansas
+      - name: Build (reads the seeded DB for prerender)
+        run: npm run build
+      - name: Run E2E (walking skeleton + directory + J2)
+        run: npm run test:e2e
+
+  lighthouse:
+    name: Perf / SEO / a11y (Lighthouse CI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://pickleloko.com
+      - name: Lighthouse CI (CWV budgets, §3.8)
+        run: npm run lighthouse

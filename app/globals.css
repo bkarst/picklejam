@@ -1,26 +1,127 @@
-@import "tailwindcss";
+/**
+ * globals.css — Tailwind v4 + HeroUI v3 theme, themed for PickleLoko.
+ *
+ * ⚠ Color / radius values below MIRROR `brand.config.ts` (the single source of
+ * truth, PRD §2.3). CSS cannot import TS, so these are kept in sync by
+ * `test/unit/brand-theme-sync.test.ts` — update BOTH or the test fails.
+ *
+ * HeroUI v3 keys its components off CSS custom properties (`--accent` is the
+ * primary action color, `--success`/`--danger`/…); overriding them here re-themes
+ * every HeroUI component. `themes/shared/theme.css` maps each `--foo` to a
+ * `--color-foo` Tailwind utility (e.g. `bg-accent`, `text-foreground`).
+ */
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Brings Tailwind v4 + HeroUI base/components/default theme/utilities/variants. */
+@import "@heroui/styles";
 
+/* ── Tailwind theme extensions: fonts + brand-specific color aliases ── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fredoka), "Fredoka", ui-sans-serif, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brand aliases so `bg-primary` / `bg-secondary` / `bg-brand-lime` work.
+     HeroUI's own components use `--accent`; `--primary` is an alias for our code. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-bubblegum: var(--brand-bubblegum);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Brand token overrides (mirror brand.config.ts) ── */
+@layer base {
+  :root,
+  .light,
+  [data-theme="light"] {
+    color-scheme: light;
+
+    --background: #fff9f2; /* cream */
+    --foreground: #222222; /* charcoal */
+    --surface: #ffffff;
+    --surface-foreground: #222222;
+    --muted: #6b6459;
+    --border: #eae2d6;
+    --separator: #eae2d6;
+
+    --accent: #1e5e3a; /* forest — primary action */
+    --accent-foreground: #ffffff;
+    --success: #3fa35b; /* pickle green */
+    --success-foreground: #ffffff;
+    --warning: #f5a524;
+    --warning-foreground: #222222;
+    --danger: #e5484d;
+    --danger-foreground: #ffffff;
+
+    --focus: #1e5e3a;
+    --link: #1e5e3a;
+
+    /* Custom brand tokens */
+    --secondary: #ff6b9d; /* hot pink */
+    --secondary-foreground: #222222;
+    --brand-lime: #bcef3f;
+    --brand-bubblegum: #ffb3c7;
+
+    --radius: 0.75rem;
+  }
+
+  .dark,
+  [data-theme="dark"] {
+    color-scheme: dark;
+
+    --background: #141310;
+    --foreground: #fff9f2;
+    --surface: #1f1d18;
+    --surface-foreground: #fff9f2;
+    --muted: #a89f91;
+    --border: #332f27;
+    --separator: #332f27;
+
+    --accent: #3fa35b; /* pickle green — forest is too dark on ink */
+    --accent-foreground: #ffffff;
+    --success: #3fa35b;
+    --success-foreground: #ffffff;
+    --warning: #f5a524;
+    --warning-foreground: #222222;
+    --danger: #e5484d;
+    --danger-foreground: #ffffff;
+
+    --focus: #bcef3f;
+    --link: #bcef3f;
+
+    --secondary: #ff6b9d;
+    --secondary-foreground: #222222;
+    --brand-lime: #bcef3f;
+    --brand-bubblegum: #ffb3c7;
+
+    --radius: 0.75rem;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Honor reduced-motion globally (HIG / UI §1.4). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

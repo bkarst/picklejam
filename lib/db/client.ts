@@ -1,0 +1,275 @@
+/**
+ * client.ts — the single-table access layer (PRD §9.5–9.6).
+ *
+ * Every §9.5 view resolves in ONE `Query`/`GetItem`, no scans, no joins. This
+ * module deliberately exposes NO `scan` operation — a full-table scan is a bug
+ * here (§9.6). Writes go through `putItem`/`putNew`/`updateItem`/`deleteItem` and,
+ * for multi-item consistency (N15), `transactWrite`.
+ */
+
+// Server-context module (route handlers + CLI); see lib/db/table.ts on why this
+// deliberately omits `import "server-only"`.
+import {
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+  QueryCommand,
+  BatchGetCommand,
+  BatchWriteCommand,
+  TransactWriteCommand,
+  type TransactWriteCommandInput,
+} from "@aws-sdk/lib-dynamodb";
+import { getDocClient, TABLE_NAME, GSI } from "./table";
+import type { PrimaryKey } from "./keys";
+
+export type IndexName = (typeof GSI)[keyof typeof GSI];
+
+/**
+ * Extract ONLY the base-table primary key. Key builders often return the base key
+ * spread with GSI projections (for writes); DynamoDB rejects a GetItem/Delete Key
+ * that carries non-key attributes ("key does not match schema"), so every
+ * point-key op narrows to `{pk, sk}` here.
+ */
+function baseKey(key: PrimaryKey): PrimaryKey {
+  return { pk: key.pk, sk: key.sk };
+}
+
+/** Map an index (or the base table) to its partition/sort attribute names. */
+function keyAttrs(index?: IndexName): { pk: string; sk: string } {
+  switch (index) {
+    case GSI.byOwner:
+      return { pk: "gsi1pk", sk: "gsi1sk" };
+    case GSI.byLocation:
+      return { pk: "gsi2pk", sk: "gsi2sk" };
+    case GSI.bySlug:
+      return { pk: "gsi3pk", sk: "gsi3sk" };
+    case GSI.byGeo:
+      return { pk: "gsi4pk", sk: "gsi4sk" };
+    default:
+      return { pk: "pk", sk: "sk" };
+  }
+}
+
+// ── Reads ─────────────────────────────────────────────────────────────────
+
+/** GetItem by primary key. */
+export async function getItem<T>(
+  key: PrimaryKey,
+  opts?: { consistentRead?: boolean },
+): Promise<T | undefined> {
+  const res = await getDocClient().send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: baseKey(key),
+      ConsistentRead: opts?.consistentRead,
+    }),
+  );
+  return res.Item as T | undefined;
+}
+
+export interface QueryOptions {
+  /** Partition-key value (of the base table or the chosen GSI). */
+  pk: string;
+  /** `begins_with(sk, prefix)` — the common single-partition filter. */
+  skBeginsWith?: string;
+  /** Exact sort-key equality. */
+  skEquals?: string;
+  /** Inclusive sort-key range `[from, to]` (mutually exclusive with the above). */
+  skBetween?: [string, string];
+  /** GSI to query; omit for the base table. */
+  index?: IndexName;
+  /** Sort ascending (default true). */
+  ascending?: boolean;
+  limit?: number;
+  /** Pagination cursor from a previous page's `lastKey`. */
+  startKey?: Record<string, unknown>;
+  /** Post-read filter (allowed — a filter is NOT a scan; the Query is still keyed). */
+  filter?: {
+    expression: string;
+    names?: Record<string, string>;
+    values?: Record<string, unknown>;
+  };
+  /** Projection attribute names (reduce payload). */
+  projection?: string[];
+  consistentRead?: boolean;
+}
+
+export interface QueryResult<T> {
+  items: T[];
+  /** Present when the result was truncated — pass back as `startKey` to paginate. */
+  lastKey?: Record<string, unknown>;
+}
+
+/**
+ * Single-partition Query. Enforces the §9.5 "one query per view" rule: it always
+ * targets a single partition key (never a scan). Sort-key narrowing is optional.
+ */
+export async function query<T>(opts: QueryOptions): Promise<QueryResult<T>> {
+  const { pk: pkAttr, sk: skAttr } = keyAttrs(opts.index);
+
+  const names: Record<string, string> = { "#pk": pkAttr };
+  const values: Record<string, unknown> = { ":pk": opts.pk };
+  let keyCond = "#pk = :pk";
+
+  if (opts.skEquals !== undefined) {
+    names["#sk"] = skAttr;
+    values[":sk"] = opts.skEquals;
+    keyCond += " AND #sk = :sk";
+  } else if (opts.skBeginsWith !== undefined) {
+    names["#sk"] = skAttr;
+    values[":skPrefix"] = opts.skBeginsWith;
+    keyCond += " AND begins_with(#sk, :skPrefix)";
+  } else if (opts.skBetween !== undefined) {
+    names["#sk"] = skAttr;
+    values[":from"] = opts.skBetween[0];
+    values[":to"] = opts.skBetween[1];
+    keyCond += " AND #sk BETWEEN :from AND :to";
+  }
+
+  if (opts.filter?.names) Object.assign(names, opts.filter.names);
+  if (opts.filter?.values) Object.assign(values, opts.filter.values);
+
+  const res = await getDocClient().send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: opts.index,
+      KeyConditionExpression: keyCond,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+      FilterExpression: opts.filter?.expression,
+      ScanIndexForward: opts.ascending ?? true,
+      Limit: opts.limit,
+      ExclusiveStartKey: opts.startKey,
+      ProjectionExpression: opts.projection?.map((_, i) => `#p${i}`).join(", "),
+      ...(opts.projection
+        ? {
+            ExpressionAttributeNames: {
+              ...names,
+              ...Object.fromEntries(opts.projection.map((p, i) => [`#p${i}`, p])),
+            },
+          }
+        : {}),
+      ConsistentRead: opts.index ? undefined : opts.consistentRead,
+    }),
+  );
+
+  return {
+    items: (res.Items ?? []) as T[],
+    lastKey: res.LastEvaluatedKey,
+  };
+}
+
+/** BatchGet up to 100 items by primary key (one round trip; still not a scan). */
+export async function batchGet<T>(batchKeys: PrimaryKey[]): Promise<T[]> {
+  if (batchKeys.length === 0) return [];
+  const out: T[] = [];
+  for (let i = 0; i < batchKeys.length; i += 100) {
+    const chunk = batchKeys.slice(i, i + 100).map(baseKey);
+    const res = await getDocClient().send(
+      new BatchGetCommand({ RequestItems: { [TABLE_NAME]: { Keys: chunk } } }),
+    );
+    out.push(...((res.Responses?.[TABLE_NAME] ?? []) as T[]));
+  }
+  return out;
+}
+
+// ── Writes ────────────────────────────────────────────────────────────────
+
+/** Upsert an item. */
+export async function putItem<T extends Record<string, unknown>>(item: T): Promise<void> {
+  await getDocClient().send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
+}
+
+/**
+ * Bulk upsert (seed ingestion). Chunks into 25-item BatchWrite requests and
+ * retries UnprocessedItems with backoff. Idempotent by primary key (last write
+ * wins), so re-running the import produces no duplicates (§9.8).
+ */
+export async function batchWrite<T extends Record<string, unknown>>(items: T[]): Promise<void> {
+  const client = getDocClient();
+  for (let i = 0; i < items.length; i += 25) {
+    const chunk = items.slice(i, i + 25);
+    let requests = chunk.map((Item) => ({ PutRequest: { Item } }));
+    for (let attempt = 0; attempt < 5 && requests.length > 0; attempt++) {
+      const res = await client.send(
+        new BatchWriteCommand({ RequestItems: { [TABLE_NAME]: requests } }),
+      );
+      const unprocessed = res.UnprocessedItems?.[TABLE_NAME] ?? [];
+      requests = unprocessed as typeof requests;
+      if (requests.length > 0) await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
+    }
+    if (requests.length > 0) {
+      throw new Error(`batchWrite: ${requests.length} items unprocessed after retries`);
+    }
+  }
+}
+
+/** Create-only put: fails if an item with the same primary key already exists. */
+export async function putNew<T extends Record<string, unknown>>(item: T): Promise<void> {
+  await getDocClient().send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: item,
+      ConditionExpression: "attribute_not_exists(pk)",
+    }),
+  );
+}
+
+export async function updateItem(params: {
+  key: PrimaryKey;
+  update: string;
+  names?: Record<string, string>;
+  values?: Record<string, unknown>;
+  condition?: string;
+}): Promise<Record<string, unknown> | undefined> {
+  const res = await getDocClient().send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: baseKey(params.key),
+      UpdateExpression: params.update,
+      ExpressionAttributeNames: params.names,
+      ExpressionAttributeValues: params.values,
+      ConditionExpression: params.condition,
+      ReturnValues: "ALL_NEW",
+    }),
+  );
+  return res.Attributes;
+}
+
+export async function deleteItem(key: PrimaryKey, condition?: string): Promise<void> {
+  await getDocClient().send(
+    new DeleteCommand({ TableName: TABLE_NAME, Key: baseKey(key), ConditionExpression: condition }),
+  );
+}
+
+/**
+ * Atomic composite write (N15, §9.1): all items succeed or none do. Use for
+ * multi-item creates that must be mutually consistent — outing + OUTINGREF
+ * (+ SERIES/MEETUP), group + creator MEMBER + COURT→GROUP pointers, registration
+ * + Payment + counter. Respects the DynamoDB 100-item / 4 MB transaction limit.
+ */
+export type TransactItem = NonNullable<TransactWriteCommandInput["TransactItems"]>[number];
+
+export async function transactWrite(items: TransactItem[]): Promise<void> {
+  if (items.length === 0) return;
+  if (items.length > 100) {
+    throw new Error(
+      `transactWrite: ${items.length} items exceeds the DynamoDB 100-item limit (N15)`,
+    );
+  }
+  await getDocClient().send(new TransactWriteCommand({ TransactItems: items }));
+}
+
+/** Build a Put transact item scoped to the app table. */
+export function txPut<T extends Record<string, unknown>>(
+  item: T,
+  conditionExpression?: string,
+): TransactItem {
+  return { Put: { TableName: TABLE_NAME, Item: item, ConditionExpression: conditionExpression } };
+}
+
+/** Build a Delete transact item scoped to the app table. */
+export function txDelete(key: PrimaryKey, conditionExpression?: string): TransactItem {
+  return { Delete: { TableName: TABLE_NAME, Key: baseKey(key), ConditionExpression: conditionExpression } };
+}

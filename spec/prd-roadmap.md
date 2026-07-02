@@ -49,8 +49,8 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 
 | Stage | Theme | PRD § | New §9.5 patterns | E2E journeys made **required** | Indexable? |
 |---|---|---|---|---|---|
-| **0** | **Preflight / Foundation** (platform, no features) | §2, §9.1–9.2, §14 | — (harness only) | Walking-skeleton smoke | shell |
-| **1** | **Court Directory** (SEO head, read-path) ★ | §3, §6.1, §9.8 | 1, 2, 3, 7 | **J2** + SEO/render moat (§14.4) | ✅ core |
+| **0** ✅ | **Preflight / Foundation** (platform, no features) | §2, §9.1–9.2, §14 | — (harness only) | Walking-skeleton smoke ✅ | shell |
+| **1** ✅ | **Court Directory** (SEO head, read-path) ★ | §3, §6.1, §9.8 | 1, 2, 3, 7 | **J2** ✅ + SEO/render moat (§14.4) | ✅ core |
 | **2** | **Identity** (auth, profiles, ratings, account shell) | §2 (auth), §6.3 | 12, 13 | **J8** | ✅ profiles* |
 | **3** | **Community on courts** (check-ins, reviews, follows, notif-min) | §6.2, §6.4, §9.3 (notif) | 4, 5, 6 | **J1, J9** | ✅ freshness |
 | **4** | **Outings** (games, city game finder, RSVP) | §6.7 | 8, 9, 10, 11 | **J3** | ✅ events |
@@ -98,6 +98,29 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **Walking-skeleton journey:** home shell renders (JS-off complete for the static shell), `/robots.txt` + `/sitemap.xml` index serve, `/404`+`/500` render, header/footer links resolve, **axe** clean, **Lighthouse** budget met on the shell.
 - **Exit criteria:** the **standing gate pipeline runs and passes** end-to-end; the staging environment deploys; `next-conventions.md` published; `brand.config.ts` is the single brand source. Nothing hardcodes a brand value.
 
+### ✅ Stage 0 — BUILD NOTES (status: complete, 2026-07-01)
+
+**Green locally end-to-end:** `tsc --noEmit` ✓ · `eslint` 0 errors ✓ · Vitest 31 unit/component ✓ (axe-clean) · 7 integration ✓ against live DynamoDB · Playwright 14 (chromium + mobile) ✓ (axe-clean, no mobile overflow) · `next build` ✓. Home renders complete JS-off HTML with Organization+WebSite+SearchAction JSON-LD; robots + 10 segment sitemaps + PNG OG serve; branded 404/500.
+
+**Key facts discovered / decisions (build against these in later stages):**
+- **Next.js is on the LEGACY caching model** (no `cacheComponents` flag): use `export const revalidate` / `dynamicParams` / `revalidatePath` / `revalidateTag(tag,'max')` — NOT `use cache`/`cacheLife`. `params`/`searchParams`/`cookies()`/`headers()` are **async**. `ImageResponse` from **`next/og`**. Full reference: [`docs/next-conventions.md`](../docs/next-conventions.md).
+- **Brand tokens risk CLOSED** — real palette/type came from `design/brand-identity-2.jpg`: Forest `#1E5E3A`, Pickle Green `#3FA35B`, Lime `#BCEF3F`, Bubblegum `#FFB3C7`, Hot Pink `#FF6B9D`, Cream `#FFF9F2`, Charcoal `#222222`; Fredoka (display) + Inter (body). `brand.config.ts` is the single source; `globals.css` mirrors it, guarded by `test/unit/brand-theme-sync.test.ts` + a no-hardcoded-hex test (the §2.3 "lint rule").
+- **HeroUI v3** (`@heroui/react@3.2.1`): primary action color = the `--accent` CSS var (Forest); Button uses one `variant` prop (`primary|secondary|tertiary|outline|ghost|danger|danger-soft`), React-Aria `onPress` (not `onClick`); dark mode via `useTheme` (localStorage `heroui-theme`, `.dark` + `data-theme`). No `HeroUIProvider` — wrap in `RouterProvider`+`I18nProvider`.
+- **a11y**: Hot-Pink secondary uses **charcoal** foreground (white-on-pink fails AA); the two-tone wordmark is a **logotype** (WCAG 1.4.3-exempt) tagged `data-logo` and excluded from the automated contrast scan — everything else held to AA.
+- **DynamoDB access-pattern keys**: numeric sort components are **zero-padded** (round/rank/eIdx) so lexicographic == numeric order (on top of the §9.3 notation). Table = `PickleLokoApp<Env>`, on-demand, Streams on; provision via `scripts/provision-table.mjs`.
+
+**Deviations from the literal spec (working equivalents):**
+- **No `/sitemap.xml` index** — Next 16 `generateSitemaps` reserves that path and emits per-segment `/sitemap/<id>.xml` only; robots.txt enumerates all 10 via multiple `Sitemap:` lines (valid per protocol). The exit-gate check was updated to `/sitemap/static.xml` + the `Sitemap:` lines.
+- **Local DynamoDB via `dynalite`** (pure-JS; no Docker/Java in this env) for local integration runs; **CI uses the real `amazon/dynamodb-local`** service. dynalite doesn't support TTL/full Streams (provision script best-efforts TTL).
+
+**Deferred within Stage 0 (tracked, non-blocking):**
+- **Staging environment deploy** — needs cloud creds (Vercel/SST); CI + local gate are live, staging pending infra.
+- **GA4 tag loader** — Consent Mode v2 hooks + PostHog proxy are wired; the GA4 script itself lands in Stage 10 hardening.
+- **OG image font** — uses the built-in sans, not Fredoka (embed via `ImageResponse` `fonts` later); LHCI thresholds in `lighthouserc.json` are provisional until the first CI run.
+- Dedicated wordmark/mono/reversed/app-icon assets + default OG asset are TODOs in `brand.config.ts`.
+
+> **Not committed** — changes are staged in the working tree (trunk-based, direct-to-main per project convention); commit when ready.
+
 ---
 
 # Stage 1 — Court Directory (the SEO head) ★
@@ -129,6 +152,28 @@ Run this **ordered** ritual on every major feature; it precedes and feeds that s
 - **SEO/render moat (§14.4 — the product's moat, first-class):** home/city/court/type render **complete crawlable HTML with JS disabled** (H1/body/links present, no session dependency); per-template snapshots of title/desc/**canonical**/OG; **JSON-LD validated** (SportsActivityLocation, AggregateRating, BreadcrumbList, ItemList, FAQPage); `robots.txt` + segmented sitemaps valid with `lastmod`; **`noindex` on `/search`**; thin-content guard on the seeded long tail.
 - **CWV (§3.8):** Lighthouse LCP<2.5s + INP/CLS on **home, city, court** representative templates.
 - **a11y (§14.7):** axe clean + keyboard pass on directory templates.
+
+### ✅ Stage 1 — BUILD NOTES (status: complete, 2026-07-01)
+
+**Green end-to-end:** `tsc` ✓ · `eslint` 0 errors ✓ · Vitest **61** (unit + component + integration against live DynamoDB) ✓ · Playwright **28** (chromium + mobile: walking skeleton + directory render-moat + **J2** search/map + typeahead) ✓ · `next build` ✓ (home ISR1h, directory ISR1d, court ISR1h, type/amenity prerendered, `/search` noindex, 10 sitemaps). Verified with the **real Kansas seed** (191 courts → 77 cities): city page emits BreadcrumbList+ItemList+FAQPage, court page emits SportsActivityLocation (empty-safe AggregateRating)+FAQPage, `/api/search` returns cities+courts, sitemap carries real court URLs.
+
+**Implemented:** ingestion pipeline (`lib/ingest/*` + `scripts/ingest.ts`, idempotent on courtId, derives `dedicated`/`lighted`/`openPlay`/`popularityRank`/`indexable`, batch counts rollup) · repositories (`lib/data/{courts,geo}.ts`, one query each, patterns **1/2/3/7**) · pages `/`, `/courts`, `/courts/[c]`, `/courts/[c]/[st]`, `/courts/[c]/[st]/[city]` ★, court detail ★, `/courts/types|amenities/[x]` · `/search` map finder + global typeahead + `/near` geo-IP redirect · SEO surface (`courtJsonLd`/`itemListJsonLd`, populated sitemaps).
+
+**Cross-cutting addition (not in the spec — requested by the user):** **TanStack Query** (`@tanstack/react-query`) is now the client-side data layer for ALL client → `/api/*` calls. Provider in `app/providers.tsx` (SSR-safe per-request client + browser singleton); typed hooks in `lib/api/queries.ts` (`useSearchSuggest`, `useCourtsNear`); the map finder + typeahead consume them (dedup/cache/abort/loading states). Server components still read the DB directly (not "API calls"). **Rule going forward: every new client→server call goes through a TanStack Query hook in `lib/api/`.**
+
+**Decisions / deviations:**
+- **`server-only` moved OFF the low-level data layer** (`lib/db/{table,client,idempotency}`) so the Node ingest CLI can reuse it; it stays on the true app-server singletons (firebase-admin/stripe/resend/posthog-server). Client components never import `lib/db`.
+- **Real bug fixed:** GetItem/Delete/BatchGet now narrow the `Key` to `{pk,sk}` (key builders return base+GSI keys spread together; DynamoDB rejects a Key with non-key attrs). Was a genuine defect, not dynalite-specific.
+- **Typeahead + geo-IP + type/amenity landings** use bounded graph traversals (states→cities→courts) cached hourly — no scans (§9.6), fine at seed scale; **TODO(scale):** a name-prefix search index / precomputed landing indexes + 50k-URL sitemap split for full US (§13 decision 5 OpenSearch).
+- **Mapbox GL pins** render only when `NEXT_PUBLIC_MAPBOX_TOKEN` is set; without it the accessible **court list is the text-list equivalent** (§2.9) and J2 asserts the geohash radius via that list. Pin↔list sync lands when the token is configured.
+- Test isolation: the §14.8 fixture moved to a synthetic `zz#testland` keyspace so it can't collide with real `us#…` seed data on a shared table; the streams test self-isolates (own court + reset dedupe key) so the integration suite is re-runnable and parallel-safe. CI e2e job now provisions + seeds Kansas before build.
+- **Nav reconciliation:** the mockups' page bodies were matched; the global nav follows the finalized **PRD §4** mega-menu (Play/Compete/Learn/Organize), which the homepage mockup already uses.
+
+**Deferred to later stages (empty-state shells already on the pages):** court **Follow/Check-In** + "checked in today" + Reviews module (Stage 2/3), Upcoming Games grid + weather (Stage 4), Tournaments/Leagues cross-links (Stage 6/7).
+
+**Visual Chrome pass — DONE (2026-07-01):** verified in Chrome (Claude-in-Chrome) against the mockups with real Kansas data — homepage, city directory (**light + dark mode**), court detail (real aerial photos load via `next/image`), `/search` map finder + live typeahead (TanStack → `/api/search` returns grouped city/court suggestions). Console clean (no errors/warnings/hydration); promo banner + help affordance correctly route-gated off `/search`. This also confirms the Stage 0 global chrome (header mega-nav, footer, consent banner, dark-mode toggle) renders correctly.
+
+> **Not committed** — staged in the working tree (trunk-based).
 
 ---
 
