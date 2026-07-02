@@ -255,6 +255,12 @@ export const groupKeys = {
     sk: `MEETUP${SEP}${startTs}${SEP}${outingId}`,
   }),
   meetupPrefix: (): string => `MEETUP${SEP}`,
+  /** COURT→GROUP pointer — "groups that play at a court" (§9.5 #28). */
+  courtRef: (courtId: string, groupId: string): PrimaryKey => ({
+    pk: `COURT${SEP}${courtId}`,
+    sk: `GROUP${SEP}${groupId}`,
+  }),
+  courtGroupsPrefix: (): string => `GROUP${SEP}`,
 } as const;
 
 // ── Round robin (free tool) ─────────────────────────────────────────────────
@@ -308,6 +314,9 @@ export const contentKeys = {
     gsi1sk: publishedAt,
   }),
   authorPk: (authorId: string): string => `AUTHOR${SEP}${authorId}`,
+  /** An author profile (E-E-A-T) — same partition as their GSI1 articles feed. */
+  author: (authorId: string): PrimaryKey => ({ pk: `AUTHOR${SEP}${authorId}`, sk: META }),
+  authorBySlug: (slug: string): Gsi3Key => ({ gsi3pk: `AUTHORSLUG${SEP}${slug}`, gsi3sk: META }),
 } as const;
 
 export const newsKeys = {
@@ -328,6 +337,15 @@ export const newsKeys = {
   topicPk: (topic: string): string => `NEWSTOPIC${SEP}${topic}`,
   /** GSI3 — by slug. */
   bySlug: (slug: string): Gsi3Key => ({ gsi3pk: `NEWSSLUG${SEP}${slug}`, gsi3sk: META }),
+  topicPointerPrefix: (): string => `TOPIC${SEP}`,
+} as const;
+
+/** Newsletter subscribers (§6.5/§6.6 capture). Keyed by lower-cased email. */
+export const subscriberKeys = {
+  byEmail: (email: string): PrimaryKey => ({
+    pk: `SUBSCRIBER${SEP}${email.trim().toLowerCase()}`,
+    sk: META,
+  }),
 } as const;
 
 // ── Tournaments (paid) ──────────────────────────────────────────────────────
@@ -492,6 +510,7 @@ export const keys = {
   rr: rrKeys,
   content: contentKeys,
   news: newsKeys,
+  subscriber: subscriberKeys,
   tourney: tourneyKeys,
   league: leagueKeys,
   ladder: ladderKeys,

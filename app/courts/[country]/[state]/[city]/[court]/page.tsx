@@ -7,8 +7,10 @@ import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
 import { getCourtCheckinsToday } from "@/lib/data/checkins";
 import { getCourtReviews } from "@/lib/data/reviews";
 import { getCourtGames } from "@/lib/data/outings";
+import { getGroupsAtCourt } from "@/lib/data/groups";
 import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
 import { UpcomingGamesGrid } from "@/components/outings/UpcomingGamesGrid";
+import { GroupsRail } from "@/components/groups";
 import { buildMetadata, courtTitle } from "@/lib/seo/metadata";
 import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd, reviewJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
@@ -19,7 +21,7 @@ import { CheckInSheet } from "@/components/community/CheckInSheet";
 import { CheckedInTodayList } from "@/components/community/CheckedInTodayList";
 import { ReviewsModule } from "@/components/community/ReviewsModule";
 import { FollowButton } from "@/components/community/FollowButton";
-import { cityUrlFromKey, courtUrl, metersToMiles } from "@/lib/urls";
+import { cityUrlFromKey, courtUrl, metersToMiles, groupsCityPath } from "@/lib/urls";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
 import { brand } from "@/brand.config";
@@ -57,13 +59,16 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
   if (!courtItem) notFound();
 
   const today = courtLocalDay(courtItem);
-  const [cityItem, stateItem, nearbyCourts, checkinsToday, reviewsPage, courtGames] = await Promise.all([
+  const [cityItem, stateItem, nearbyCourts, checkinsToday, reviewsPage, courtGames, groupsHere] = await Promise.all([
     getCity(country, state, city),
     getState(country, state),
     getNearbyCourts(courtItem),
     getCourtCheckinsToday(courtItem.courtId, today),
     getCourtReviews(courtItem.courtId, { sort: "recent", limit: 20 }),
     getCourtGames(courtItem.courtId),
+    // PUBLIC groups whose home/play court is this venue (§9.5 #28) — private
+    // groups are filtered out server-side, so the rail is safe on a public page.
+    getGroupsAtCourt(courtItem.courtId),
   ]);
   // Bucket upcoming games into a Today→+6d week grid (court-local days).
   const DAY_MS = 86_400_000;
@@ -226,6 +231,16 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
               <UpcomingGamesGrid days={weekDays} courtId={courtItem.courtId} />
             </div>
           </section>
+
+          {/* Groups that play here — PUBLIC groups only; self-hides when empty (§6.9) */}
+          <GroupsRail
+            groups={groupsHere}
+            title="Groups that play here"
+            cityLabel={`${cityName}, ${st}`}
+            courtNames={{ [courtItem.courtId]: courtItem.name }}
+            seeAllHref={groupsCityPath(country, state, city)}
+            seeAllLabel={`All groups in ${cityName}`}
+          />
 
           {/* Reviews — crawlable server-rendered list + client composer (§6.4).
               Review + AggregateRating JSON-LD emitted above. */}

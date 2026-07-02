@@ -27,6 +27,7 @@ import type {
   RrFormat,
 } from "@/lib/roundrobin/types";
 import { useCreateRrEvent } from "@/lib/api/roundrobin";
+import { trackEvent } from "@/lib/analytics/client";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
   EntrantsEditor,
@@ -268,6 +269,14 @@ export function CreateClient(): JSX.Element {
       } catch {
         /* private mode / storage disabled — the event is still shareable by URL */
       }
+      // Anonymous-organizer attribution (§2.1 N2): carry the creator token so this
+      // event's later scored/upgrade events tie back to the same anonymous creator.
+      trackEvent("round_robin_created", {
+        eventId: result.eventId,
+        rrCreatorToken: result.creatorToken,
+        format,
+        entrantCount: drafts.length,
+      });
       router.push(goLive ? roundRobinLivePath(result.eventId) : roundRobinPath(result.eventId));
     } catch {
       setError("Something went wrong creating your round robin. Please try again.");

@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent } from "@/components/consent/ConsentProvider";
 import { initAnalytics, stopAnalytics, trackEvent } from "@/lib/analytics/client";
+import { pathTemplate } from "@/lib/analytics/route-template";
 
 export function AnalyticsBootstrap() {
   const { analytics } = useConsent();
@@ -20,7 +21,9 @@ export function AnalyticsBootstrap() {
   }, [analytics]);
 
   useEffect(() => {
-    if (analytics) trackEvent("page_view", { page_template: pathname });
+    // Report the low-cardinality ROUTE TEMPLATE, not the concrete path — otherwise
+    // every court/city/tournament would be its own `page_template` value (§2.1).
+    if (analytics) trackEvent("page_view", { page_template: pathTemplate(pathname) });
   }, [analytics, pathname]);
 
   return null;

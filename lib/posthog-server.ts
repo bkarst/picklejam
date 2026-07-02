@@ -1,12 +1,15 @@
-import "server-only";
-
+// NOT `import "server-only"`: this is reached from the data layer (lib/data/*),
+// which CLI seed/backfill scripts import under tsx (server-only can't resolve
+// there). It's still never client-bundled — the data layer that reaches it uses
+// the AWS SDK / posthog-node and is server-only in practice. Mirrors lib/db, lib/stripe.
+//
 /**
  * lib/posthog-server.ts — server-side PostHog analytics singleton (posthog-node).
  *
  * Stage 0 "wire the stack" scaffolding. This is the SERVER side of analytics:
  * the "confirmed" events (⚙, PRD §2.1) captured after a server action succeeds,
- * as opposed to optimistic client-side events (posthog-js). `import "server-only"`
- * keeps it out of the client bundle.
+ * as opposed to optimistic client-side events (posthog-js). It degrades safely
+ * (no key → no-op) and NEVER throws into a request.
  *
  * Analytics must NEVER break a request, so this module degrades safely: if no
  * PostHog key is configured the factory returns `null` (logging one warning) and
@@ -57,5 +60,11 @@ export function captureServerEvent(
 ): void {
   const client = getPostHogServer();
   if (!client) return;
-  client.capture({ distinctId, event, properties });
+  // Analytics is fire-and-forget: a capture failure must never surface to (or
+  // break) the request path that emitted the event.
+  try {
+    client.capture({ distinctId, event, properties });
+  } catch (err) {
+    console.error(`[posthog-server] capture failed for "${event}" (ignored):`, err);
+  }
 }

@@ -6,6 +6,9 @@
  * Target routes are canonical (§5 sitemap); some land in later stages.
  */
 
+import { LEGAL_DOC_SLUGS, legalDocs } from "@/lib/legal/docs";
+import { legalPath } from "@/lib/urls";
+
 export interface NavLink {
   label: string;
   href: string;
@@ -98,14 +101,15 @@ export const footerColumns: NavColumn[] = [
   },
 ];
 
-/** Legal links for the footer bottom bar (§16 / UI §3.3). */
-export const legalLinks: NavLink[] = [
-  { label: "Terms", href: "/legal/terms" },
-  { label: "Privacy", href: "/legal/privacy" },
-  { label: "Cookies", href: "/legal/cookies" },
-  { label: "Accessibility", href: "/legal/accessibility" },
-  { label: "Do Not Sell", href: "/legal/do-not-sell" },
-];
+/**
+ * Legal links for the footer bottom bar (§16 / UI §3.3). Derived from the actual
+ * legal documents (`lib/legal/docs.ts`) so every link resolves to a real,
+ * indexable page and none is orphaned (§12 rule 4) — no manual drift.
+ */
+export const legalLinks: NavLink[] = LEGAL_DOC_SLUGS.map((slug) => ({
+  label: legalDocs[slug].navLabel,
+  href: legalPath(slug),
+}));
 
 /** Account dropdown links (authed) (UI §3.2). */
 export const accountNav: NavLink[] = [
@@ -114,6 +118,7 @@ export const accountNav: NavLink[] = [
   { label: "My Check-ins", href: "/account/checkins" },
   { label: "My Reviews", href: "/account/reviews" },
   { label: "My Outings", href: "/account/outings" },
+  { label: "My Groups", href: "/account/groups" },
   { label: "My Registrations", href: "/account/registrations" },
   { label: "Saved Courts", href: "/account/courts" },
   { label: "Alerts", href: "/account/alerts" },

@@ -14,7 +14,8 @@
  */
 
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import { getItem, putNew, putItem, updateItem, query } from "@/lib/db/client";
+import { getItem, putNew, putItem, updateItem, query, deleteItem } from "@/lib/db/client";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { paymentKeys } from "@/lib/db/keys";
 import { getGateway } from "@/lib/stripe";
 import { addMoney, subMoney } from "@/lib/money";
@@ -53,12 +54,24 @@ export async function recordStripeEventOnce(
   }
 }
 
+/**
+ * Release a claimed Stripe event id so a FAILED fulfilment can be retried. The
+ * webhook records the event before fulfilling (to serialize concurrent deliveries);
+ * if fulfilment then throws, it calls this to drop the marker and returns a non-2xx
+ * so Stripe re-delivers. Fulfilment is idempotent (conditional writes) so the retry
+ * is safe. Best-effort: a failed delete just means the retry is deduped (no worse
+ * than before) — the reconcile sweep still heals the gap.
+ */
+export async function releaseStripeEventRecord(evtId: string): Promise<void> {
+  await deleteItem(paymentKeys.stripeEvent(evtId));
+}
+
 // ── receipts ──────────────────────────────────────────────────────────────────
 
 /** Fields for a durable payment receipt (SK `PAYMENT#<ts>` under the payer). */
 export interface WritePaymentInput {
   uid: string;
-  kind: "tournament" | "league";
+  kind: "tournament" | "league" | "ladder";
   refId: string; // tid / lid
   divisionId?: string;
   amount: StoredMoney; // total charged (registrant total)
@@ -180,5 +193,19 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
     refundedAmount: refundedStored,
     status,
   };
+
+  // ⚙ refund_issued (§2.1) — money returned. This is the SINGLE gateway-refund
+  // point for every in-app refund (tournament / league / ladder cancels all route
+  // through here), so it emits exactly once per refund (no double-count with the
+  // charge.refunded webhook reconcilers, which only re-sync the ledger row).
+  trackServerEvent(input.uid, "refund_issued", {
+    kind: payment.kind,
+    refId: payment.refId,
+    ...(payment.divisionId !== undefined ? { divisionId: payment.divisionId } : {}),
+    amount: requested.amount,
+    currency: requested.currency,
+    status,
+  });
+
   return { payment: updated, refund };
 }

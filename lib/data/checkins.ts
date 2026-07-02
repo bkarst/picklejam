@@ -17,6 +17,7 @@ import { getItem, query, putItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { courtKeys, userKeys } from "@/lib/db/keys";
 import { emitInsert } from "@/lib/streams/inline";
+import { trackServerEvent } from "@/lib/analytics/server";
 import type { CheckinItem, CourtItem } from "@/lib/db/types";
 
 /** A check-in row carrying the denormalized `cityKey` the CITYDAY aggregator reads. */
@@ -98,5 +99,15 @@ export async function createCheckin(input: CreateCheckinInput): Promise<CheckinR
   const item = buildCheckinItem(input, court?.cityKey);
   await putItem(item as unknown as Record<string, unknown>);
   await emitInsert(item as unknown as Record<string, unknown>);
+
+  // ⚙ court_checkin (§2.1) — a confirmed check-in. Anonymous check-ins carry no
+  // uid, so they attribute to a generic anonymous distinctId (never traced back).
+  trackServerEvent(item.uid ?? "anonymous", "court_checkin", {
+    courtId: input.courtId,
+    anonymous: input.anonymous,
+    checkinDay: input.day,
+    ...(item.cityKey ? { cityKey: item.cityKey } : {}),
+  });
+
   return item;
 }

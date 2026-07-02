@@ -7,6 +7,17 @@ import type { RrConfig, ValidationResult } from "../types";
 import { mixerFeasibleMax } from "./mixer";
 import { nextPow2 } from "./shared";
 
+/**
+ * Upper bounds on a round-robin config (§6.8). Generation is O(n²) in entrants (a full
+ * round-robin is C(n,2) matches), so an unbounded config is a DoS vector — these caps
+ * keep the worst case tractable while staying far above any real pickleball event.
+ */
+export const RR_LIMITS = {
+  maxEntrants: 128, // C(128,2) = 8 128 matches worst case
+  maxCourts: 32,
+  maxRounds: 64,
+} as const;
+
 export function validateConfig(config: RrConfig): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -14,12 +25,17 @@ export function validateConfig(config: RrConfig): ValidationResult {
 
   // ── Cross-cutting guards ────────────────────────────────────────────────
   if (config.courts < 1) errors.push("At least 1 court is required.");
+  if (config.courts > RR_LIMITS.maxCourts) errors.push(`At most ${RR_LIMITS.maxCourts} courts are allowed.`);
   if (config.scoring.pointsToWin < 1) errors.push("pointsToWin must be at least 1.");
   if (config.scoring.winBy < 1) errors.push("winBy must be at least 1.");
   if (config.scoring.cap != null && config.scoring.cap < config.scoring.pointsToWin) {
     warnings.push("Scoring cap is below pointsToWin; the cap will end games early.");
   }
   if (n < 2) errors.push("At least 2 entrants are required.");
+  if (n > RR_LIMITS.maxEntrants) errors.push(`At most ${RR_LIMITS.maxEntrants} entrants are allowed.`);
+  if (config.rounds != null && config.rounds > RR_LIMITS.maxRounds) {
+    errors.push(`At most ${RR_LIMITS.maxRounds} rounds are allowed.`);
+  }
   const ids = new Set(config.entrants.map((e) => e.id));
   if (ids.size !== n) errors.push("Entrant ids must be unique.");
 

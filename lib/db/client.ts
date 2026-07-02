@@ -216,6 +216,29 @@ export async function putNew<T extends Record<string, unknown>>(item: T): Promis
   );
 }
 
+/**
+ * Conditional put: upsert an item only when `condition` holds against the CURRENT
+ * stored item (throws {@link ConditionalCheckFailedException} otherwise). Use to
+ * serialize concurrent creates that must not clobber an in-flight sibling — e.g. a
+ * registration that may overwrite a terminal (cancelled/refunded) row but must NOT
+ * overwrite an active one.
+ */
+export async function putConditional<T extends Record<string, unknown>>(
+  item: T,
+  condition: string,
+  opts?: { names?: Record<string, string>; values?: Record<string, unknown> },
+): Promise<void> {
+  await getDocClient().send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: item,
+      ConditionExpression: condition,
+      ExpressionAttributeNames: opts?.names,
+      ExpressionAttributeValues: opts?.values,
+    }),
+  );
+}
+
 export async function updateItem(params: {
   key: PrimaryKey;
   update: string;
@@ -306,4 +329,24 @@ export function txPut<T extends Record<string, unknown>>(
 /** Build a Delete transact item scoped to the app table. */
 export function txDelete(key: PrimaryKey, conditionExpression?: string): TransactItem {
   return { Delete: { TableName: TABLE_NAME, Key: baseKey(key), ConditionExpression: conditionExpression } };
+}
+
+/** Build an Update transact item scoped to the app table (e.g. a version-guard bump). */
+export function txUpdate(params: {
+  key: PrimaryKey;
+  update: string;
+  condition?: string;
+  names?: Record<string, string>;
+  values?: Record<string, unknown>;
+}): TransactItem {
+  return {
+    Update: {
+      TableName: TABLE_NAME,
+      Key: baseKey(params.key),
+      UpdateExpression: params.update,
+      ConditionExpression: params.condition,
+      ExpressionAttributeNames: params.names,
+      ExpressionAttributeValues: params.values,
+    },
+  };
 }

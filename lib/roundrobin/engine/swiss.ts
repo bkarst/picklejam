@@ -51,16 +51,28 @@ export function swissRound(config: RrConfig, completed: RrRound[]): RrRound | nu
   }
 
   const matches = [];
-  const remaining = pool.slice();
-  let idx = 0;
-  while (remaining.length > 0) {
-    const p = remaining.shift() as string;
-    // Nearest opponent not yet played; else nearest available (rematch forced).
-    let k = remaining.findIndex((q) => !played.has(mk(p, q)));
-    if (k < 0) k = 0;
-    const q = remaining.splice(k, 1)[0];
-    matches.push(mkMatch(roundNum, idx, [p], [q], { court: (idx % Math.max(1, config.courts)) + 1 }));
-    idx++;
+  const court = (i: number): number => (i % Math.max(1, config.courts)) + 1;
+
+  if (completed.length === 0) {
+    // Round 1: standard Swiss FOLD — split the seed order in half and pair the top
+    // half against the bottom (1v[n/2+1], 2v[n/2+2], …), so the strongest seeds meet
+    // mid-field opponents rather than each other (adjacent 1v2 pairing).
+    const half = pool.length / 2;
+    for (let i = 0; i < half; i++) {
+      matches.push(mkMatch(roundNum, i, [pool[i]], [pool[i + half]], { court: court(i) }));
+    }
+  } else {
+    // Later rounds: pair nearest records, avoiding rematches until unavoidable.
+    const remaining = pool.slice();
+    let idx = 0;
+    while (remaining.length > 0) {
+      const p = remaining.shift() as string;
+      let k = remaining.findIndex((q) => !played.has(mk(p, q)));
+      if (k < 0) k = 0;
+      const q = remaining.splice(k, 1)[0];
+      matches.push(mkMatch(roundNum, idx, [p], [q], { court: court(idx) }));
+      idx++;
+    }
   }
 
   return { round: roundNum, matches, byes, label: `Round ${roundNum}` };

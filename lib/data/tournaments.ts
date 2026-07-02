@@ -36,6 +36,7 @@ import {
   getItem,
   query,
   putItem,
+  putConditional,
   updateItem,
   batchGet,
 } from "@/lib/db/client";
@@ -47,6 +48,7 @@ import { computeFees, money, type Money, type FeeConfig, type FeeMode } from "@/
 import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, refundPayment, getMyPayments } from "@/lib/data/payments";
+import { trackServerEvent } from "@/lib/analytics/server";
 import type {
   TourneyItem,
   DivisionItem,
@@ -410,7 +412,11 @@ export async function getOrganizerDashboard(tid: string): Promise<OrganizerDashb
       const breakdown = computeFees(fromStored(division.price), cfg);
       const amount = r.amount ? fromStored(r.amount) : breakdown.total;
       const fee = r.applicationFee ? fromStored(r.applicationFee) : breakdown.applicationFee;
-      gross = money(gross.amount + amount.amount, currency);
+      // Net out any refunded portion (partiallyRefunded regs carry the original gross
+      // in `amount` and the returned amount in `refundedAmount`) so revenue isn't
+      // overstated by money that was handed back.
+      const refunded = r.refundedAmount ? fromStored(r.refundedAmount).amount : 0;
+      gross = money(gross.amount + amount.amount - refunded, currency);
       fees = money(fees.amount + fee.amount, currency);
     }
     totals.gross = money(totals.gross.amount + gross.amount, currency);
@@ -634,7 +640,23 @@ export async function registerForDivision(
     createdAt: existing?.createdAt ?? iso,
     updatedAt: iso,
   };
-  await putItem(asItem(registration));
+  // Write create-or-overwrite-terminal: allowed when no row exists OR the stored one
+  // is terminal (cancelled/refunded/…). A concurrent first-time registration that
+  // already wrote an ACTIVE row makes this fail — so we never clobber an in-flight
+  // sibling or double-count the spot (the read-guard above is not atomic on its own).
+  try {
+    await putConditional(
+      asItem(registration),
+      "attribute_not_exists(pk) OR NOT (paymentStatus IN (:pending, :paid, :partnerPending))",
+      { values: { ":pending": "pending", ":paid": "paid", ":partnerPending": "partnerPending" } },
+    );
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) {
+      if (claimed) await releaseDivisionSpot(tid, did);
+      conflict("You are already registered for this division");
+    }
+    throw err;
+  }
 
   return {
     regKey,
@@ -683,19 +705,34 @@ export async function confirmRegistrationPayment(
   const iso = new Date().toISOString();
   const wasDeferred = reg.authorizedNotCaptured === true;
 
-  // Deferred-capture holds were not counted at registration — claim the spot now.
+  // Flip to paid ATOMICALLY so exactly one delivery fulfils. Stripe emits two sibling
+  // events for one checkout (checkout.session.completed + payment_intent.succeeded);
+  // delivered concurrently, a read-then-write guard lets both pass. The conditional
+  // write makes the first writer win — one receipt, one count, one claim, one emit.
+  let updated: RegistrationItem;
+  try {
+    const attrs = await updateItem({
+      key,
+      update: "SET paymentStatus = :paid, updatedAt = :u REMOVE authorizedNotCaptured",
+      condition: "paymentStatus <> :paid",
+      values: { ":paid": "paid", ":u": iso },
+    });
+    updated = (attrs as unknown as RegistrationItem) ?? { ...reg, paymentStatus: "paid" };
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) {
+      return { ok: true, alreadyPaid: true, registration: reg };
+    }
+    throw err;
+  }
+
+  // Deferred-capture holds were not counted at registration — claim the spot now, on
+  // the winning delivery only. A false result means the division filled between
+  // authorize and capture; the charge is already captured, so we keep the paid state
+  // (the seat is honored) and surface the over-capacity via the reconcile sweep.
   if (wasDeferred) {
     const division = await getDivision(tid, did);
     await claimDivisionSpot(tid, did, division?.capacity);
   }
-
-  const attrs = await updateItem({
-    key,
-    update:
-      "SET paymentStatus = :paid, updatedAt = :u REMOVE authorizedNotCaptured",
-    values: { ":paid": "paid", ":u": iso },
-  });
-  const updated = (attrs as unknown as RegistrationItem) ?? reg;
 
   const paymentIntentId = reg.paymentIntentId ?? input.paymentIntentId ?? "";
   const currency = reg.amount?.currency ?? input.currency ?? "usd";
@@ -711,6 +748,20 @@ export async function confirmRegistrationPayment(
     status: "paid",
     ...(input.receiptUrl ? { receiptUrl: input.receiptUrl } : {}),
   });
+
+  // ⚙ payment_succeeded + registration_confirmed (§2.1) — emitted once, at the
+  // first fulfilment (the `paid` guard above short-circuits replays). Money was
+  // captured AND the entry is confirmed at the same moment for a tournament reg.
+  const analyticsProps = {
+    kind: "tournament" as const,
+    refId: tid,
+    divisionId: did,
+    amount: amount.amount,
+    currency: amount.currency,
+    paymentIntentId,
+  };
+  trackServerEvent(uid, "payment_succeeded", analyticsProps);
+  trackServerEvent(uid, "registration_confirmed", analyticsProps);
 
   return { ok: true, registration: updated, payment };
 }
@@ -740,6 +791,7 @@ export async function markRegistrationRefunded(
   const currency = reg.amount?.currency ?? input.currency ?? "usd";
   const refunded = input.amountRefunded ?? charged;
   const full = refunded >= charged;
+  const wasFullyRefunded = reg.paymentStatus === "refunded";
   const iso = new Date().toISOString();
 
   const attrs = await updateItem({
@@ -768,8 +820,13 @@ export async function markRegistrationRefunded(
     }
   }
 
-  // A full refund frees the reserved spot; a deferred hold never held one.
-  if (full && reg.authorizedNotCaptured !== true) await releaseDivisionSpot(tid, did);
+  // Free the spot exactly once — when the reg FIRST becomes fully refunded (and it
+  // held a spot; a deferred hold never did). Without the `wasFullyRefunded` guard an
+  // organizer API refund (refundRegistration) that already freed the spot would be
+  // double-released when the charge.refunded webhook then arrives.
+  if (full && !wasFullyRefunded && reg.authorizedNotCaptured !== true) {
+    await releaseDivisionSpot(tid, did);
+  }
 
   return (attrs as unknown as RegistrationItem) ?? reg;
 }
@@ -814,7 +871,12 @@ export async function refundRegistration(
       update: "SET paymentStatus = :s, updatedAt = :u",
       values: { ":s": "cancelled", ":u": iso },
     });
-    if (reg.authorizedNotCaptured !== true) await releaseDivisionSpot(tid, did);
+    // Free the spot only for a reg that still HELD one (pending/partnerPending, never
+    // deferred). An already-terminal reg (cancelled/refunded — e.g. the charge.refunded
+    // webhook ran first) released its spot already; releasing again would undercount.
+    if (ACTIVE_REG.has(reg.paymentStatus) && reg.authorizedNotCaptured !== true) {
+      await releaseDivisionSpot(tid, did);
+    }
     return { ...reg, paymentStatus: "cancelled" };
   }
 
@@ -1094,11 +1156,14 @@ export async function advanceBracket(
   index: number,
   scoreA: number,
   scoreB: number,
+  actorUid?: string,
 ): Promise<BracketMatchItem> {
   if (scoreA === scoreB) badRequest("A bracket match cannot end in a tie");
   const all = await getBracket(tid, did);
   const match = all.find((m) => m.round === round && m.index === index);
   if (!match) notFound(`Bracket match not found: ${bracketMatchId(round, index)}`);
+  // A match already "scored" is being CORRECTED — don't re-fire match_played.
+  const wasScored = match!.status === "scored";
 
   const winnerSlot: "A" | "B" = scoreA > scoreB ? "A" : "B";
   const winner = winnerSlot === "A" ? match!.sideA : match!.sideB;
@@ -1129,6 +1194,18 @@ export async function advanceBracket(
       key: tourneyKeys.bracketMatch(tid, did, finalRound, 1),
       update: `SET ${index === 0 ? "sideA" : "sideB"} = :l, updatedAt = :u`,
       values: { ":l": loser, ":u": iso },
+    });
+  }
+
+  // ⚙ match_played (§2.1) — a confirmed bracket result, ONCE per match (skip a
+  // re-score correction). Attributed to the reporting organizer when known.
+  if (!wasScored) {
+    trackServerEvent(actorUid ?? "anonymous", "match_played", {
+      kind: "tournament",
+      tid,
+      did,
+      round,
+      index,
     });
   }
 

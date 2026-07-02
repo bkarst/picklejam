@@ -11,6 +11,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchSuggest } from "@/lib/api/queries";
+import { trackEvent } from "@/lib/analytics/client";
 import type { Suggestion } from "@/lib/search/suggest";
 
 export function SearchTypeahead({
@@ -59,14 +60,22 @@ export function SearchTypeahead({
     router.push(s.url);
   };
 
+  // Full-text search submit (Enter without a highlighted suggestion). Fires the
+  // consent-gated `search_performed` intent event, then navigates to /search.
+  const submitSearch = (term: string) => {
+    setOpen(false);
+    trackEvent("search_performed", { query: term, resultCount: results.length });
+    router.push(`/search?q=${encodeURIComponent(term)}`);
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (!open || results.length === 0) {
-      if (e.key === "Enter" && q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
+      if (e.key === "Enter" && q.trim()) submitSearch(q.trim());
       return;
     }
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % results.length); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + results.length) % results.length); }
-    else if (e.key === "Enter") { e.preventDefault(); if (active >= 0) go(results[active]); else if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`); }
+    else if (e.key === "Enter") { e.preventDefault(); if (active >= 0) go(results[active]); else if (q.trim()) submitSearch(q.trim()); }
     else if (e.key === "Escape") setOpen(false);
   };
 

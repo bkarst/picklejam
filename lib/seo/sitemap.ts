@@ -13,11 +13,21 @@
  */
 
 import type { MetadataRoute } from "next";
-import { siteUrl } from "@/brand.config";
+import { siteUrl, brand } from "@/brand.config";
 import { getCountries, getStatesInCountry, getCitiesInState } from "@/lib/data/geo";
 import { getCourtsInCity } from "@/lib/data/courts";
 import { getCityGames } from "@/lib/data/outings";
 import { getTournamentsInCity } from "@/lib/data/tournaments";
+import { getLeaguesInCity } from "@/lib/data/leagues";
+import { getLaddersInCity } from "@/lib/data/ladders";
+import { getGroupsInCity } from "@/lib/data/groups";
+import {
+  getContentByCategory,
+  getAuthor,
+  listCategories,
+  getNewsFeed,
+  listNewsTopics,
+} from "@/lib/data/content";
 import { parseCityKey } from "@/lib/db/keys";
 import {
   countryUrl,
@@ -27,10 +37,26 @@ import {
   outingPath,
   tournamentPath,
   tournamentsCityPath,
+  leaguePath,
+  leaguesCityPath,
+  ladderPath,
+  laddersCityPath,
+  groupPath,
+  groupsCityPath,
+  learnCategoryPath,
+  articlePath,
+  authorPath,
+  newsArticlePath,
+  newsTopicPath,
+  pricingPath,
+  aboutPath,
+  contactPath,
+  legalPath,
 } from "@/lib/urls";
+import { LEGAL_DOC_SLUGS } from "@/lib/legal/docs";
 import type { StateItem, CityItem } from "@/lib/db/types";
 
-/** The §3.7 sitemap segment ids (+ `outings`, added Stage 4). */
+/** The §3.7 sitemap segment ids (+ `outings` Stage 4, `marketing`/`legal` Stage 10). */
 export type SitemapSegmentId =
   | "courts"
   | "cities"
@@ -38,10 +64,13 @@ export type SitemapSegmentId =
   | "countries"
   | "tournaments"
   | "leagues"
+  | "ladders"
   | "groups"
   | "content"
   | "news"
-  | "outings";
+  | "outings"
+  | "marketing"
+  | "legal";
 
 export interface SitemapSegment {
   id: SitemapSegmentId;
@@ -193,31 +222,173 @@ export const sitemapSegments: Record<SitemapSegmentId, SitemapSegment> = {
   leagues: {
     id: "leagues",
     entries: async () => {
-      // TODO(Stage 7): populate from LEAGUE/LADDER items + city/location finders.
-      return [];
+      // Published leagues + the city finder pages that list them. Bounded
+      // traversal: one GSI2 Query per city (§9.5 #20), fanned out with Promise.all.
+      // Register/console/organize surfaces are noindex → NEVER in the sitemap.
+      //
+      // !! SCALE CAVEAT !! O(#cities) Queries — fine at seed scale behind a
+      // scheduled regeneration (same caveat as the `tournaments` segment).
+      const cities = await allCities();
+      const perCity = await Promise.all(
+        cities.map(async (city) => ({ city, leagues: await getLeaguesInCity(city.cityKey) })),
+      );
+      const seen = new Set<string>();
+      const out: MetadataRoute.Sitemap = [];
+      for (const { city, leagues } of perCity) {
+        if (leagues.length === 0) continue;
+        const { country, state, city: citySlug } = parseCityKey(city.cityKey);
+        out.push(directoryEntry(leaguesCityPath(country, state, citySlug), undefined, "daily", 0.6));
+        for (const l of leagues) {
+          if (seen.has(l.lid)) continue;
+          seen.add(l.lid);
+          out.push(directoryEntry(leaguePath(l.lid), lastmodOf({ updatedAt: l.updatedAt }), "daily", 0.7));
+        }
+      }
+      return out;
+    },
+  },
+  ladders: {
+    id: "ladders",
+    entries: async () => {
+      // Published ladders + their city finder pages (§9.5 #20 / #22). Same bounded
+      // per-city traversal + scale caveat as the `leagues` segment above.
+      const cities = await allCities();
+      const perCity = await Promise.all(
+        cities.map(async (city) => ({ city, ladders: await getLaddersInCity(city.cityKey) })),
+      );
+      const seen = new Set<string>();
+      const out: MetadataRoute.Sitemap = [];
+      for (const { city, ladders } of perCity) {
+        if (ladders.length === 0) continue;
+        const { country, state, city: citySlug } = parseCityKey(city.cityKey);
+        out.push(directoryEntry(laddersCityPath(country, state, citySlug), undefined, "daily", 0.5));
+        for (const l of ladders) {
+          if (seen.has(l.lid)) continue;
+          seen.add(l.lid);
+          out.push(directoryEntry(ladderPath(l.lid), lastmodOf({ updatedAt: l.updatedAt }), "daily", 0.6));
+        }
+      }
+      return out;
     },
   },
   groups: {
     id: "groups",
     entries: async () => {
-      // TODO(Stage 8): populate from PUBLIC GROUP items + city group finders
-      // (private/unlisted groups are excluded / noindex).
-      return [];
+      // PUBLIC groups + the city group-finder pages that list them (§9.5 #28).
+      // `getGroupsInCity` returns PUBLIC groups only, so private/unlisted groups
+      // (which the detail page renders `noindex`) never reach the sitemap. Bounded
+      // traversal: one GSI Query per city, fanned out with Promise.all.
+      //
+      // !! SCALE CAVEAT !! O(#cities) Queries — fine at seed scale behind a
+      // scheduled regeneration (same caveat as the `leagues`/`ladders` segments).
+      const cities = await allCities();
+      const perCity = await Promise.all(
+        cities.map(async (city) => ({ city, groups: await getGroupsInCity(city.cityKey) })),
+      );
+      const seen = new Set<string>();
+      const out: MetadataRoute.Sitemap = [];
+      for (const { city, groups } of perCity) {
+        if (groups.length === 0) continue;
+        const { country, state, city: citySlug } = parseCityKey(city.cityKey);
+        out.push(directoryEntry(groupsCityPath(country, state, citySlug), undefined, "weekly", 0.5));
+        for (const g of groups) {
+          if (seen.has(g.groupId)) continue;
+          seen.add(g.groupId);
+          out.push(
+            directoryEntry(groupPath(g.groupId), lastmodOf({ updatedAt: g.updatedAt }), "weekly", 0.5),
+          );
+        }
+      }
+      return out;
     },
   },
   content: {
     id: "content",
     entries: async () => {
-      // TODO(Stage 9): populate from CONTENT (learn) articles/categories/authors.
-      return [];
+      // The Content Hub (§6.5): every category feed + published article + author
+      // page. Walk categories → articles (pattern 14, one GSI2 Query per
+      // category), deduping and collecting the distinct author ids for their
+      // ProfilePages. Only PUBLISHED articles reach the sitemap.
+      const categories = await listCategories();
+      const perCategory = await Promise.all(
+        categories.map(async (c) => ({ c, items: await getContentByCategory(c.category) })),
+      );
+
+      const out: MetadataRoute.Sitemap = [];
+      const seen = new Set<string>();
+      const authorIds = new Set<string>();
+      for (const { c, items } of perCategory) {
+        const published = items.filter((i) => i.status === "published");
+        // The category landing (omitted when it has no published content).
+        if (published.length > 0) {
+          out.push(directoryEntry(learnCategoryPath(c.category), undefined, "weekly", 0.6));
+        }
+        for (const item of published) {
+          if (seen.has(item.id)) continue;
+          seen.add(item.id);
+          if (item.authorId) authorIds.add(item.authorId);
+          out.push(
+            directoryEntry(
+              articlePath(item.category, item.slug),
+              lastmodOf({ updatedAt: item.updatedAt }),
+              "monthly",
+              0.7,
+            ),
+          );
+        }
+      }
+
+      // Author ProfilePages (E-E-A-T) — resolve each distinct id to its slug.
+      const authors = await Promise.all([...authorIds].map((id) => getAuthor(id)));
+      for (const a of authors) {
+        if (!a) continue;
+        out.push(
+          directoryEntry(authorPath(a.slug), lastmodOf({ updatedAt: a.updatedAt }), "monthly", 0.4),
+        );
+      }
+      return out;
     },
   },
   news: {
     id: "news",
     entries: async () => {
-      // TODO(Stage 9): populate from NEWS articles/topics (+ Google News sitemap).
-      return [];
+      // News (§6.6): every published news article + topic feed. `getNewsFeed`
+      // returns the recency-ordered GSI2 `NEWS#ALL` feed (pattern 15). The
+      // separate Google-News sitemap (last-48h only) lives at `/news-sitemap.xml`
+      // via {@link newsGoogleSitemapXml}; this segment is the FULL crawl index.
+      const [feed, topics] = await Promise.all([getNewsFeed(1000), listNewsTopics()]);
+      const out: MetadataRoute.Sitemap = [];
+      for (const t of topics) {
+        out.push(directoryEntry(newsTopicPath(t.topic), undefined, "daily", 0.5));
+      }
+      const seen = new Set<string>();
+      for (const n of feed) {
+        if (n.status !== "published" || seen.has(n.id)) continue;
+        seen.add(n.id);
+        out.push(
+          directoryEntry(newsArticlePath(n.slug), lastmodOf({ updatedAt: n.updatedAt }), "daily", 0.6),
+        );
+      }
+      return out;
     },
+  },
+  marketing: {
+    id: "marketing",
+    // The system / marketing pages (§16): pricing, about, contact. Static content
+    // with no per-entity churn, so `lastmod` is omitted (same rule as the `static`
+    // segment) to avoid bumping the sitewide signal on every deploy (§3.7).
+    entries: async () => [
+      directoryEntry(pricingPath(), undefined, "monthly", 0.6),
+      directoryEntry(aboutPath(), undefined, "monthly", 0.5),
+      directoryEntry(contactPath(), undefined, "monthly", 0.4),
+    ],
+  },
+  legal: {
+    id: "legal",
+    // The six legal documents (§16). Indexable, static boilerplate — `lastmod`
+    // omitted for the same reason as the `marketing` segment.
+    entries: async () =>
+      LEGAL_DOC_SLUGS.map((slug) => directoryEntry(legalPath(slug), undefined, "yearly", 0.3)),
   },
   outings: {
     id: "outings",
@@ -318,9 +489,8 @@ const STATIC_ROUTES: ReadonlyArray<{
   { path: "/leagues", priority: 0.8, changeFrequency: "weekly" },
   { path: "/ladders", priority: 0.7, changeFrequency: "weekly" },
   { path: "/groups", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/pricing", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/about", priority: 0.5, changeFrequency: "monthly" },
-  { path: "/contact", priority: 0.4, changeFrequency: "monthly" },
+  // pricing / about / contact live in the `marketing` sitemap segment (§16), and
+  // the six legal docs in the `legal` segment — not duplicated here.
 ];
 
 /** The static pages as absolute-URL sitemap entries. */
@@ -333,14 +503,84 @@ export function staticRoutes(): MetadataRoute.Sitemap {
 }
 
 /**
- * Absolute URLs of every generated segment sitemap (+ the `static` segment).
+ * Absolute URLs of every generated segment sitemap (+ the `static` segment and
+ * the Google-News sitemap).
  *
  * `app/sitemap.ts` uses `generateSitemaps`, so Next 16 emits each segment at
  * `/sitemap/<id>.xml` and does NOT produce a `/sitemap.xml` index (and reserves
  * that path). `robots.txt` (§3.7) therefore enumerates these directly — the
- * sitemaps protocol + Google both support multiple `Sitemap:` entries.
+ * sitemaps protocol + Google both support multiple `Sitemap:` entries. The
+ * Google-News sitemap ({@link NEWS_SITEMAP_PATH}) is listed alongside them.
  */
 export function sitemapUrls(): string[] {
   const ids = [...Object.keys(sitemapSegments), "static"];
-  return ids.map((id) => `${siteUrl}/sitemap/${id}.xml`);
+  return [...ids.map((id) => `${siteUrl}/sitemap/${id}.xml`), `${siteUrl}${NEWS_SITEMAP_PATH}`];
+}
+
+// ── Google News sitemap (§6.6) ───────────────────────────────────────────────
+//
+// A DISTINCT sitemap from the `news` crawl segment above. Google News requires a
+// `<news:news>` block with a `<news:publication>` and only accepts articles
+// published in the LAST 48 HOURS (per the Google News sitemap spec — older items
+// must be dropped or Search Console flags them). We therefore emit a hand-built
+// XML document (the `MetadataRoute.Sitemap` type has no `news:` extension) served
+// at `/news-sitemap.xml` by `app/news-sitemap.xml/route.ts`.
+
+/** Public path of the Google-News sitemap. */
+export const NEWS_SITEMAP_PATH = "/news-sitemap.xml";
+
+/** The Google-News freshness window: 48h (2 days), per the Google News spec. */
+export const NEWS_SITEMAP_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/** Minimal XML entity-escaping for text nodes (loc/title/name). */
+function xmlEscape(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Build the Google-News sitemap XML: every PUBLISHED news item from the last
+ * {@link NEWS_SITEMAP_WINDOW_MS} (48h), newest first. `now` is injectable for
+ * deterministic tests (§14.1). Returns a complete `<urlset>` document string.
+ */
+export async function newsGoogleSitemapXml(now: Date = new Date()): Promise<string> {
+  const cutoff = now.getTime() - NEWS_SITEMAP_WINDOW_MS;
+  const feed = await getNewsFeed(1000);
+  const fresh = feed
+    .filter((n) => n.status === "published" && new Date(n.publishedAt).getTime() >= cutoff)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+
+  const urls = fresh
+    .map((n) => {
+      const loc = xmlEscape(`${siteUrl}${newsArticlePath(n.slug)}`);
+      return [
+        "  <url>",
+        `    <loc>${loc}</loc>`,
+        "    <news:news>",
+        "      <news:publication>",
+        `        <news:name>${xmlEscape(brand.identity.name)}</news:name>`,
+        "        <news:language>en</news:language>",
+        "      </news:publication>",
+        `      <news:publication_date>${xmlEscape(new Date(n.publishedAt).toISOString())}</news:publication_date>`,
+        `      <news:title>${xmlEscape(n.title)}</news:title>`,
+        "    </news:news>",
+        "  </url>",
+      ].join("\n");
+    })
+    .join("\n");
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+    '        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">',
+    urls,
+    "</urlset>",
+    "",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }

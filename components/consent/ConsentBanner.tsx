@@ -8,6 +8,7 @@
  * is not offered — an explicit decision is required for EU/CA compliance.
  */
 
+import Link from "next/link";
 import { Button } from "@heroui/react";
 import { useConsent } from "./ConsentProvider";
 
@@ -26,9 +27,9 @@ export function ConsentBanner() {
         <p className="text-sm text-surface-foreground">
           We use cookies for analytics and ads to improve PickleLoko. You can accept or
           keep only what&rsquo;s essential.{" "}
-          <a href="/legal/cookies" className="font-medium text-accent underline">
+          <Link href="/legal/cookies" className="font-medium text-accent underline">
             Learn more
-          </a>
+          </Link>
           .
         </p>
         <div className="flex shrink-0 gap-2">

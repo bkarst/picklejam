@@ -41,6 +41,7 @@ import { GSI } from "@/lib/db/table";
 import { outingKeys, courtKeys, groupKeys, userKeys } from "@/lib/db/keys";
 import { courtLocalDay } from "@/lib/directory/court-local-day";
 import { emitInsert, emitRemove } from "@/lib/streams/inline";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { getCourt } from "@/lib/data/courts";
 import type {
   OutingItem,
@@ -430,6 +431,15 @@ export async function rsvp(
   await putItem(item as unknown as Record<string, unknown>);
 
   const fresh = await getOutingMeta(outingId);
+
+  // ⚙ rsvp_set (§2.1) — a confirmed RSVP (going / waitlist / maybe / declined).
+  trackServerEvent(uid, "rsvp_set", {
+    outingId,
+    status: finalStatus,
+    ...(waitlistPos !== undefined ? { waitlistPos } : {}),
+    goingCount: fresh?.goingCount ?? 0,
+  });
+
   return {
     rsvp: item,
     goingCount: fresh?.goingCount ?? 0,

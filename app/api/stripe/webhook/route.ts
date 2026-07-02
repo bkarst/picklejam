@@ -10,19 +10,23 @@
  *   3. route the event:
  *      • checkout.session.completed / payment_intent.succeeded → REG paid + Payment
  *      • charge.refunded → REG refunded + Payment reconciled
- * We ALWAYS return 200 for a handled or duplicate event (so Stripe stops retrying)
- * and 400 ONLY for a bad signature. Fulfilment is idempotent (pattern 23 dedupe +
- * the REG `paid` guard) so a replay never double-counts or double-charges (§14.5).
+ * We return 200 for a handled or duplicate event (so Stripe stops retrying), 400 for
+ * a bad signature, and 500 if fulfilment throws — rolling back the dedupe marker so
+ * Stripe re-delivers (we must not ack a payment we failed to fulfil). Fulfilment is
+ * idempotent (pattern 23 dedupe + conditional `paid` flip) so neither a replay nor a
+ * post-failure retry double-counts or double-charges (§14.5).
  */
 
 import type { NextRequest } from "next/server";
 import { verifyWebhook } from "@/lib/stripe";
-import { recordStripeEventOnce } from "@/lib/data/payments";
+import { recordStripeEventOnce, releaseStripeEventRecord } from "@/lib/data/payments";
 import { stripeEnv } from "@/lib/env";
 import {
   confirmRegistrationPayment,
   markRegistrationRefunded,
 } from "@/lib/data/tournaments";
+import { confirmLeaguePayment, markLeagueRegRefunded } from "@/lib/data/leagues";
+import { confirmLadderPayment, markLadderRefunded } from "@/lib/data/ladders";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs"; // HMAC signature verification needs Node crypto.
@@ -69,32 +73,38 @@ export async function POST(req: NextRequest): Promise<Response> {
     const object = (evt.data?.object ?? {}) as Obj;
     const meta = metaOf(object);
 
+    const paymentIntentId = str(object.payment_intent) ?? str(object.id);
+    const amountTotal = num(object.amount_total) ?? num(object.amount);
+    const currency = str(object.currency);
+
     if (PAID_EVENTS.has(evt.type)) {
       if (meta.kind === "tournament" && meta.tid && meta.did && meta.uid) {
-        await confirmRegistrationPayment({
-          tid: meta.tid,
-          did: meta.did,
-          uid: meta.uid,
-          paymentIntentId: str(object.payment_intent) ?? str(object.id),
-          amountTotal: num(object.amount_total) ?? num(object.amount),
-          currency: str(object.currency),
-        });
+        await confirmRegistrationPayment({ tid: meta.tid, did: meta.did, uid: meta.uid, paymentIntentId, amountTotal, currency });
+      } else if (meta.kind === "league" && meta.lid && meta.did && meta.uid) {
+        await confirmLeaguePayment({ lid: meta.lid, did: meta.did, uid: meta.uid, paymentIntentId, amountTotal, currency });
+      } else if (meta.kind === "ladder" && meta.lid && meta.uid) {
+        await confirmLadderPayment({ lid: meta.lid, uid: meta.uid, paymentIntentId, amountTotal, currency });
       }
     } else if (evt.type === "charge.refunded") {
+      const amountRefunded = num(object.amount_refunded);
       if (meta.kind === "tournament" && meta.tid && meta.did && meta.uid) {
-        await markRegistrationRefunded({
-          tid: meta.tid,
-          did: meta.did,
-          uid: meta.uid,
-          amountRefunded: num(object.amount_refunded),
-          currency: str(object.currency),
-        });
+        await markRegistrationRefunded({ tid: meta.tid, did: meta.did, uid: meta.uid, amountRefunded, currency });
+      } else if (meta.kind === "league" && meta.lid && meta.did && meta.uid) {
+        await markLeagueRegRefunded({ lid: meta.lid, did: meta.did, uid: meta.uid, amountRefunded, currency });
+      } else if (meta.kind === "ladder" && meta.lid && meta.uid) {
+        await markLadderRefunded({ lid: meta.lid, uid: meta.uid, amountRefunded, currency, paymentIntentId });
       }
     }
   } catch (err) {
-    // A processing error must NOT wedge the queue with endless retries once the
-    // event is de-duped; log and ack. (Reconcile sweeps heal any gap, §14.6.)
-    console.error("[stripe:webhook] handler error (acked):", err);
+    // Fulfilment failed (e.g. a transient DB error). Do NOT silently ack — the
+    // customer paid but their entry would never be confirmed. Roll back the dedupe
+    // marker and return 500 so Stripe re-delivers; fulfilment is idempotent
+    // (conditional writes + the `paid` guard), so the retry is safe.
+    console.error("[stripe:webhook] handler error — requesting retry:", err);
+    await releaseStripeEventRecord(evt.id).catch((delErr) => {
+      console.error("[stripe:webhook] failed to release dedupe marker:", delErr);
+    });
+    return Response.json({ error: "processing_failed" }, { status: 500 });
   }
 
   return Response.json({ received: true });

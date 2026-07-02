@@ -16,6 +16,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import { Skeleton, Tooltip } from "@heroui/react";
 import { useRrEvent, useRecordScore, useAdvanceRound } from "@/lib/api/roundrobin";
+import { trackEvent } from "@/lib/analytics/client";
 import { MatchScoreRow, formatMeta } from "@/components/roundrobin";
 import { roundRobinPath } from "@/lib/urls";
 import type { Entrant } from "@/lib/roundrobin/types";
@@ -114,6 +115,10 @@ export function RunConsole({ eventId }: { eventId: string }): JSX.Element {
     setSavingIds((s) => new Set(s).add(matchId));
     recordMut
       .mutateAsync({ score: { matchId, scoreA, scoreB }, token })
+      .then(() =>
+        // Carry the creator token (§2.1 N2) so scores attribute to the anon organizer.
+        trackEvent("round_robin_scored", { eventId, matchId, rrCreatorToken: token }),
+      )
       .catch(() => setErrorId(matchId))
       .finally(() =>
         setSavingIds((s) => {

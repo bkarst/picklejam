@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { ConsentProvider } from "@/components/consent/ConsentProvider";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { AnalyticsBootstrap } from "@/components/analytics/AnalyticsBootstrap";
+import { AdSenseLoader } from "@/components/ads/AdSlot";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { PromoBanner } from "@/components/layout/PromoBanner";
@@ -69,6 +70,28 @@ const themeScript = `
 }catch(_){}})();
 `;
 
+/**
+ * Google Consent Mode v2 default — runs BEFORE any ad/analytics tag (PRD §2.2).
+ * Everything defaults to DENIED; `ConsentProvider.syncConsentMode` flips the
+ * relevant signals to 'granted' via `gtag('consent','update',…)` once the user
+ * consents (that is the consent-update bridge). Defining `window.gtag` here is
+ * what makes those updates land (otherwise they no-op).
+ */
+const consentModeDefaultScript = `
+(function(){
+  window.dataLayer=window.dataLayer||[];
+  function gtag(){window.dataLayer.push(arguments);}
+  if(!window.gtag){window.gtag=gtag;}
+  window.gtag('consent','default',{
+    ad_storage:'denied',
+    ad_user_data:'denied',
+    ad_personalization:'denied',
+    analytics_storage:'denied',
+    wait_for_update:500
+  });
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -79,6 +102,8 @@ export default function RootLayout({
       className={`${fredoka.variable} ${inter.variable} h-full antialiased`}
     >
       <head>
+        {/* Consent Mode v2 default (DENIED) — must run before any ad/analytics tag. */}
+        <script dangerouslySetInnerHTML={{ __html: consentModeDefaultScript }} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
@@ -93,6 +118,8 @@ export default function RootLayout({
         <Providers>
           <ConsentProvider>
             <AnalyticsBootstrap />
+            {/* AdSense library — consent-gated + only when a publisher id is set. */}
+            <AdSenseLoader />
             <PromoBanner />
             <Header />
             {children}

@@ -36,13 +36,12 @@
  */
 
 import "server-only";
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { updateItem } from "@/lib/db/client";
 import {
   courtKeys,
   geoKeys,
   groupKeys,
-  tourneyKeys,
-  leagueKeys,
   parseCityKey,
   type PrimaryKey,
 } from "@/lib/db/keys";
@@ -167,7 +166,22 @@ async function onReview(record: StreamRecord): Promise<void> {
   const count = num(attrs ?? {}, "reviewCount") ?? 0;
   const sum = num(attrs ?? {}, "ratingSum") ?? 0;
   const avg = count > 0 ? sum / count : 0;
-  await updateItem({ key, update: "SET ratingAvg = :a", values: { ":a": avg } });
+  // Derived `ratingAvg` can't be folded into the atomic ADD (no division in an update
+  // expression), so guard the follow-up SET against the EXACT totals this ADD produced:
+  // if a concurrent review has since changed count or sum, its (fresher) SET is the
+  // authoritative one and ours is skipped — otherwise a stale SET could clobber it.
+  try {
+    await updateItem({
+      key,
+      update: "SET ratingAvg = :a",
+      condition: "reviewCount = :count AND ratingSum = :sum",
+      values: { ":a": avg, ":count": count, ":sum": sum },
+    });
+  } catch (err) {
+    if (!(err instanceof ConditionalCheckFailedException)) throw err;
+    // A newer review won the race; its SET reflects the latest totals. (Reconcile
+    // also recomputes the ground truth from the REVIEW# rows, §14.6.)
+  }
 }
 
 // ── CHECKIN → court checkinsTodayCount + CITYDAY rollup + playerCount ─────────
@@ -206,44 +220,6 @@ async function onCheckin(record: StreamRecord): Promise<void> {
   });
 }
 
-// ── REG payment-confirmed → division registeredCount++ / spotsLeft-- ─────────
-
-async function onRegistration(record: StreamRecord): Promise<void> {
-  const becamePaid =
-    record.eventName === "MODIFY"
-      ? str(record.oldImage ?? {}, "paymentStatus") !== "paid" &&
-        str(record.newImage ?? {}, "paymentStatus") === "paid"
-      : record.eventName === "INSERT" && str(record.newImage ?? {}, "paymentStatus") === "paid";
-  if (!becamePaid) return;
-
-  const img = record.newImage;
-  if (!img) return;
-  const pk = str(img, "pk");
-  const sk = str(img, "sk");
-  if (!pk || !sk) return;
-
-  let divKey: PrimaryKey | undefined;
-  const tid = stripPrefix(pk, "TOURNEY#");
-  const lid = stripPrefix(pk, "LEAGUE#");
-  if (tid) {
-    // TOURNEY reg SK = `REG#<did>#<uid>` — the division id is in the key.
-    const rest = stripPrefix(sk, "REG#");
-    const did = rest ? rest.split("#")[0] : undefined;
-    if (did) divKey = tourneyKeys.division(tid, did);
-  } else if (lid) {
-    // LEAGUE reg SK = `REG#<uid>` — the division id is a denormalized attr.
-    const did = str(img, "divisionId");
-    if (did) divKey = leagueKeys.division(lid, did);
-  }
-  if (!divKey) return;
-
-  await updateItem({
-    key: divKey,
-    update: "ADD registeredCount :one, spotsLeft :negone",
-    values: { ":one": 1, ":negone": -1 },
-  });
-}
-
 // ── entity create → geo counts{courts,games,players,groups} ──────────────────
 
 async function onCreateGeoCount(
@@ -263,13 +239,54 @@ async function onCreateGeoCount(
 // per-item Streams, precisely to avoid double-counting the ~16K bulk court import.
 // This stream path is for organic (post-launch) creates.
 
-// ── MEMBER insert/remove → GROUP/META memberCount ────────────────────────────
+// ── GROUP/META insert/remove → geo counts.groups (§9.4) ──────────────────────
 
-async function onMember(record: StreamRecord): Promise<void> {
+/**
+ * A group create/delete rolls `counts.groups` up the geo hierarchy (CITY → STATE →
+ * COUNTRY). Unlike the court `groupCount` (public-only), this counts EVERY group
+ * regardless of visibility — it's the total-communities metric for the geo pages.
+ */
+async function onGroupMeta(record: StreamRecord): Promise<void> {
   let delta = 0;
   if (record.eventName === "INSERT") delta = 1;
   else if (record.eventName === "REMOVE") delta = -1;
-  else return; // a MODIFY (e.g. pending→active) is left to reconcile — see note in reconcile.ts
+  else return; // a META edit (e.g. visibility toggle) never changes the group count
+  const img = currentImage(record);
+  if (!img) return;
+  const cityKey = str(img, "cityKey");
+  if (!cityKey) return;
+  await bumpCityStateCountry(cityKey, "groups", delta);
+}
+
+// ── GROUPMEMBER insert/remove/modify → GROUP/META memberCount ─────────────────
+
+/** Is this membership image an ACTIVE seat? */
+function isActiveMember(img: Record<string, unknown> | undefined): boolean {
+  return !!img && str(img, "status") === "active";
+}
+
+/**
+ * `memberCount` counts ACTIVE members only, so it stays in step with the group's
+ * join lifecycle (request/invite → pending, then approve → active):
+ *   - INSERT active            → +1 (open-join / accepted invite)
+ *   - INSERT pending/invited   →  0 (a request or unaccepted invite doesn't count)
+ *   - MODIFY pending→active    → +1 (approve), active→removed → -1
+ *   - REMOVE active            → -1 (leave / kick), REMOVE pending → 0
+ * `ADD` is commutative (converges on replay); the reconcile sweep recomputes the
+ * ground truth from the active MEMBER# rows.
+ */
+async function onMember(record: StreamRecord): Promise<void> {
+  const wasActive =
+    record.eventName === "MODIFY" || record.eventName === "REMOVE"
+      ? isActiveMember(record.oldImage)
+      : false;
+  const isActive =
+    record.eventName === "MODIFY" || record.eventName === "INSERT"
+      ? isActiveMember(record.newImage)
+      : false;
+  const delta = (isActive ? 1 : 0) - (wasActive ? 1 : 0);
+  if (delta === 0) return;
+
   const img = currentImage(record);
   if (!img) return;
   const pk = str(img, "pk");
@@ -278,6 +295,43 @@ async function onMember(record: StreamRecord): Promise<void> {
   await updateItem({
     key: groupKeys.meta(groupId),
     update: "ADD memberCount :d",
+    values: { ":d": delta },
+  });
+}
+
+// ── GROUPCOURTREF insert/remove/modify → COURT/META groupCount (PUBLIC only) ──
+
+/** Is this COURT→GROUP pointer image a PUBLIC one? */
+function isPublicPointer(img: Record<string, unknown> | undefined): boolean {
+  return !!img && str(img, "visibility") === "public";
+}
+
+/**
+ * A COURT→GROUP pointer landing/leaving bumps the court's denormalized `groupCount`
+ * — but ONLY public pointers count, so private/unlisted groups never inflate the
+ * "groups that play here" number on a court page (§9.5 note). A visibility toggle
+ * (MODIFY) applies the public↔non-public edge delta.
+ */
+async function onGroupCourtRef(record: StreamRecord): Promise<void> {
+  const wasPublic =
+    record.eventName === "MODIFY" || record.eventName === "REMOVE"
+      ? isPublicPointer(record.oldImage)
+      : false;
+  const isPublic =
+    record.eventName === "MODIFY" || record.eventName === "INSERT"
+      ? isPublicPointer(record.newImage)
+      : false;
+  const delta = (isPublic ? 1 : 0) - (wasPublic ? 1 : 0);
+  if (delta === 0) return;
+
+  const img = currentImage(record);
+  if (!img) return;
+  const pk = str(img, "pk");
+  const courtId = pk ? stripPrefix(pk, "COURT#") : undefined;
+  if (!courtId) return;
+  await updateItem({
+    key: courtKeys.meta(courtId),
+    update: "ADD groupCount :d",
     values: { ":d": delta },
   });
 }
@@ -355,6 +409,7 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
     else if (sk.startsWith("REVIEW#")) await onReview(record);
     else if (sk.startsWith("CHECKIN#")) await onCheckin(record);
     else if (sk.startsWith("OUTING#")) await onOutingRef(record);
+    else if (sk.startsWith("GROUP#")) await onGroupCourtRef(record);
     return;
   }
 
@@ -364,7 +419,7 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
   }
 
   if (pk.startsWith("GROUP#")) {
-    if (sk === "META") await onCreateGeoCount(record, "groups", "cityKey");
+    if (sk === "META") await onGroupMeta(record);
     else if (sk.startsWith("MEMBER#")) await onMember(record);
     return;
   }
@@ -375,14 +430,17 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
   }
 
   if (pk.startsWith("TOURNEY#")) {
-    if (sk.startsWith("REG#")) await onRegistration(record);
-    else if (sk.startsWith("BRACKET#")) await onMatch(record);
+    // REG# rows are NOT handled here: `registeredCount` is owned end-to-end by the
+    // data layer's claim/release (the up-front capacity reservation), so a Stream
+    // increment on pending→paid would double-count in prod (invisible to the inline
+    // dev stream, which only fires on emitted writes). `spotsLeft` is derived at read.
+    if (sk.startsWith("BRACKET#")) await onMatch(record);
     return;
   }
 
   if (pk.startsWith("LEAGUE#")) {
-    if (sk.startsWith("REG#")) await onRegistration(record);
-    else if (sk.startsWith("WEEK#") && sk.includes("MATCH")) await onMatch(record);
+    // REG# rows: see the TOURNEY# note — `registeredCount` is data-layer-owned.
+    if (sk.startsWith("WEEK#") && sk.includes("MATCH")) await onMatch(record);
     return;
   }
 

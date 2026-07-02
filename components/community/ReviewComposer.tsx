@@ -14,6 +14,7 @@ import { useState } from "react";
 import type { JSX } from "react";
 import { ToggleButtonGroup, ToggleButton } from "@heroui/react";
 import { useSubmitReview } from "@/lib/api/community";
+import { trackEvent } from "@/lib/analytics/client";
 import type { ReviewItem } from "@/lib/db/types";
 import { StarRatingInput } from "./Stars";
 
@@ -65,6 +66,7 @@ export function ReviewComposer({
         tags: tags.size > 0 ? [...tags] : undefined,
         photoUrl: photoUrl.trim() || undefined,
       });
+      trackEvent("review_submitted", { courtId, rating, edit: Boolean(existing) });
       onDone?.(saved);
     } catch {
       setError(true);

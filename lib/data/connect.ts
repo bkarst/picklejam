@@ -12,7 +12,9 @@
  * {@link markConnectComplete} graduates the account (fake only) for tests.
  */
 
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { getItem, putItem, updateItem } from "@/lib/db/client";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { connectKeys } from "@/lib/db/keys";
 import { getGateway, FakeGateway } from "@/lib/stripe";
 import type { ConnectAccountItem } from "@/lib/db/types";
@@ -82,6 +84,26 @@ export async function refreshConnectStatus(uid: string): Promise<ConnectAccountI
       ":u": iso,
     },
   });
+
+  // ⚙ connect_onboarding_completed (§2.1) — fire EXACTLY once, on the first transition
+  // into "complete". A conditional write of the once-marker serializes concurrent
+  // refreshes so the funnel event never double-counts (the read-then-check above is
+  // not atomic on its own — two refreshes can both see the pre-complete `existing`).
+  if (acct.status === "complete") {
+    try {
+      await updateItem({
+        key: connectKeys.account(uid),
+        update: "SET onboardingCompletedAt = :now",
+        condition: "attribute_not_exists(onboardingCompletedAt)",
+        values: { ":now": iso },
+      });
+      trackServerEvent(uid, "connect_onboarding_completed", { accountId: existing.accountId });
+    } catch (err) {
+      if (!(err instanceof ConditionalCheckFailedException)) throw err;
+      // Already emitted by a prior/concurrent refresh — skip.
+    }
+  }
+
   return attrs as ConnectAccountItem | undefined;
 }
 

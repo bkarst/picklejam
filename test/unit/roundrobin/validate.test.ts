@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateConfig } from "@/lib/roundrobin/engine";
+import { RR_LIMITS } from "@/lib/roundrobin/engine/validate";
 import type { RrConfig } from "@/lib/roundrobin/types";
 import { entrants, SCORING } from "./_helpers";
 
@@ -31,6 +32,14 @@ describe("validateConfig — per-format guards (§6.8)", () => {
     expect(validateConfig(base({ courts: 0 })).ok).toBe(false);
     expect(validateConfig(base({ scoring: { pointsToWin: 0, winBy: 2 } })).ok).toBe(false);
     expect(validateConfig(base({ scoring: { pointsToWin: 11, winBy: 0 } })).ok).toBe(false);
+  });
+
+  it("enforces upper bounds on entrants / courts / rounds (DoS guard, §6.8)", () => {
+    expect(validateConfig(base({ entrants: entrants(RR_LIMITS.maxEntrants + 1) })).errors.join()).toMatch(/most .* entrants/i);
+    expect(validateConfig(base({ courts: RR_LIMITS.maxCourts + 1 })).errors.join()).toMatch(/most .* courts/i);
+    expect(validateConfig(base({ format: "swiss", rounds: RR_LIMITS.maxRounds + 1 })).errors.join()).toMatch(/most .* rounds/i);
+    // At the cap is still fine.
+    expect(validateConfig(base({ entrants: entrants(RR_LIMITS.maxEntrants) })).ok).toBe(true);
   });
 
   it("rejects duplicate entrant ids and <2 entrants", () => {

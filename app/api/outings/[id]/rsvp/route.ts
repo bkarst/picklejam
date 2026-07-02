@@ -12,6 +12,7 @@
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { getOutingMeta, rsvp, cancelRsvp } from "@/lib/data/outings";
+import { getGroupMember } from "@/lib/data/groups";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
 import type { RsvpStatus } from "@/lib/db/types";
 
@@ -42,7 +43,25 @@ export async function POST(
       guestCount = body.guestCount as number;
     }
 
-    if (!(await getOutingMeta(id))) bad("Outing not found", 404);
+    const outing = await getOutingMeta(id);
+    if (!outing) bad("Outing not found", 404);
+
+    // Visibility gate (§6.7): a PRIVATE game is RSVP-able only by the organizer, a
+    // holder of the invite token, or (for a group meet-up) an active member of the
+    // host group. Public/unlisted games are open to any signed-in player.
+    if (outing!.visibility === "private") {
+      const isOrganizer = outing!.organizerId === user.uid;
+      const token = typeof body.inviteToken === "string" ? body.inviteToken : undefined;
+      const hasInvite = !!outing!.inviteToken && token === outing!.inviteToken;
+      let isGroupMember = false;
+      if (outing!.hostType === "GROUP" && outing!.groupId) {
+        const member = await getGroupMember(outing!.groupId, user.uid);
+        isGroupMember = member?.status === "active";
+      }
+      if (!isOrganizer && !hasInvite && !isGroupMember) {
+        bad("This is a private game — an invite is required to RSVP", 403);
+      }
+    }
 
     const result = await rsvp(id, user.uid, status, guestCount);
     return Response.json(result);

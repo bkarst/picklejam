@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSearchSuggest } from "@/lib/api/queries";
 import { useCreateOuting, type CreateOutingInput } from "@/lib/api/outings";
+import { trackEvent } from "@/lib/analytics/client";
 import { outingPath } from "@/lib/urls";
 
 // ── recurrence → RRULE ───────────────────────────────────────────────────────
@@ -701,6 +702,7 @@ export function OutingWizard(): JSX.Element {
                 </p>
                 <Link
                   href="/organize/leagues/new"
+                  onClick={() => trackEvent("upgrade_clicked", { source: "outing_wizard_league_nudge" })}
                   className="mt-3 inline-flex h-10 items-center rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 >
                   Turn this into a League →

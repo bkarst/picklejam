@@ -12,6 +12,7 @@ import type { NextRequest } from "next/server";
 import { bad } from "@/app/api/_util";
 import { verifyRequest } from "@/lib/auth/verify";
 import { RrError } from "@/lib/data/roundrobin";
+import { RR_LIMITS } from "@/lib/roundrobin/engine/validate";
 import type {
   RrConfig,
   RrFormat,
@@ -133,6 +134,11 @@ export function parseConfig(raw: unknown): RrConfig {
   if (!Array.isArray(c.entrants) || c.entrants.length === 0) {
     bad("config.entrants must be a non-empty array");
   }
+  // Upper bound the entrant count BEFORE mapping — generation is O(n²), so an
+  // unbounded array is a DoS vector (matches the engine's RR_LIMITS.maxEntrants).
+  if ((c.entrants as unknown[]).length > RR_LIMITS.maxEntrants) {
+    bad(`config.entrants must have at most ${RR_LIMITS.maxEntrants} entries`);
+  }
   const entrants: Entrant[] = (c.entrants as unknown[]).map((e, i) => {
     if (typeof e !== "object" || e === null) bad(`config.entrants[${i}] is invalid`);
     const ent = e as Record<string, unknown>;
@@ -147,6 +153,9 @@ export function parseConfig(raw: unknown): RrConfig {
   const courts = c.courts;
   if (typeof courts !== "number" || !Number.isInteger(courts) || courts < 1) {
     bad("config.courts must be a positive integer");
+  }
+  if ((courts as number) > RR_LIMITS.maxCourts) {
+    bad(`config.courts must be at most ${RR_LIMITS.maxCourts}`);
   }
 
   const scoring = parseScoring(c.scoring);
@@ -164,7 +173,10 @@ export function parseConfig(raw: unknown): RrConfig {
     rngSeed,
   };
   if (typeof c.fixedPartners === "boolean") config.fixedPartners = c.fixedPartners;
-  if (typeof c.rounds === "number" && Number.isInteger(c.rounds) && c.rounds > 0) config.rounds = c.rounds;
+  if (typeof c.rounds === "number" && Number.isInteger(c.rounds) && c.rounds > 0) {
+    if (c.rounds > RR_LIMITS.maxRounds) bad(`config.rounds must be at most ${RR_LIMITS.maxRounds}`);
+    config.rounds = c.rounds;
+  }
   if (typeof c.playEveryoneTwice === "boolean") config.playEveryoneTwice = c.playEveryoneTwice;
   if (c.movement === "upDown" || c.movement === "king") config.movement = c.movement;
   if (typeof c.popcorn === "boolean") config.popcorn = c.popcorn;

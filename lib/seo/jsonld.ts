@@ -17,7 +17,19 @@ import { brand } from "@/brand.config";
 import { courtUrl } from "@/lib/urls";
 import { parseCityKey } from "@/lib/db/keys";
 import { minorUnitDigits } from "@/lib/money";
-import type { CourtItem, OutingItem, TourneyItem, DivisionItem } from "@/lib/db/types";
+import type {
+  CourtItem,
+  OutingItem,
+  TourneyItem,
+  DivisionItem,
+  LeagueItem,
+  LeagueDivisionItem,
+  LadderItem,
+  GroupItem,
+  ContentItem,
+  NewsItem,
+  AuthorItem,
+} from "@/lib/db/types";
 
 /** A JSON-LD document (schema.org). Kept loose — schema.org is open-ended. */
 export type JsonLd = Record<string, unknown>;
@@ -357,6 +369,322 @@ export function tournamentEventJsonLd(
     },
     organizer: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
     ...(offers.length > 0 ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
+  };
+}
+
+/**
+ * `Event` + `Offer` — a paid LEAGUE (Stage 7, §3.4 / §7.2). Rendered on the league
+ * detail page alongside a `BreadcrumbList`. One `Offer` is emitted per division /
+ * flight (schema.org accepts an array), priced from the division's `price` (major
+ * units) with an `availability` that flips to `SoldOut` once a capped flight fills.
+ *
+ * EMPTY-SAFE: `endDate`, `description`, and `location.address` are omitted when
+ * absent; a league with no divisions carries no `offers`.
+ */
+export function leagueEventJsonLd(
+  league: LeagueItem,
+  divisions: LeagueDivisionItem[],
+  opts: { url: string; cityName?: string; stateCode?: string; venueName?: string },
+): JsonLd {
+  const absoluteUrl = opts.url.startsWith("http") ? opts.url : `${brand.siteUrl}${opts.url}`;
+
+  const offers = divisions.map((d): JsonLd => {
+    const digits = minorUnitDigits(d.price.currency);
+    const isFull =
+      typeof d.capacity === "number" && d.capacity > 0 && d.registeredCount >= d.capacity;
+    return {
+      "@type": "Offer",
+      name: d.name,
+      price: (d.price.amount / 10 ** digits).toFixed(digits),
+      priceCurrency: d.price.currency.toUpperCase(),
+      availability: isFull ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+      url: absoluteUrl,
+    };
+  });
+
+  const venue = opts.venueName ?? league.venueName;
+
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Event",
+    name: league.title,
+    url: absoluteUrl,
+    sport: "Pickleball",
+    startDate: league.startDate,
+    ...(league.endDate ? { endDate: league.endDate } : {}),
+    ...(league.description ? { description: league.description } : {}),
+    eventStatus:
+      league.status === "cancelled"
+        ? "https://schema.org/EventCancelled"
+        : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: venue ?? "Pickleball venue",
+      ...(opts.cityName || opts.stateCode
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              ...(opts.cityName ? { addressLocality: opts.cityName } : {}),
+              ...(opts.stateCode ? { addressRegion: opts.stateCode } : {}),
+            },
+          }
+        : {}),
+    },
+    organizer: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+    ...(offers.length > 0 ? { offers: offers.length === 1 ? offers[0] : offers } : {}),
+  };
+}
+
+/**
+ * `SportsEvent` + `Offer` — a paid LADDER (Stage 7, §3.4 / §7.4). A ladder is an
+ * ongoing, recurring competition, so it renders as a `SportsEvent` with a single
+ * membership `Offer` (the join price). EMPTY-SAFE: `description` and the venue
+ * address are omitted when absent.
+ */
+export function ladderEventJsonLd(
+  ladder: LadderItem,
+  opts: { url: string; cityName?: string; stateCode?: string; venueName?: string },
+): JsonLd {
+  const absoluteUrl = opts.url.startsWith("http") ? opts.url : `${brand.siteUrl}${opts.url}`;
+  const digits = minorUnitDigits(ladder.price.currency);
+  const venue = opts.venueName ?? ladder.venueName;
+
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "SportsEvent",
+    name: ladder.title,
+    sport: "Pickleball",
+    url: absoluteUrl,
+    startDate: ladder.startDate,
+    ...(ladder.description ? { description: ladder.description } : {}),
+    eventStatus:
+      ladder.status === "cancelled"
+        ? "https://schema.org/EventCancelled"
+        : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: venue ?? "Pickleball venue",
+      ...(opts.cityName || opts.stateCode
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              ...(opts.cityName ? { addressLocality: opts.cityName } : {}),
+              ...(opts.stateCode ? { addressRegion: opts.stateCode } : {}),
+            },
+          }
+        : {}),
+    },
+    organizer: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+    offers: {
+      "@type": "Offer",
+      price: (ladder.price.amount / 10 ** digits).toFixed(digits),
+      priceCurrency: ladder.price.currency.toUpperCase(),
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl,
+    },
+  };
+}
+
+/**
+ * `SportsOrganization` — a PUBLIC group/club (Stage 8, §3.4 / §6.9). Rendered on
+ * the group detail page (public groups only — the page emits `noindex` and skips
+ * this markup for private/unlisted groups) alongside a `BreadcrumbList` and an
+ * `ItemList` of the group's upcoming meet-ups. The group is a `subOrganization` of
+ * the sitewide brand `Organization`.
+ *
+ * EMPTY-SAFE: `description`, `logo`/`image`, and the venue `location` are omitted
+ * when absent. `memberCount` (when > 0) is surfaced via `member` count.
+ */
+export function sportGroupJsonLd(
+  group: GroupItem,
+  opts: { url: string; cityName?: string; stateCode?: string; memberCount?: number },
+): JsonLd {
+  const absoluteUrl = opts.url.startsWith("http") ? opts.url : `${brand.siteUrl}${opts.url}`;
+  const count = opts.memberCount ?? group.memberCount;
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "SportsOrganization",
+    name: group.name,
+    sport: "Pickleball",
+    url: absoluteUrl,
+    ...(group.description ? { description: group.description } : {}),
+    ...(group.avatarUrl ? { logo: group.avatarUrl, image: group.avatarUrl } : {}),
+    ...(opts.cityName || opts.stateCode
+      ? {
+          location: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              ...(opts.cityName ? { addressLocality: opts.cityName } : {}),
+              ...(opts.stateCode ? { addressRegion: opts.stateCode } : {}),
+            },
+          },
+        }
+      : {}),
+    ...(typeof count === "number" && count > 0
+      ? { member: { "@type": "OrganizationRole", numberOfEmployees: count } }
+      : {}),
+    parentOrganization: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+  };
+}
+
+// ── Content Hub + News (Stage 9, §3.4 / §6.5 / §6.6) ─────────────────────────
+
+/** Absolute-ize a relative path with the brand origin (idempotent for URLs). */
+function absolute(url: string): string {
+  return url.startsWith("http") ? url : `${brand.siteUrl}${url}`;
+}
+
+/** The sitewide publisher `Organization` node (with a logo `ImageObject`). */
+function publisherOrg(): JsonLd {
+  return {
+    "@type": "Organization",
+    name: brand.identity.name,
+    url: brand.siteUrl,
+    logo: {
+      "@type": "ImageObject",
+      url: `${brand.siteUrl}${brand.logos.lockup}`,
+    },
+  };
+}
+
+/**
+ * A schema.org `Person` for a content AUTHOR (E-E-A-T). Distinct from
+ * {@link personJsonLd} (which is a *player* profile keyed off `UserProfileItem`);
+ * this one is keyed off `AuthorItem`. Used standalone on the author page and
+ * inlined as `Article.author`. `sameAs` collects the author's social profiles.
+ */
+export function authorPersonJsonLd(author: AuthorItem, opts?: { url?: string }): JsonLd {
+  const sameAs: string[] = [];
+  const s = author.socials ?? {};
+  if (s.twitter) sameAs.push(`https://x.com/${s.twitter.replace(/^@/, "")}`);
+  if (s.instagram) sameAs.push(`https://www.instagram.com/${s.instagram.replace(/^@/, "")}`);
+  if (s.website) sameAs.push(s.website);
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Person",
+    name: author.name,
+    url: absolute(opts?.url ?? `/learn/authors/${author.slug}`),
+    knowsAbout: "Pickleball",
+    ...(author.credentials ? { jobTitle: author.credentials } : {}),
+    ...(author.bio ? { description: author.bio } : {}),
+    ...(author.avatarUrl ? { image: author.avatarUrl } : {}),
+    ...(sameAs.length > 0 ? { sameAs } : {}),
+  };
+}
+
+/**
+ * `Article` — an evergreen guide/gear/rules article (Stage 9, §3.4). Rendered on
+ * the article page alongside a `BreadcrumbList` and (where present) an `FAQPage`.
+ *
+ * The `author` is a `Person` built from the article's `AuthorItem` when supplied
+ * (falling back to the denormalized `authorName`, then the brand). `publisher` is
+ * the sitewide `Organization` with a logo `ImageObject` (required for the Article
+ * rich result). EMPTY-SAFE: `image`, `keywords`, and `articleSection` are omitted
+ * when absent. `dateModified` falls back to `datePublished`.
+ */
+export function articleJsonLd(
+  content: ContentItem,
+  opts: { url: string; author?: AuthorItem | null },
+): JsonLd {
+  const url = absolute(opts.url);
+  const author: JsonLd = opts.author
+    ? {
+        "@type": "Person",
+        name: opts.author.name,
+        url: absolute(`/learn/authors/${opts.author.slug}`),
+        ...(opts.author.avatarUrl ? { image: opts.author.avatarUrl } : {}),
+      }
+    : content.authorName
+      ? { "@type": "Person", name: content.authorName }
+      : { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl };
+
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Article",
+    headline: content.title,
+    description: content.excerpt,
+    ...(content.coverImage ? { image: absolute(content.coverImage) } : {}),
+    datePublished: content.publishedAt,
+    dateModified: content.updatedAt || content.publishedAt,
+    author,
+    publisher: publisherOrg(),
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    url,
+    ...(content.category ? { articleSection: content.category } : {}),
+    ...(content.tags && content.tags.length > 0 ? { keywords: content.tags.join(", ") } : {}),
+  };
+}
+
+/**
+ * `NewsArticle` — a dated news item (Stage 9, §3.4 / §6.6). Rendered on the news
+ * article page alongside a `BreadcrumbList`. `publisher` is the sitewide brand;
+ * the original outlet is attributed via `sourceOrganization` + `isBasedOn` when a
+ * source is present (so the coverage credits the original reporting). EMPTY-SAFE:
+ * `image` and the source fields are omitted when absent.
+ */
+export function newsArticleJsonLd(news: NewsItem, opts: { url: string }): JsonLd {
+  const url = absolute(opts.url);
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "NewsArticle",
+    headline: news.title,
+    description: news.excerpt,
+    ...(news.coverImage ? { image: absolute(news.coverImage) } : {}),
+    datePublished: news.publishedAt,
+    dateModified: news.updatedAt || news.publishedAt,
+    author: { "@type": "Organization", name: brand.identity.name, url: brand.siteUrl },
+    publisher: publisherOrg(),
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    url,
+    ...(news.topics && news.topics.length > 0 ? { keywords: news.topics.join(", ") } : {}),
+    ...(news.source?.name
+      ? {
+          sourceOrganization: {
+            "@type": "Organization",
+            name: news.source.name,
+            ...(news.source.url ? { url: news.source.url } : {}),
+          },
+          ...(news.source.url ? { isBasedOn: news.source.url } : {}),
+        }
+      : {}),
+  };
+}
+
+/**
+ * `CollectionPage` — the /learn hub and /news index (Stage 9, §3.4). Wraps an
+ * `ItemList` of the surfaced articles/items as `mainEntity` so the collection's
+ * membership is machine-readable. EMPTY-SAFE: `mainEntity` is omitted when the
+ * collection is empty.
+ */
+export function collectionPageJsonLd(opts: {
+  name: string;
+  description: string;
+  url: string;
+  items?: { name: string; url: string }[];
+}): JsonLd {
+  const items = opts.items ?? [];
+  return {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "CollectionPage",
+    name: opts.name,
+    description: opts.description,
+    url: absolute(opts.url),
+    ...(items.length > 0
+      ? {
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: items.map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: item.name,
+              url: absolute(item.url),
+            })),
+          },
+        }
+      : {}),
   };
 }
 

@@ -119,3 +119,145 @@ export const organizeTournamentNew = (): string => "/organize/tournaments/new";
 
 /** The organizer dashboard for a single tournament. noindex, NO ads. */
 export const organizeTournamentPath = (id: string): string => `/organize/tournaments/${id}`;
+
+// ── leagues (Stage 7, §7.2/§7.3) ─────────────────────────────────────────────
+
+/** The public leagues hub (marketing + how-it-works). Indexable. */
+export const leaguesHub = (): string => "/leagues";
+
+/**
+ * City league finder ("Pickleball Leagues in {City}, {ST}"). Indexable.
+ * Note the static `/in/` segment: `/leagues/[id]` (detail) and a bare
+ * `/leagues/[country]/...` finder would collide as two dynamic segments at the
+ * same level (`next start` throws), so the city finder is namespaced under `/in`.
+ */
+export const leaguesCityPath = (country: string, state: string, city: string): string =>
+  `/leagues/in/${country}/${state}/${city}`;
+
+/** Build the city league-finder URL from a bare cityKey (for interlinks). */
+export function leaguesCityPathFromKey(cityKey: string): string {
+  const { country, state, city } = parseCityKey(cityKey);
+  return leaguesCityPath(country, state, city);
+}
+
+/** Public league detail page (Event + Offer). Indexable. */
+export const leaguePath = (id: string): string => `/leagues/${id}`;
+
+/**
+ * League registration + checkout (§10). A payment surface — noindex, NO ads. An
+ * optional `division` (flight) preselects it on arrival (deep-linked "Register").
+ */
+export const leagueRegisterPath = (id: string, division?: string): string =>
+  division ? `/leagues/${id}/register?division=${division}` : `/leagues/${id}/register`;
+
+/** Public league standings + weekly schedule + playoff bracket. Indexable. */
+export const leagueStandingsPath = (id: string): string => `/leagues/${id}/standings`;
+
+/** The participant console (this-week matchup, scores, availability). noindex, NO ads. */
+export const leagueMyTeamPath = (id: string): string => `/leagues/${id}/my-team`;
+
+// ── ladders (Stage 7, §7.4) ──────────────────────────────────────────────────
+
+/** The public ladders hub (marketing + how-it-works). Indexable. */
+export const laddersHub = (): string => "/ladders";
+
+/** City ladder finder ("Pickleball Ladders in {City}, {ST}"). Indexable (static `/in/`). */
+export const laddersCityPath = (country: string, state: string, city: string): string =>
+  `/ladders/in/${country}/${state}/${city}`;
+
+/** Build the city ladder-finder URL from a bare cityKey (for interlinks). */
+export function laddersCityPathFromKey(cityKey: string): string {
+  const { country, state, city } = parseCityKey(cityKey);
+  return laddersCityPath(country, state, city);
+}
+
+/** Public ladder board (ranked RUNG# table + movement). Indexable. */
+export const ladderPath = (id: string): string => `/ladders/${id}`;
+
+/** The player's challenge console (issue/respond/report). noindex, NO ads. */
+export const ladderChallengesPath = (id: string): string => `/ladders/${id}/challenges`;
+
+/** Ladder registration + checkout (§10). A payment surface — noindex, NO ads. */
+export const ladderRegisterPath = (id: string): string => `/ladders/${id}/register`;
+
+// ── organizer (leagues + ladders share one create wizard, §7.2/§7.4) ─────────
+
+/** The organizer create wizard (league OR ladder — a format toggle). noindex. */
+export const organizeLeagueNew = (): string => "/organize/leagues/new";
+
+/** The organizer dashboard for a single league/ladder. noindex, NO ads. */
+export const organizeLeaguePath = (id: string): string => `/organize/leagues/${id}`;
+
+// ── groups & clubs (Stage 8, §6.9) ───────────────────────────────────────────
+
+/** The public groups hub (what groups are + create/find CTA). Indexable. */
+export const groupsHub = (): string => "/groups";
+
+/** The create-a-group form. noindex (an authoring surface). Static, so it sits
+ *  safely beside the `/groups/[id]` detail segment. */
+export const groupNewPath = (): string => "/groups/new";
+
+/** Public group detail page. `noindex` unless the group is public (page-level). */
+export const groupPath = (id: string): string => `/groups/${id}`;
+
+/** The owner/admin manage console (roster, approvals, invites, settings). noindex. */
+export const groupManagePath = (id: string): string => `/groups/${id}/manage`;
+
+/**
+ * City group finder ("Pickleball Groups & Clubs in {City}, {ST}"). Indexable —
+ * PUBLIC groups only. Note the static `/in/` segment: `/groups/[id]` (detail) and a
+ * bare `/groups/[country]/...` finder would collide as two dynamic segments at the
+ * same level (`next start` throws), so the city finder is namespaced under `/in`.
+ */
+export const groupsCityPath = (country: string, state: string, city: string): string =>
+  `/groups/in/${country}/${state}/${city}`;
+
+/** Build the city group-finder URL from a bare cityKey (for interlinks). */
+export function groupsCityPathFromKey(cityKey: string): string {
+  const { country, state, city } = parseCityKey(cityKey);
+  return groupsCityPath(country, state, city);
+}
+
+// ── Content Hub /learn + News /news (Stage 9, §6.5/§6.6) ─────────────────────
+//
+// Route-collision note (next-conventions.md): `/learn/authors` and
+// `/news/topics` are STATIC segments that sit beside their dynamic siblings
+// (`/learn/[category]`, `/news/[slug]`). A static segment always wins over a
+// sibling dynamic one, so this is allowed — only TWO different dynamic names at
+// the same level would conflict.
+
+/** The Content Hub index ("Learn Pickleball"). Indexable. */
+export const learnHub = (): string => "/learn";
+
+/** A category feed ("How to Play", "Rules", "Gear"…). Indexable. */
+export const learnCategoryPath = (category: string): string => `/learn/${category}`;
+
+/** An evergreen article detail page (ISR 86400). Indexable. */
+export const articlePath = (category: string, slug: string): string =>
+  `/learn/${category}/${slug}`;
+
+/** An author profile (E-E-A-T). Static `/learn/authors/` segment. Indexable. */
+export const authorPath = (slug: string): string => `/learn/authors/${slug}`;
+
+/** The News index ("Pickleball News", ISR 900). Indexable. */
+export const newsHub = (): string => "/news";
+
+/** A news topic feed. Static `/news/topics/` segment. Indexable. */
+export const newsTopicPath = (topic: string): string => `/news/topics/${topic}`;
+
+/** A dated news article detail page. Indexable. */
+export const newsArticlePath = (slug: string): string => `/news/${slug}`;
+
+// ── system / marketing + legal pages (Stage 10, §16) ─────────────────────────
+
+/** The pricing / how-it-works page (free tools vs paid events). Indexable. */
+export const pricingPath = (): string => "/pricing";
+
+/** The about / mission page (E-E-A-T). Indexable. */
+export const aboutPath = (): string => "/about";
+
+/** The contact page (support email + socials + form). Indexable. */
+export const contactPath = (): string => "/contact";
+
+/** A legal document page (terms, privacy, cookies, …). Indexable. */
+export const legalPath = (doc: string): string => `/legal/${doc}`;

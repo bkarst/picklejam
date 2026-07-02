@@ -42,6 +42,7 @@ import {
 } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { rrKeys, userKeys } from "@/lib/db/keys";
+import { trackServerEvent } from "@/lib/analytics/server";
 import {
   validateConfig,
   generateSchedule,
@@ -447,6 +448,9 @@ export async function recordScore(
   );
   if (!target) notFound(`Match not found: ${score.matchId}`);
   const match = target as RrMatchItem;
+  // Capture BEFORE the write: a match already "scored" is being CORRECTED, not played
+  // for the first time — so match_played must not fire again (§2.1, one per match).
+  const wasScored = match.status === "scored";
 
   const iso = new Date().toISOString();
 
@@ -479,6 +483,19 @@ export async function recordScore(
 
   // 3. Re-materialize standings synchronously (championId is stamped here too).
   await materialize(eventId, meta, items, iso);
+
+  // ⚙ match_played (§2.1) — a confirmed round-robin score, ONCE per match (skip a
+  // re-score correction). Anonymous events attribute via the creator token (§2.1 N2);
+  // a claimed event also carries its owner's uid as the distinctId.
+  if (!wasScored) {
+    trackServerEvent(actor.uid ?? "anonymous", "match_played", {
+      kind: "roundRobin",
+      eventId,
+      matchId: score.matchId,
+      format: meta.format,
+      ...(meta.creatorToken ? { rrCreatorToken: meta.creatorToken } : {}),
+    });
+  }
 
   const full = await getRrEvent(eventId);
   if (!full) notFound(`Round-robin event not found: ${eventId}`);

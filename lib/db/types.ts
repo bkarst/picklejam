@@ -581,7 +581,7 @@ export interface PaymentItem extends BaseItem {
   uid: string;
   ts: string;
   /** What this payment was for. */
-  kind: "tournament" | "league";
+  kind: "tournament" | "league" | "ladder";
   refId: string; // tid / lid
   divisionId?: string;
   amount: StoredMoney; // total charged
@@ -611,6 +611,399 @@ export interface ConnectAccountItem extends BaseItem {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
+  /** Set once, atomically, the first time the account reaches "complete" — the
+   *  exactly-once marker for the `connect_onboarding_completed` analytics event. */
+  onboardingCompletedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Leagues, League Participation & Ladders (Stage 7, PRD §7.2–7.4) ───────────
+// A league lives in ONE partition `LEAGUE#<lid>`:
+//   META             → LeagueItem          (meta + fee config + Connect + season)
+//   DIVISION#<did>   → LeagueDivisionItem  (flight price/capacity/skill gate)
+//   TEAM#<teamId>    → LeagueTeamItem       (a registered team / partnership)
+//   REG#<uid>        → LeagueRegistrationItem (a member's entry + payment ledger)
+//   WEEK#<w>#MATCH#  → ScheduleMatchItem    (weekly fixtures + two-party scores)
+//   STANDING#<did>#<rank> → LeagueStandingItem (materialized, rank-ordered)
+//   AVAIL#<uid>#WEEK#<w>  → AvailabilityItem  (sub-pool availability)
+// A ladder lives in `LADDER#<lid>`: META (LadderItem) + RUNG#<pos> (RungItem,
+// rank-ordered) + CHALLENGE#<cid> (ChallengeItem, + GSI1 by challenged uid).
+
+export type LeagueFormat = "league" | "ladder";
+export type LeagueStatus = "draft" | "published" | "complete" | "cancelled";
+/** A weekly fixture's two-party confirmation lifecycle (§7.3). */
+export type MatchConfirmStatus = "scheduled" | "reported" | "confirmed" | "conflict";
+
+/** LEAGUE META (§7.2). Publishable only when Connect is complete + ≥1 division. */
+export interface LeagueItem extends BaseItem {
+  entity: "LEAGUE";
+  lid: string;
+  title: string;
+  slug: string;
+  cityKey: string;
+  courtId?: string;
+  venueName?: string;
+  organizerId: string;
+  status: LeagueStatus;
+  startDate: string; // ISO date — GSI ordering
+  endDate?: string;
+  seasonWeeks: number; // number of weekly rounds
+  description?: string;
+  currency: string;
+  feeMode: FeeMode;
+  feePercentBps: number;
+  feeFixed: number;
+  connectedAccountId?: string | null;
+  playMode: "singles" | "doubles" | "team";
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A league division / flight (SK `DIVISION#<did>`). */
+export interface LeagueDivisionItem extends BaseItem {
+  entity: "LEAGUEDIVISION";
+  lid: string;
+  did: string;
+  name: string;
+  price: StoredMoney;
+  capacity?: number;
+  skillMin?: number;
+  skillMax?: number;
+  duprMin?: number;
+  duprMax?: number;
+  playMode: "singles" | "doubles" | "team";
+  registeredCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A registered team / partnership (SK `TEAM#<teamId>`). */
+export interface LeagueTeamItem extends BaseItem {
+  entity: "LEAGUETEAM";
+  lid: string;
+  teamId: string;
+  did: string;
+  name: string;
+  memberUids: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A member's league registration (SK `REG#<uid>`) + GSI1 (my registrations). */
+export interface LeagueRegistrationItem extends BaseItem {
+  entity: "LEAGUEREG";
+  lid: string;
+  uid: string;
+  did: string;
+  startDate: string;
+  teamId?: string | null;
+  /** Solo entrant awaiting a partner from the free-agent pool (§7.2). */
+  freeAgent?: boolean;
+  partnerUid?: string | null;
+  partnerStatus?: PartnerStatus;
+  paymentStatus: PaymentStatus;
+  checkoutSessionId?: string;
+  paymentIntentId?: string;
+  amount?: StoredMoney;
+  applicationFee?: StoredMoney;
+  authorizedNotCaptured?: boolean;
+  refundedAmount?: StoredMoney;
+  registeredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A weekly fixture (SK `WEEK#<w>#MATCH#<mid>`) with a two-party score confirm. */
+export interface ScheduleMatchItem extends BaseItem {
+  entity: "SCHEDULEMATCH";
+  lid: string;
+  did: string;
+  week: number;
+  mid: string;
+  /** Entrant refs (teamId or uid) — one per side; empty ⇒ bye. */
+  sideA?: string[];
+  sideB?: string[];
+  scoreA?: number;
+  scoreB?: number;
+  confirmStatus: MatchConfirmStatus;
+  /** Two-party handshake: who reported, who confirmed (§7.3). */
+  reportedBy?: string;
+  confirmedBy?: string;
+  playedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A materialized league standings row (SK `STANDING#<did>#<rank>`). */
+export interface LeagueStandingItem extends BaseItem {
+  entity: "LEAGUESTANDING";
+  lid: string;
+  did: string;
+  entrantId: string; // teamId or uid
+  rank: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDiff: number;
+  played: number;
+}
+
+export type AvailabilityStatus = "in" | "out" | "sub";
+
+/** A member's weekly availability / sub-pool flag (SK `AVAIL#<uid>#WEEK#<w>`). */
+export interface AvailabilityItem extends BaseItem {
+  entity: "AVAILABILITY";
+  lid: string;
+  uid: string;
+  week: number;
+  status: AvailabilityStatus;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Ladders (§7.4) ───────────────────────────────────────────────────────────
+
+export interface LadderItem extends BaseItem {
+  entity: "LADDER";
+  lid: string;
+  title: string;
+  slug: string;
+  cityKey: string;
+  courtId?: string;
+  venueName?: string;
+  organizerId: string;
+  status: LeagueStatus;
+  startDate: string;
+  description?: string;
+  currency: string;
+  feeMode: FeeMode;
+  feePercentBps: number;
+  feeFixed: number;
+  connectedAccountId?: string | null;
+  price: StoredMoney;
+  /** How many rungs above yourself you may challenge (§7.4). */
+  challengeRange: number;
+  /** Days a challenged player has to respond before forfeit (§7.4). */
+  responseWindowDays: number;
+  playMode: "singles" | "doubles";
+  /** Optimistic-concurrency version for the rung board; bumped atomically with each
+   *  full-board rewrite so concurrent reorders can't lose an update (§7.4). */
+  rungsVersion?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A rung = a player's ranked position + their paid membership (SK `RUNG#<pos>`). */
+export interface RungItem extends BaseItem {
+  entity: "RUNG";
+  lid: string;
+  position: number; // 1 = top
+  uid: string;
+  displayName?: string;
+  rating?: number;
+  paymentStatus: PaymentStatus;
+  wins: number;
+  losses: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ChallengeStatus =
+  | "open" //       issued, awaiting the challenged player's response
+  | "accepted" //   accepted, awaiting play + result
+  | "declined"
+  | "reported" //   a result was reported, awaiting the other party's confirm
+  | "confirmed" //  both confirmed → re-rank applied
+  | "expired"; //   response window elapsed with no response
+
+/** A ladder challenge (SK `CHALLENGE#<cid>`) + GSI1 (my incoming challenges). */
+export interface ChallengeItem extends BaseItem {
+  entity: "CHALLENGE";
+  lid: string;
+  cid: string;
+  challengerUid: string;
+  challengedUid: string;
+  challengerPos: number;
+  challengedPos: number;
+  status: ChallengeStatus;
+  dueDate: string; // ISO — response/response-window deadline
+  scoreChallenger?: number;
+  scoreChallenged?: number;
+  reportedBy?: string;
+  confirmedBy?: string;
+  winnerUid?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Groups & Clubs (Stage 8, PRD §6.9) ───────────────────────────────────────
+// A group lives in ONE partition `GROUP#<groupId>`:
+//   META            → GroupItem          (meta + visibility/joinPolicy + memberCount)
+//   MEMBER#<uid>    → GroupMemberItem     (role + status; GSI1 = my groups)
+//   INVITE#<token>  → GroupInviteItem     (invite, TTL)
+//   MEETUP#<ts>#<id>→ (the Outing's MEETUP pointer, written by createOuting, §6.7)
+// plus a COURT→GROUP pointer under `COURT#<courtId>` / SK `GROUP#<groupId>`
+// (GroupCourtRefItem) so pattern 28 ("groups that play here") is one Query. The
+// pointer PROJECTS `visibility` so a private group filters out of the public
+// court/city rails in a single pass (§9.5 note).
+
+export type GroupVisibility = "private" | "unlisted" | "public"; // default private (§6.9)
+export type GroupJoinPolicy = "invite" | "request" | "open"; //     default invite
+export type GroupMemberRole = "owner" | "admin" | "member";
+export type GroupMemberStatus = "active" | "pending" | "invited";
+
+/** GROUP META (§6.9). `noindex` unless visibility === "public". */
+export interface GroupItem extends BaseItem {
+  entity: "GROUP";
+  groupId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  cityKey: string;
+  /** Primary court the group plays at (drives the home-court pointer + rail). */
+  homeCourtId?: string;
+  /** Any additional courts the group plays at (each gets a COURT→GROUP pointer). */
+  courtIds?: string[];
+  creatorId: string;
+  visibility: GroupVisibility;
+  joinPolicy: GroupJoinPolicy;
+  avatarUrl?: string;
+  /** Reconciled by Streams on MEMBER insert/remove (§9.4). */
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A group membership (SK `MEMBER#<uid>`) + GSI1 (my groups). */
+export interface GroupMemberItem extends BaseItem {
+  entity: "GROUPMEMBER";
+  groupId: string;
+  uid: string;
+  role: GroupMemberRole;
+  status: GroupMemberStatus;
+  joinedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** COURT→GROUP pointer (`PK=COURT#<courtId>`, SK `GROUP#<groupId>`), §9.5 #28.
+ *  Projects `visibility` so private groups filter out of the public court rail. */
+export interface GroupCourtRefItem extends BaseItem {
+  entity: "GROUPCOURTREF";
+  courtId: string;
+  groupId: string;
+  cityKey: string;
+  visibility: GroupVisibility;
+  createdAt: string;
+}
+
+/** A group invite (SK `INVITE#<token>`) — TTL-expiring (§14.6 invite TTL). */
+export interface GroupInviteItem extends BaseItem {
+  entity: "GROUPINVITE";
+  groupId: string;
+  token: string;
+  invitedBy: string;
+  email?: string;
+  expiresAt: string; // ISO; `ttl` mirrors it in epoch-seconds for DynamoDB TTL
+  createdAt: string;
+}
+
+// ── Content Hub + News (Stage 9, PRD §6.5/§6.6) ──────────────────────────────
+// Evergreen guides + gear (CONTENT#) and dated news (NEWS#), DB-stored with a
+// MARKDOWN body + structured fields (key-takeaways / FAQ / related-city CTA) so
+// the render stays sanitized + component-free. Authors (AUTHOR#) carry E-E-A-T.
+//   CONTENT#<id>/META  → ContentItem  (GSI2 category feed, GSI3 slug, GSI1 author)
+//   AUTHOR#<id>/META   → AuthorItem   (their GSI1 partition holds their articles)
+//   NEWS#<id>/META     → NewsItem     (GSI2 NEWS#ALL feed, GSI3 slug)
+//   NEWS#<id>/TOPIC#<t>→ NewsTopicPointerItem (GSI2 NEWSTOPIC#<t>, a news item ∈ many topics)
+
+export type PublishStatus = "draft" | "published";
+
+/** A frequently-asked question rendered as an FAQPage entry. */
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+/** An evergreen guide/gear article (SK META). Body is trusted markdown. */
+export interface ContentItem extends BaseItem {
+  entity: "CONTENT";
+  id: string;
+  slug: string;
+  category: string; // e.g. "guides", "gear", "rules"
+  title: string;
+  excerpt: string;
+  /** Markdown body (rendered sanitized; headings drive the TOC). */
+  body: string;
+  keyTakeaways?: string[];
+  faq?: FaqEntry[];
+  authorId: string;
+  authorName?: string; // denormalized for cards without a join
+  /** Resolves to a real city page for the "related local" CTA (§12 rule 4). */
+  relatedCityKey?: string;
+  coverImage?: string;
+  tags?: string[];
+  readMinutes?: number;
+  status: PublishStatus;
+  publishedAt: string; // ISO — drives GSI2/GSI1 recency
+  updatedAt: string;
+  createdAt: string;
+}
+
+/** An author profile (E-E-A-T signals for the content). */
+export interface AuthorItem extends BaseItem {
+  entity: "AUTHOR";
+  authorId: string;
+  slug: string;
+  name: string;
+  bio?: string;
+  avatarUrl?: string;
+  /** Short credential line (e.g. "USAPA-certified coach"). */
+  credentials?: string;
+  socials?: { twitter?: string; instagram?: string; website?: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A dated news article (SK META). Carries source attribution + topics. */
+export interface NewsItem extends BaseItem {
+  entity: "NEWS";
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string; // markdown
+  /** Original source (attribution / NewsArticle). */
+  source?: { name: string; url?: string };
+  topics: string[];
+  coverImage?: string;
+  /** Related evergreen article ids (cross-link into the hub). */
+  relatedContentIds?: string[];
+  status: PublishStatus;
+  publishedAt: string; // ISO — drives the GSI2 feeds
+  updatedAt: string;
+  createdAt: string;
+}
+
+/** A per-topic pointer (SK `TOPIC#<topic>`) so a news item joins many topic feeds. */
+export interface NewsTopicPointerItem extends BaseItem {
+  entity: "NEWSTOPIC";
+  newsId: string;
+  topic: string;
+  slug: string;
+  title: string;
+  publishedAt: string;
+}
+
+/** A newsletter subscriber (§6.5/§6.6 capture). */
+export interface SubscriberItem extends BaseItem {
+  entity: "SUBSCRIBER";
+  email: string;
+  source?: string; // which page/CTA captured them
+  confirmedAt?: string;
+  createdAt: string;
 }

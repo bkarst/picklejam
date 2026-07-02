@@ -14,6 +14,7 @@ import { useState } from "react";
 import type { JSX } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useFollowCourt } from "@/lib/api/community";
+import { trackEvent } from "@/lib/analytics/client";
 
 export function FollowButton({
   courtId,
@@ -33,6 +34,8 @@ export function FollowButton({
     setFollowing(next); // optimistic
     try {
       await follow.mutateAsync(next);
+      // Only a NEW follow is the `court_followed` intent (unfollows aren't tracked).
+      if (next) trackEvent("court_followed", { courtId });
     } catch {
       setFollowing(prev); // rollback
       setError(true);

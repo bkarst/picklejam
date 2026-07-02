@@ -19,6 +19,8 @@ export interface Suggestion {
   url: string;
   /** Court id for `type:"court"` results (Stage 4 outing wizard court picker). */
   courtId?: string;
+  /** `country#state#city` key for `type:"city"` results (league/ladder city picker). */
+  cityKey?: string;
 }
 
 function score(name: string, q: string): number {
@@ -49,6 +51,7 @@ export async function suggestSearch(
       label: `${c.name}, ${stateAbbr(c.state)}`,
       sublabel: `${c.counts?.locations ?? 0} locations`,
       url: cityUrlFromKey(c.cityKey),
+      cityKey: c.cityKey,
     }));
 
   const courtHits = courts

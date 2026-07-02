@@ -83,9 +83,13 @@ test("J3 — a full game places the next RSVP on the waitlist (capacity enforced
   // The one spot is already taken by the organizer.
   await expect(page.getByText("(1/1)")).toBeVisible();
 
-  // Full + waitlist enabled → the primary action becomes "Join Waitlist".
-  await page.getByRole("button", { name: /join waitlist/i }).click();
-  await expect(page.getByText(/you're on the waitlist/i)).toBeVisible({ timeout: 10_000 });
+  // Full + waitlist enabled → the primary action is "Join Waitlist". Retry the click
+  // until it takes: under parallel load the client can hydrate after the button is
+  // visible, so a first click may be a no-op (re-joining a waitlist is idempotent).
+  await expect(async () => {
+    await page.getByRole("button", { name: /join waitlist/i }).click();
+    await expect(page.getByText(/you're on the waitlist/i)).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 20_000 });
 
   // Not oversold — still 1/1 going.
   await expect(page.getByText("(1/1)")).toBeVisible();

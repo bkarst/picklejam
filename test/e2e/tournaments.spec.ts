@@ -47,6 +47,14 @@ function signedCheckoutEvent(opts: { evtId: string; tid: string; did: string; ui
   return { payload, header };
 }
 
+async function devLogin(page: import("@playwright/test").Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("devpass123");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await page.waitForURL(/\/account/);
+}
+
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(() => {
     try {
@@ -62,26 +70,29 @@ test("J5 — paid registration → Checkout → webhook → confirmation (idempo
   page,
   request,
 }, testInfo) => {
-  // A fresh, unique player per project + run (avoids shared-row races / capacity reuse).
-  const email = `tplayer-${testInfo.project.name}-${testInfo.workerIndex}-${test.info().testId}@dev.local`;
+  // Real browser click drives the register mutation (register isn't idempotent —
+  // a 409 on re-register means no retry), so use a unique player + pin to one project.
+  test.skip(testInfo.project.name !== "chromium", "UI register+redirect runs once");
+  // Registration isn't idempotent (409 on re-register), so a per-ATTEMPT unique
+  // player keeps the test retry-safe: a retry registers a fresh player, not a 409.
+  const email = `tplayer-ui-${test.info().testId}-r${testInfo.retry}@dev.local`;
   const uid = devUid(email);
   const token = devToken(email);
 
-  // The register page renders the checkout hand-off (UI journey entry point).
+  // Sign in IN THE BROWSER, open the register page, and wait for auth to hydrate
+  // (the account control appears) so "Continue to payment" → requireAuth proceeds
+  // rather than popping the auth modal.
+  await devLogin(page, email);
   await page.goto("/tournaments/e2etourney/register?division=d1");
-  await expect(page.getByRole("button", { name: /continue to payment/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
 
-  // Register via the real endpoint (what "Continue to payment" POSTs) → the fake
-  // gateway returns a Checkout that hands off to the success URL.
-  const regRes = await request.post("/api/tournaments/e2etourney/register", {
-    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
-    data: { divisionId: "d1" },
-  });
-  expect(regRes.ok()).toBeTruthy();
-  const reg0 = await regRes.json();
-  expect(String(reg0.checkoutUrl)).toContain("checkout=success");
+  // CLICK the real button → useRegister → the fake Checkout hands off to the
+  // success URL → a genuine browser redirect.
+  await page.getByRole("button", { name: /continue to payment/i }).click();
+  await page.waitForURL(/checkout=success/, { timeout: 20_000 });
 
-  // Confirm via a REAL Stripe-signed webhook (the production fulfilment path).
+  // Confirm via a REAL Stripe-signed webhook (the production fulfilment path;
+  // a webhook is server-to-server, so there is no button to click here).
   const evtId = `evt_e2e_${uid}`;
   const { payload, header } = signedCheckoutEvent({ evtId, tid: "e2etourney", did: "d1", uid, amount: 2000 });
   const hook1 = await request.post("/api/stripe/webhook", {

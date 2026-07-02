@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import type { JSX } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRegister } from "@/lib/api/tournaments";
+import { trackEvent } from "@/lib/analytics/client";
 import type { FeeConfig, Money } from "@/lib/money";
 import type { DivisionItem } from "@/lib/db/types";
 import { FeePreview } from "./FeePreview";
@@ -69,6 +70,13 @@ export function RegisterPanel({
     }
     setError(null);
     setRedirecting(true);
+    // Checkout intent — fired as we hand off to Stripe (before the redirect).
+    trackEvent("checkout_started", {
+      kind: "tournament",
+      tid,
+      did: division.did,
+      ...(division.price ? { amount: division.price.amount, currency: division.price.currency } : {}),
+    });
     registerMut
       .mutateAsync({ did: division.did, ...(isDoubles && partner.trim() ? { partnerUid: partner.trim() } : {}) })
       .then((res) => {
