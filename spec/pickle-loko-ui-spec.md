@@ -1,6 +1,6 @@
-# PicklerPal — UI Specification (structure & behavior)
+# PickleLoko — UI Specification (structure & behavior)
 
-> **Purpose:** Specify the user interface for every view — **layout, wireframes, components, content, behavior, and states** — in enough detail to build the product's structure and interactions. Companion to [`pickler-pal-prd.md`](./pickler-pal-prd.md) (architecture, data schema §9, SEO) and applying the precedent in [`pickleheads-features.md`](./pickleheads-features.md).
+> **Purpose:** Specify the user interface for every view — **layout, wireframes, components, content, behavior, and states** — in enough detail to build the product's structure and interactions. Companion to [`pickle-loko-prd.md`](./pickle-loko-prd.md) (architecture, data schema §9, SEO) and applying the precedent in [`pickleheads-features.md`](./pickleheads-features.md).
 >
 > **Scope — what this doc does and does NOT cover:**
 > - ✅ **In scope:** wireframes/layout, what's on each view, the component set and each component's anatomy + variants + states, interactions, responsive behavior, empty/loading/error states, data bindings, SEO/render notes.
@@ -118,7 +118,7 @@ Each component: **anatomy → variants → states → behavior**. Variants are b
 > Renders a Google AdSense unit on **ad-eligible** pages only; the page-class policy, CWV, consent, and `ads.txt` rules live in **PRD §2.2**. Structure & behavior only here.
 - **Anatomy:** a small **"Advertisement"** disclosure label + a **reserved fixed-dimension** area holding the AdSense unit. The reserved box never collapses.
 - **Variants (placement):** **In-feed** (between list/grid sections) · **In-article** (within long-form body, after the intro / between sections) · **Below-content** (detail pages, above the interlink footer) · **Footer** (above the IA footer) · **Sidebar** (sticky, wide-screen reading column only).
-- **States:** **reserved/loading** (placeholder at the slot's min-height) · **filled** (ad shown) · **unfilled** (no ad returned → render a **house / PicklerPal promo** in the same box, never collapse → no CLS) · **suppressed** (not rendered: ad-ineligible route, page below the content threshold, or **ad-free member/subscriber**) · **non-personalized** (no consent → NPA renders in the same box).
+- **States:** **reserved/loading** (placeholder at the slot's min-height) · **filled** (ad shown) · **unfilled** (no ad returned → render a **house / PickleLoko promo** in the same box, never collapse → no CLS) · **suppressed** (not rendered: ad-ineligible route, page below the content threshold, or **ad-free member/subscriber**) · **non-personalized** (no consent → NPA renders in the same box).
 - **Behavior:** **reserve space up front** (fixed min-height per breakpoint) so **CLS ≈ 0**; **lazy-load** below-the-fold slots; **never above the fold**, never between the H1 and the page's primary action; layout enforces the **≤ 3 units/page** cap; consent-gated (**Consent Mode v2**); not rendered at all on ineligible classes (checkout/console/account/auth/homepage — PRD §2.2).
 - **Accessibility:** region labeled **"Advertisement"** (`aria-label`); kept out of the primary reading/tab flow; `prefers-reduced-motion` honored (no animated expand). AdSense iframes are third-party/sandboxed.
 
@@ -134,7 +134,7 @@ Sticky top; elevates on scroll.
 **Desktop:**
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
-│ Logo  PicklerPal    Play▾  Compete▾  Learn▾  Organize▾   [ Search… ]   ● ▾ │
+│ Logo  PickleLoko    Play▾  Compete▾  Learn▾  Organize▾   [ Search… ]   ● ▾ │
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 - **Logo** (left) → `/`.
@@ -207,7 +207,7 @@ A persistent, unobtrusive help/chat entry point (support + FAQ assistant). Hidde
 **States:** loading → hero static + skeleton rails/cards. Geo denied → national defaults. Empty rails are hidden (never an empty rail).
 **Responsive:** hero H1 steps down, search full-width; rails stay horizontal-scroll; directory grid → 1 column.
 **Data:** stat chips ← city `counts`; rails ← outings (GSI2); directory ← CITY/STATE items; checked-in-today ← `checkinsTodayCount` / `CITYDAY#` rollup.
-**SEO:** title "Find Pickleball Courts, Games & Tournaments Near You | PicklerPal"; `WebSite`+`Organization`+`FAQPage` JSON-LD.
+**SEO:** title "Find Pickleball Courts, Games & Tournaments Near You | PickleLoko"; `WebSite`+`Organization`+`FAQPage` JSON-LD.
 
 **Text to Image Prompt**
 
@@ -381,7 +381,7 @@ Lenexa Community Center               [ Membership ][ Indoor ]
 **States:** unauth + Check In → anonymous allowed (§5.1, no modal); Follow / Write-review → Auth modal. Loading → hero + sidebar skeletons. Weather fail **or indoor-only court (`outdoorCourts == 0`)** → no weather widget. No reviews → "No reviews yet — be the first" + CTA. No upcoming games → all-empty week grid with `+` affordances.
 **Responsive:** single column; sidebar reflows under title (map → address → actions); **Follow + Check In become a sticky bottom action bar**; week grid → horizontally-scrollable day columns or day-tabs + agenda list.
 **Data:** COURT/META (name, slug, counts, ratingAvg, photos, address, amenities); CHECKIN live; outings via court pointer; reviews; weather (external).
-**SEO:** title "Play Pickleball at {Court}: Courts, Schedule & Reviews | PicklerPal"; `SportsActivityLocation`+`AggregateRating`+`FAQPage`+`BreadcrumbList`; in `courts` sitemap.
+**SEO:** title "Play Pickleball at {Court}: Courts, Schedule & Reviews | PickleLoko"; `SportsActivityLocation`+`AggregateRating`+`FAQPage`+`BreadcrumbList`; in `courts` sitemap.
 
 **Text to Image Prompt**
 
@@ -621,7 +621,7 @@ Guides, rules, strategy & gear — from first dink to tournament day.  (lead)
 ── Newsletter ──  [ email ][ Subscribe ]
 [FOOTER]
 ```
-**Contents:** H1 + lead; guide search; **Featured** (1 large + 2 small ArticleCards); **category tiles** (5, with counts) → category pages; **Latest** grid (Load-more); newsletter. **SEO:** `CollectionPage`; title "Learn Pickleball: How-To Guides, Rules & Gear | PicklerPal".
+**Contents:** H1 + lead; guide search; **Featured** (1 large + 2 small ArticleCards); **category tiles** (5, with counts) → category pages; **Latest** grid (Load-more); newsletter. **SEO:** `CollectionPage`; title "Learn Pickleball: How-To Guides, Rules & Gear | PickleLoko".
 
 **Text to Image Prompt**
 
@@ -934,7 +934,7 @@ see standings update as scores come in — in seconds, free.
    [ Run a Tournament → ][ Run a League → ]   (paid cross-sell)
 [FAQ] [FOOTER]
 ```
-**Contents:** hero (H1, value prop, **Create** CTA, product preview/demo); **format gallery** — the 8 presets (PRD §6.8); each card opens an **explainer** (how it plays, partners fixed/rotating, ideal player & court count, best-for); **how it works** (4 steps); **format quiz** entry (§11.5); testimonials; **paid cross-sell** band (Pool→Bracket and recurring play → Tournaments/Leagues); FAQ. **SEO:** title "Free Pickleball Round Robin Generator | PicklerPal"; `SoftwareApplication`+`FAQPage`.
+**Contents:** hero (H1, value prop, **Create** CTA, product preview/demo); **format gallery** — the 8 presets (PRD §6.8); each card opens an **explainer** (how it plays, partners fixed/rotating, ideal player & court count, best-for); **how it works** (4 steps); **format quiz** entry (§11.5); testimonials; **paid cross-sell** band (Pool→Bracket and recurring play → Tournaments/Leagues); FAQ. **SEO:** title "Free Pickleball Round Robin Generator | PickleLoko"; `SoftwareApplication`+`FAQPage`.
 
 **Text to Image Prompt**
 
@@ -1101,7 +1101,7 @@ Alternatives: Gauntlet · Pool Play
 ```
 1 Select        2 Details        3 Payment
 ```
-1. **Select** — division/flight as selectable cards (name, skill range, event type, **fee**, spots left); quantity = you (+ partner if doubles). Doubles → **partner block**: search a PicklerPal player (combobox by name/rating) OR invite by email; DUPR-gated divisions show an eligibility check against the connected rating.
+1. **Select** — division/flight as selectable cards (name, skill range, event type, **fee**, spots left); quantity = you (+ partner if doubles). Doubles → **partner block**: search a PickleLoko player (combobox by name/rating) OR invite by email; DUPR-gated divisions show an eligibility check against the connected rating.
 2. **Details** — waiver/consent checkboxes (required), emergency contact (optional), organizer-custom fields, promo code.
 3. **Payment** — **fee summary** (entry fee, service fee [absorbed or passed-through, labeled], total); **Stripe Element / Checkout**; pay button "Pay $X & register". Card data only via Stripe surfaces — never custom fields.
 **Confirmation:** success state "You're registered for {Event}" + division/partner status (or "partner pending") + add-to-calendar + "View event" + receipt link. Waitlist variant: "You're #3 — charged only if a spot opens."
@@ -1654,7 +1654,7 @@ Account Settings                                     (H1)
 ── Communication ──  email / in-app preferences (→ §6.2)
 ── Danger zone ──  [ Export my data ]      [ Delete account ]
 ```
-**Contents/behavior:** login & security (change email w/ re-verify, change password, 2FA toggle, active-session list w/ revoke); connected accounts (OAuth + DUPR connect/disconnect); communication prefs link; **danger zone** (export data; delete account → typed-confirm modal listing consequences). Sensitive actions require **re-authentication**; credential/2FA flows hand off to the auth provider (PicklerPal never stores raw credentials).
+**Contents/behavior:** login & security (change email w/ re-verify, change password, 2FA toggle, active-session list w/ revoke); connected accounts (OAuth + DUPR connect/disconnect); communication prefs link; **danger zone** (export data; delete account → typed-confirm modal listing consequences). Sensitive actions require **re-authentication**; credential/2FA flows hand off to the auth provider (PickleLoko never stores raw credentials).
 **States:** per-action loading + confirm modals.
 
 **Text to Image Prompt**
@@ -1674,7 +1674,7 @@ Account Settings                                     (H1)
 > The spec defers profile completion "to first relevant moment" but never specced the surface.
 **Wireframe:**
 ```
-Welcome to PicklerPal                                step 1 of 3 · [ Skip ]
+Welcome to PickleLoko                                step 1 of 3 · [ Skip ]
 1 Where do you play?   [ home city ]   [ home court (optional) ]
 2 Your skill           ( connect DUPR ▾ )  or  self-rate ( 3.5 ▾ )
 3 Get started          [ Find courts near you ][ Check in ][ Host a round robin ]
@@ -1872,7 +1872,7 @@ Per-registration service fee explained (absorb vs pass-through) + Stripe fees no
 [ Start free ]   [ Run an event → ]   [ Get notified (facility — coming soon) ]
 ── FAQ ── (FAQPage)
 ```
-**Contents:** H1 + positioning; **comparison table** (Free player / Organizer) of features; the **fee model** (per paid registration; absorb vs pass-through; Stripe fees); a **Facility tier shown as "coming soon"** (claim / manage / promote depend on court-admin, deferred — a lead-gen "get notified" row only, not a buyable plan); FAQ; CTAs. **SEO:** `FAQPage`; title "Pricing | PicklerPal".
+**Contents:** H1 + positioning; **comparison table** (Free player / Organizer) of features; the **fee model** (per paid registration; absorb vs pass-through; Stripe fees); a **Facility tier shown as "coming soon"** (claim / manage / promote depend on court-admin, deferred — a lead-gen "get notified" row only, not a buyable plan); FAQ; CTAs. **SEO:** `FAQPage`; title "Pricing | PickleLoko".
 
 **Text to Image Prompt**
 
@@ -2112,7 +2112,7 @@ Account shell; **Tabs: Member · Admin** + a **Requests** badge.
 
 ---
 
-*End of UI specification. Structure & behavior only — visual design (color, type, iconography, spacing, elevation, motion, exact dimensions) is the designer's. Pair with `pickler-pal-prd.md` (system, data, SEO) and `pickleheads-features.md` (precedent).*
+*End of UI specification. Structure & behavior only — visual design (color, type, iconography, spacing, elevation, motion, exact dimensions) is the designer's. Pair with `pickle-loko-prd.md` (system, data, SEO) and `pickleheads-features.md` (precedent).*
 
 
 

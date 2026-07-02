@@ -1,8 +1,8 @@
-# PicklerPal — Product Strategy
+# PickleLoko — Product Strategy
 
 > **Document type:** Strategy (the *why* — North Star, metric tree, measurement priorities)
 > **Author:** Product, drafted 2026-06-30
-> **Companion docs:** [`pickler-pal-prd.md`](./pickler-pal-prd.md) (build requirements; the analytics **stack + event taxonomy** are specced there in **§2.1**) · [`pickler-pal-ui-spec.md`](./pickler-pal-ui-spec.md) · [`../research/seo-keyword-research.md`](../research/seo-keyword-research.md) (**KW**) · [`pickleheads-features.md`](./pickleheads-features.md) (**PH**)
+> **Companion docs:** [`pickle-loko-prd.md`](./pickle-loko-prd.md) (build requirements; the analytics **stack + event taxonomy** are specced there in **§2.1**) · [`pickle-loko-ui-spec.md`](./pickle-loko-ui-spec.md) · [`../research/seo-keyword-research.md`](../research/seo-keyword-research.md) (**KW**) · [`pickleheads-features.md`](./pickleheads-features.md) (**PH**)
 
 > **Boundary with the PRD.** The PRD is what's required to *build*. This doc is what we're *optimizing for* — it specifies no views, schema, or instrumentation wiring. The analytics **stack and event taxonomy** are build requirements and live in **PRD §2.1**; the **North Star and metric tree** are strategy and live here.
 

@@ -34,4 +34,29 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# picklerpal
+# PickleLoko
+
+
+## Firebase setup
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCfhYmsxyAc9yvYQcfyizJOHx77zJyytJQ",
+  authDomain: "pickleloko.firebaseapp.com",
+  projectId: "pickleloko",
+  storageBucket: "pickleloko.firebasestorage.app",
+  messagingSenderId: "148926446922",
+  appId: "1:148926446922:web:6a4b47951dfddb4dd415b3",
+  measurementId: "G-97M70LBGNH"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);

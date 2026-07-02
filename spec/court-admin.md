@@ -1,7 +1,7 @@
-# PicklerPal — Court Administration PRD (deferred / post-launch)
+# PickleLoko — Court Administration PRD (deferred / post-launch)
 
 > **Status:** ⏳ **Not in the initial build.** This document carves the crowdsourced **court contribution** and **facility management** functionality out of the core PRD so the initial build ships against a *seeded* court directory. Implement after launch.
-> **Companion docs:** [`pickler-pal-prd.md`](./pickler-pal-prd.md) (core architecture, data schema §9, SEO) · [`pickler-pal-ui-spec.md`](./pickler-pal-ui-spec.md) (build-exact UI for the launched product) · [`pickleheads-features.md`](./pickleheads-features.md) (precedent — PH §6, §16).
+> **Companion docs:** [`pickle-loko-prd.md`](./pickle-loko-prd.md) (core architecture, data schema §9, SEO) · [`pickle-loko-ui-spec.md`](./pickle-loko-ui-spec.md) (build-exact UI for the launched product) · [`pickleheads-features.md`](./pickleheads-features.md) (precedent — PH §6, §16).
 > **Conventions:** same as the UI spec — **structure & behavior only**, no visual styling (the designer chooses color/type/iconography). Wireframe legend: `▓`=media · `●`=avatar · `[ Label ]`=control · `( Option ▾ )`=select · `☐`=checkbox.
 
 ---
@@ -145,4 +145,4 @@ Also add to the PRD **sitemap (§5)** and **master view index (§11)**: `/courts
 
 ---
 
-*Deferred PRD. Build the core product (`pickler-pal-prd.md` + `pickler-pal-ui-spec.md`) against a seeded directory first; layer this in post-launch.*
+*Deferred PRD. Build the core product (`pickle-loko-prd.md` + `pickle-loko-ui-spec.md`) against a seeded directory first; layer this in post-launch.*

@@ -1,7 +1,7 @@
 # Pickleheads — Improvement Ideas
 
 **Date:** 2026-06-29
-**Context:** Product/feature brainstorm informed by reverse-engineering Pickleheads' court data model (see `pickleheads-scrape-report.md`). Relevant to building **picklerpal** — i.e. where Pickleheads is weak = the opportunity.
+**Context:** Product/feature brainstorm informed by reverse-engineering Pickleheads' court data model (see `pickleheads-scrape-report.md`). Relevant to building **PickleLoko** — i.e. where Pickleheads is weak = the opportunity.
 
 > ⚠️ **Caveat:** these observations come from the **data/API layer** and public pages only, not the full mobile app. Treat "they don't have X" as "X isn't in the court data model I saw," not as certain. Notably, the 40-field court record had **no rating/review field** and **no check-in/presence field**.
 
@@ -44,7 +44,7 @@ Answers the actual #1 player question a directory structurally can't: *"is anyon
 
 **Check-ins → presence → busyness** is the flywheel: it's the one player problem a directory can't solve, and it compounds via network effects. **Reviews** are the trust layer that makes the directory worth returning to. Everything else builds on those two.
 
-## Suggested first slice for picklerpal
+## Suggested first slice for PickleLoko
 
 Build **check-ins / presence on top of the court dataset** already in `./data/` — the most natural first feature:
 - Data model: `check_in (id, court_id, user_id NULLABLE, is_anonymous, created_at, expires_at, note, skill_level)`; `user_id` is null for anonymous check-ins. Derive `presence_count` (counts anonymous + named) and `popular_times` from it.

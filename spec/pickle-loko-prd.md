@@ -1,10 +1,10 @@
-# PicklerPal — Product Requirements Document
+# PickleLoko — Product Requirements Document
 
 > **Document type:** Build PRD (greenfield product)
-> **Subject:** PicklerPal — a pickleball discovery + community + organizer platform
+> **Subject:** PickleLoko — a pickleball discovery + community + organizer platform
 > **Stack:** Next.js (web) · DynamoDB (data) · Stripe (payments)
 > **Author:** Product/Eng, drafted 2026-06-30
-> **Companion docs:** [`spec/pickler-pal-ui-spec.md`](./pickler-pal-ui-spec.md) (**build-exact UI** — design tokens, component library, per-view wireframes/states; this PRD's view §§6–7 give the *what*, the UI spec gives the *how it looks/behaves*) · [`spec/court-admin.md`](./court-admin.md) (**deferred** — crowdsourced add/edit/claim of courts + admin moderation; *not in the initial build*, which ships a seeded directory) · [`spec/pickleheads-features.md`](./pickleheads-features.md) (competitive teardown — referenced throughout as **PH §x**) · [`research/seo-keyword-research.md`](../research/seo-keyword-research.md) (demand data — referenced as **KW**) · [`spec/picklerpal-strategy.md`](./picklerpal-strategy.md) (**strategy** — North Star, metric tree, measurement sequencing; the *why* behind the build, kept out of this PRD)
+> **Companion docs:** [`spec/pickle-loko-ui-spec.md`](./pickle-loko-ui-spec.md) (**build-exact UI** — design tokens, component library, per-view wireframes/states; this PRD's view §§6–7 give the *what*, the UI spec gives the *how it looks/behaves*) · [`spec/court-admin.md`](./court-admin.md) (**deferred** — crowdsourced add/edit/claim of courts + admin moderation; *not in the initial build*, which ships a seeded directory) · [`spec/pickleheads-features.md`](./pickleheads-features.md) (competitive teardown — referenced throughout as **PH §x**) · [`research/seo-keyword-research.md`](../research/seo-keyword-research.md) (demand data — referenced as **KW**) · [`spec/pickle-loko-strategy.md`](./pickle-loko-strategy.md) (**strategy** — North Star, metric tree, measurement sequencing; the *why* behind the build, kept out of this PRD)
 
 ---
 
@@ -16,7 +16,7 @@
   - **`URL`** · **Render** (how Next.js builds it) · **Auth** · **Purpose** · **Contents** · **Links to** · **SEO**
 - **Render legend:** `SSG` static at build · `ISR(n)` incremental static regeneration every `n` · `SSR` server-rendered per request · `CSR` client-rendered (interactive, not indexed) · `RSC` React Server Component data fetch.
 - The data model is **one DynamoDB table** (§9). Read §9 alongside the features — every view maps to a documented access pattern.
-- **For build-exact UI** (exact colors/type/spacing, component dimensions + states, per-view wireframes, responsive/empty/loading/error behavior), see the companion [`pickler-pal-ui-spec.md`](./pickler-pal-ui-spec.md). The view lists in §§6–7 below stay at the "what's on the page" altitude; the UI spec is where a designer/developer builds the exact layout.
+- **For build-exact UI** (exact colors/type/spacing, component dimensions + states, per-view wireframes, responsive/empty/loading/error behavior), see the companion [`pickle-loko-ui-spec.md`](./pickle-loko-ui-spec.md). The view lists in §§6–7 below stay at the "what's on the page" altitude; the UI spec is where a designer/developer builds the exact layout.
 
 ---
 
@@ -46,7 +46,7 @@
 | Media | **S3 + CloudFront** | Court photos, avatars, OG images. On-the-fly OG image generation via Next.js `ImageResponse`. |
 | Auth | **Firebase Auth** | Email/password + OAuth (Google/Apple); **Firebase sends email verification + password-reset** and provides 2FA. The client holds a Firebase **ID token**, verified server-side in route handlers (Admin SDK) to authorize writes. Anonymous check-ins need *no* account (ephemeral token). |
 | Notifications | **Resend** (email) + **in-app** | **Email via Resend** (transactional + notification mail; SPF/DKIM/DMARC, one-click unsubscribe/suppression) and an **in-app** notification center (header bell + `/account/alerts`) backed by `Notification` items (§9.3). **No push in v1** (no web-push/FCM/APNs) — email + in-app only. Per-type/channel prefs + quiet hours in §6.3 / UI §6.2. |
-| Analytics | **PostHog · GA4 · Google Search Console** | PostHog = product analytics, funnels, retention, flags/experiments (client SDK + **server SDK**); GA4 = site-wide web analytics (anonymous directory + logged-in app); Search Console = organic-search performance + index-coverage monitoring. Consent-gated; kept off the CWV critical path (§3.8). Instrumentation rules + event taxonomy in **§2.1**; North Star/metrics in [`picklerpal-strategy.md`](./picklerpal-strategy.md). |
+| Analytics | **PostHog · GA4 · Google Search Console** | PostHog = product analytics, funnels, retention, flags/experiments (client SDK + **server SDK**); GA4 = site-wide web analytics (anonymous directory + logged-in app); Search Console = organic-search performance + index-coverage monitoring. Consent-gated; kept off the CWV critical path (§3.8). Instrumentation rules + event taxonomy in **§2.1**; North Star/metrics in [`pickle-loko-strategy.md`](./pickle-loko-strategy.md). |
 | Ads | **Google AdSense** | Display ads on **free content-rich indexable** pages only (directory · content · news · finders · public detail); **never** on checkout/console/account/homepage. Reserved CWV-safe slots, consent-gated (Consent Mode v2), `ads.txt`. See **§2.2**. |
 | Hosting | **Vercel or SST/AWS** | ISR + edge caching for directory pages. |
 
@@ -87,7 +87,7 @@
 
 **Performance guardrail.** Analytics must not regress the directory-page LCP budget (§3.8): async/deferred load, first-party proxy, minimal client bundle.
 
-> **North Star, metric tree, and targets are *strategy*, not build requirements — see [`picklerpal-strategy.md`](./picklerpal-strategy.md).** This section specs only what engineering instruments.
+> **North Star, metric tree, and targets are *strategy*, not build requirements — see [`pickle-loko-strategy.md`](./pickle-loko-strategy.md).** This section specs only what engineering instruments.
 
 ### 2.2 Ad monetization (Google AdSense)
 
@@ -124,7 +124,7 @@
 
 > ⚠️ **Hard requirement — highest priority in this section.** Every brand-identity value is defined **exactly once**, in a single centralized, strongly-typed config (e.g. a `brand.config.ts` feeding the HeroUI/Tailwind theme — or a CMS/DB-backed record if non-engineers need to edit it without a deploy). Every other surface **imports** that config; nothing hardcodes a duplicate copy of a brand string, hex value, or asset path. A hardcoded brand value found anywhere outside the config is a **bug**, not a style nit.
 
-**Why this matters more here than in a typical app.** PicklerPal is ~16K+ court pages and ~9.7K city pages (§3.1) generated programmatically, plus emails, legal pages, dynamically-rendered OG images, and JSON-LD — all rendering brand identity independently and continuously. A hardcoded copy in even one of those surfaces becomes a silent drift point the moment the name, logo, or palette changes, and forecloses any future rename/rebrand/white-label/multi-brand without a full-codebase find-and-replace.
+**Why this matters more here than in a typical app.** PickleLoko is ~16K+ court pages and ~9.7K city pages (§3.1) generated programmatically, plus emails, legal pages, dynamically-rendered OG images, and JSON-LD — all rendering brand identity independently and continuously. A hardcoded copy in even one of those surfaces becomes a silent drift point the moment the name, logo, or palette changes, and forecloses any future rename/rebrand/white-label/multi-brand without a full-codebase find-and-replace.
 
 **The centralized config owns:**
 - **Identity:** product name, one-line tagline/positioning, legal entity name, support email, social handles/URLs.
@@ -154,10 +154,10 @@ This is the product's moat. Modeled on PH's programmatic engine (**PH §14**) bu
 On-page **breadcrumbs** reinforce the tree (Home » United States » Kansas » Lenexa » Court) and emit `BreadcrumbList` JSON-LD.
 
 **3.3 Templated metadata.** Per-page `<title>`/description/canonical/OG/Twitter, generated from data. Title patterns:
-- Court: `Play Pickleball at {Court}: Courts, Schedule & Reviews | PicklerPal`
-- City: `{N} Best Pickleball Courts in {City}, {ST} | PicklerPal`
-- Tournament finder: `Pickleball Tournaments in {City}, {ST} | PicklerPal`
-- Article: `{Title} | PicklerPal`
+- Court: `Play Pickleball at {Court}: Courts, Schedule & Reviews | PickleLoko`
+- City: `{N} Best Pickleball Courts in {City}, {ST} | PickleLoko`
+- Tournament finder: `Pickleball Tournaments in {City}, {ST} | PickleLoko`
+- Article: `{Title} | PickleLoko`
 Dynamic OG image per page via `ImageResponse` (1200×630).
 
 **3.4 Structured data (JSON-LD):**
@@ -176,7 +176,7 @@ Dynamic OG image per page via `ImageResponse` (1200×630).
 
 **3.6 Freshness signals:** recent (same-day) check-ins, upcoming-game schedules, new reviews, month-stamped content, ISR revalidation. Perpetually-updating pages (**PH §14.5**). *(No live/"playing now" presence — a check-in is a same-day record, not a real-time signal (§6.2). "Last verified" dates are **not** shown until a re-verification cadence exists — court-admin deferred.)*
 
-**3.7 Crawl management:** `robots.txt` disallows `/api/`, `/account/*`, `/search?*` (parameterized), `/round-robin/*/live`, Stripe callback routes; allows the directory + content. Segmented `sitemap.xml` (courts, cities, states, countries, tournaments, leagues, groups, content, news), regenerated on a schedule. Every URL entry carries an accurate **`<lastmod>`** (W3C datetime). **Court pages: `lastmod` is set on *every* court URL in the `courts` sitemap** — parity with **PH §14** (whose `courts` sitemap stamps a real per-court `lastmod` on all 24K+ URLs, driven by each court's DB `updated_at`, not a single build timestamp). PicklerPal's court pages are *richer* than PH's — they carry live community data — so `lastmod` = the court's most recent **significant** change (Google's bar: main content, structured data, or links — *not* trivia): `max(META.updatedAt` (§9.3)`, last review create/edit/delete, last game/outing added at the venue)`. A **review create/edit/delete counts** (it changes visible content + the `AggregateRating`/`Review` JSON-LD that renders SERP stars, §3.4) — but a review's **"helpful"-vote tick does *not*** (a bare counter, no meaningful content change). It likewise **excludes** the daily "checked-in today" tally (§6.2) — both are high-churn ephemeral counters that would bump `lastmod` on nearly every court daily and, because Google trusts `lastmod` **all-or-nothing sitewide** ([Illyes, 2024](https://www.searchenginejournal.com/googles-gary-illyes-lastmod-signal-is-binary/519239/)), erode the signal for the *whole site*; that freshness stays a §3.6 ISR concern, not a `lastmod` one. Only `hasPickleball && !hidden && !deleted` courts that clear the §14.4 content threshold appear in the sitemap (thin/`noindex` courts are excluded, §14.3-ingest). **`ads.txt`** at the domain root declares the AdSense publisher ID (§2.2).
+**3.7 Crawl management:** `robots.txt` disallows `/api/`, `/account/*`, `/search?*` (parameterized), `/round-robin/*/live`, Stripe callback routes; allows the directory + content. Segmented `sitemap.xml` (courts, cities, states, countries, tournaments, leagues, groups, content, news), regenerated on a schedule. Every URL entry carries an accurate **`<lastmod>`** (W3C datetime). **Court pages: `lastmod` is set on *every* court URL in the `courts` sitemap** — parity with **PH §14** (whose `courts` sitemap stamps a real per-court `lastmod` on all 24K+ URLs, driven by each court's DB `updated_at`, not a single build timestamp). PickleLoko's court pages are *richer* than PH's — they carry live community data — so `lastmod` = the court's most recent **significant** change (Google's bar: main content, structured data, or links — *not* trivia): `max(META.updatedAt` (§9.3)`, last review create/edit/delete, last game/outing added at the venue)`. A **review create/edit/delete counts** (it changes visible content + the `AggregateRating`/`Review` JSON-LD that renders SERP stars, §3.4) — but a review's **"helpful"-vote tick does *not*** (a bare counter, no meaningful content change). It likewise **excludes** the daily "checked-in today" tally (§6.2) — both are high-churn ephemeral counters that would bump `lastmod` on nearly every court daily and, because Google trusts `lastmod` **all-or-nothing sitewide** ([Illyes, 2024](https://www.searchenginejournal.com/googles-gary-illyes-lastmod-signal-is-binary/519239/)), erode the signal for the *whole site*; that freshness stays a §3.6 ISR concern, not a `lastmod` one. Only `hasPickleball && !hidden && !deleted` courts that clear the §14.4 content threshold appear in the sitemap (thin/`noindex` courts are excluded, §14.3-ingest). **`ads.txt`** at the domain root declares the AdSense publisher ID (§2.2).
 
 **3.8 Performance:** static-first, `next/image`, route-level code splitting, edge caching. CWV is a ranking input — budget LCP < 2.5s on directory pages.
 
@@ -319,7 +319,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
   - Content-hub teasers (how-to, gear, news) and a "Run a free round robin" CTA.
   - Stat band + FAQ accordion (FAQ JSON-LD).
 - **Links to:** city pages, court-type/amenity pages, `/courts`, `/learn`, `/news`, `/round-robin`, `/tournaments`, `/leagues`.
-- **SEO:** title "Find Pickleball Courts, Games & Tournaments Near You | PicklerPal"; `Organization` + `WebSite` (Sitelinks Searchbox) + `FAQPage` JSON-LD.
+- **SEO:** title "Find Pickleball Courts, Games & Tournaments Near You | PickleLoko"; `Organization` + `WebSite` (Sitelinks Searchbox) + `FAQPage` JSON-LD.
 
 #### View: Map Finder — `/search`
 - **Render:** CSR (interactive) · **Auth:** none · **noindex** (canonical traffic goes to static city pages)
@@ -447,7 +447,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 
 #### View: Content Hub Index — `/learn`
 - **Render:** ISR(86400) · **Contents:** featured + latest articles, category tiles (How to Play · Rules · Strategy · Gear · For Beginners), search, newsletter capture. **Links to:** categories, articles, related court/city pages.
-- **SEO:** title "Learn Pickleball: How-To Guides, Rules & Gear | PicklerPal"; `CollectionPage`.
+- **SEO:** title "Learn Pickleball: How-To Guides, Rules & Gear | PickleLoko"; `CollectionPage`.
 
 #### View: Category — `/learn/[category]`
 - **Render:** ISR(86400) · **Contents:** category intro (keyword-targeted, e.g. "Pickleball for Beginners"), article grid, sub-topic links, FAQ. **Links to:** articles, sibling categories. **SEO:** `BreadcrumbList` + `ItemList`.
@@ -544,7 +544,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 - **Render:** ISR(86400) · **Auth:** none
 - **Purpose:** rank for tool keywords + convert organizers.
 - **Contents:** "Ditch the spreadsheet" pitch; **format gallery** — the 8 presets above (Singles/Team RR · Mixer · Popcorn · Up & Down the River · King of the Court · Gauntlet · Pool Play → Bracket), each card opening a one-line + deeper explainer (partners, ideal player/court count, best-for); "Generate matchups, enter scores, see live standings — free"; format-picker quiz; testimonials; **big CTA "Create a round robin."** Cross-sell footer: "Need paid registration, brackets, or a multi-week season? → Tournaments / Leagues."
-- **SEO:** title "Free Pickleball Round Robin Generator | PicklerPal"; `FAQPage` + `SoftwareApplication`.
+- **SEO:** title "Free Pickleball Round Robin Generator | PickleLoko"; `FAQPage` + `SoftwareApplication`.
 
 #### View: Create Round Robin — `/round-robin/new`
 - **Render:** CSR · **Auth:** **none required** (account optional; offered to save)
@@ -563,7 +563,7 @@ Persistent top nav (mirrors PH's intent-segmented mega-menus, **PH §3**, but ti
 
 ### 6.9 Groups & Clubs
 
-**Why:** persistent communities are the connective tissue PH monetizes (**PH §6.3, §11**) — the "see who's playing → get invited → play again" loop, driven by **member-status visibility** (which members checked in today, are looking to play, or are coming to the next meet-up — **not chat**) — plus a programmatic SEO surface for the **public** groups that opt in — **private is the default**, so discovery/indexing is opt-in (**PH §14.1** shows ~5K such pages at scale). A PicklerPal **group** is **one entity covering both an informal crew and a formal club** (a `public|unlisted|private` visibility flag + a `joinPolicy`); members hold **admin** or **member** roles; a group has **home court(s)** and a **skill band**, and it **schedules meet-ups** — recurring or one-off games at courts. **Meet-ups reuse Outings (§6.7)** (`hostType=GROUP`): all recurrence (RRULE), RSVP, waitlist, and visibility behavior is inherited, not rebuilt. Groups are the natural on-ramp from ad-hoc play to a **paid League** (§8). *(**Group chat is out of scope for v1** — §13 — the value is discovery + scheduling + membership.)*
+**Why:** persistent communities are the connective tissue PH monetizes (**PH §6.3, §11**) — the "see who's playing → get invited → play again" loop, driven by **member-status visibility** (which members checked in today, are looking to play, or are coming to the next meet-up — **not chat**) — plus a programmatic SEO surface for the **public** groups that opt in — **private is the default**, so discovery/indexing is opt-in (**PH §14.1** shows ~5K such pages at scale). A PickleLoko **group** is **one entity covering both an informal crew and a formal club** (a `public|unlisted|private` visibility flag + a `joinPolicy`); members hold **admin** or **member** roles; a group has **home court(s)** and a **skill band**, and it **schedules meet-ups** — recurring or one-off games at courts. **Meet-ups reuse Outings (§6.7)** (`hostType=GROUP`): all recurrence (RRULE), RSVP, waitlist, and visibility behavior is inherited, not rebuilt. Groups are the natural on-ramp from ad-hoc play to a **paid League** (§8). *(**Group chat is out of scope for v1** — §13 — the value is discovery + scheduling + membership.)*
 
 #### View: Group Hub / City Finder — `/groups` and `/groups/[country]/[state]/[city]`
 - **Render:** ISR(3600) · **Auth:** none · **Purpose:** rank for "pickleball groups/clubs in {city}" + browse.
@@ -618,7 +618,7 @@ All paid flows share: **Stripe Checkout/Payment Intents** for registrant fees, *
 
 #### View: Register — `/tournaments/[tournamentId]/register`
 - **Render:** SSR + Stripe Checkout · **Auth:** required
-- **Contents:** choose division(s), **partner selection** (search PicklerPal players by name/rating or invite by email; DUPR-gated divisions validate rating), waiver/consent, fee summary (incl. service fee handling), **Stripe Checkout** for payment. Confirmation → calendar add, "you're in" + division/partner status. Waitlist if full.
+- **Contents:** choose division(s), **partner selection** (search PickleLoko players by name/rating or invite by email; DUPR-gated divisions validate rating), waiver/consent, fee summary (incl. service fee handling), **Stripe Checkout** for payment. Confirmation → calendar add, "you're in" + division/partner status. Waitlist if full.
 - **Data:** `REG#<divisionId>#<userId>` under `TOURNEY#<id>`; Stripe PaymentIntent linked; webhook confirms.
 
 #### View: Live Bracket — `/tournaments/[tournamentId]/bracket`
@@ -710,7 +710,7 @@ The funnel is **discovery → community → free organizing → paid organizing*
 - **Per-registration service fee** on paid events (absorb or pass-through), like the proven tournament model — monetizes without forcing organizer subscriptions.
 - Optional **organizer subscription** tier later (unlimited events, advanced waitlists) — the high-LTV "league software" buyer (**KW** $12.50 CPC).
 - **Player-funded loop** (future): organizers run free if their players hold a cheap membership — converts organizer demand into player subscriptions (**PH §13**).
-- **Stripe Connect** payouts to organizers; PicklerPal takes platform fee per transaction.
+- **Stripe Connect** payouts to organizers; PickleLoko takes platform fee per transaction.
 
 **On-ramp UX rules:** never wall the *free* value (finder, profile, check-ins, outings, round robin stay free forever); only charge at the moment money + structure appear (registration, multi-week seasons, brackets, payouts).
 
@@ -721,7 +721,8 @@ The funnel is **discovery → community → free organizing → paid organizing*
 > **Ultra-Think summary:** one table, four GSIs, key-overloaded entities, denormalized aggregates reconciled by Streams, geohash for radius search, TTL for ephemeral presence. Designed read-pattern-first.
 
 ### 9.1 Principles
-- **Single table** `PicklerPal` keyed on generic `PK` / `SK`. Entity type encoded in key prefixes.
+- **Single table** keyed on generic `PK` / `SK`. Entity type encoded in key prefixes.
+- **Table naming (project + model + environment).** Every DynamoDB table is named **`PickleLoko` + `<Model>` + `<Environment>`** — project name prepended, environment appended; **PascalCase, no separators** — with `<Environment>` ∈ **`Development` · `Test` · `Production`**. This single application table uses **`<Model>` = `App`**, giving **`PickleLokoAppDevelopment` · `PickleLokoAppTest` · `PickleLokoAppProduction`**. The environment suffix is resolved from an env var at deploy/run time — **never hardcode a bare `PickleLoko`**. Usage: local development → `…Development`; the automated integration + E2E suites (DynamoDB Local, §14) → `…Test`; the deployed app → `…Production`. GSIs (§9.2) are indexes *on* this one table, so they inherit its name and need no separate convention.
 - **Model the access patterns, not the entities** — every query in §9.5 is a single `Query`/`GetItem`, no scans, no joins.
 - **Denormalize for reads; reconcile on writes** via DynamoDB Streams → aggregation Lambdas (counts, averages).
 - **Idempotency** for Stripe webhooks via a dedupe item.
@@ -1002,13 +1003,13 @@ The launch directory (read-only, no member contribution — see [`court-admin.md
 | Concern | Implementation |
 |---|---|
 | **Registrant payment** | Stripe **Checkout** (hosted) or Payment Intents (embedded) per division/registration; `stripePriceId` per division. |
-| **Organizer payouts** | Stripe **Connect (Express)** — organizer onboards during event creation; PicklerPal takes an **application fee** (platform %). **Payouts are held until after the event** (delayed payout / rolling reserve) so registrant refunds & disputes stay funded and the platform isn't left covering a paid-out organizer's negative balance. |
+| **Organizer payouts** | Stripe **Connect (Express)** — organizer onboards during event creation; PickleLoko takes an **application fee** (platform %). **Payouts are held until after the event** (delayed payout / rolling reserve) so registrant refunds & disputes stay funded and the platform isn't left covering a paid-out organizer's negative balance. |
 | **Fee model** | Per-event: absorb (organizer pays) or pass-through (added to registrant total). Configurable, mirrors proven tournament-platform economics. |
 | **Refunds** | Organizer-initiated from dashboard within policy; Stripe refund API; reflected in `/account/registrations`. The platform **application fee is refunded on organizer-cancellation** (full-event cancel / organizer fault) and **retained on registrant-initiated** refunds within policy (`refund_application_fee` set accordingly). |
 | **Amounts & currency** | All money stored as **integer minor units** (e.g. cents) + an **ISO-4217 `currency`** per priced entity (division/league fee, service fee, payment) — no floating-point money; one currency per event. |
 | **Webhooks** | Route handler verifies signature → idempotent write (`STRIPEEVENT#<id>` dedupe) → update `REG` paymentStatus + Stream updates `registeredCount`. |
 | **Receipts** | Stripe receipts + in-app `/account/registrations` history (`Payment` items). |
-| **Security** | PicklerPal never stores card data (Stripe Elements/Checkout only). Per platform rules, no card/credential entry is handled outside Stripe's hosted/Elements surfaces. |
+| **Security** | PickleLoko never stores card data (Stripe Elements/Checkout only). Per platform rules, no card/credential entry is handled outside Stripe's hosted/Elements surfaces. |
 
 **Payment-touching flows:** tournament register (7.1), league register (7.2), ladder register (7.4), organizer Connect onboarding (7.1/7.2), refunds (organizer dashboards).
 
@@ -1192,14 +1193,14 @@ Automated **axe** in component + E2E (zero serious/critical violations); a **key
 ### 14.8 Test data, fixtures & environments
 - **Seed dataset** — a deterministic fixture (a few countries/states/cities, dozens of geocoded courts, rated users, outings, one of each paid event, an in-progress RR per engine) loaded into DynamoDB Local; the shared substrate for integration + E2E.
 - **External stubs** — Stripe test mode; **mocked** Mapbox tiles, weather, geo-IP, DUPR, with explicit **failure-mode** fixtures (timeout, 5xx) to verify degraded UI (weather hidden, etc.).
-- **Ephemeral preview env** per PR (Vercel/SST) running the full stack for E2E + manual QA.
+- **Staging environment** (Vercel/SST) running the full stack for E2E + manual QA.
 
 ### 14.9 CI/CD gates & definition of done
-- **Merge gate (per PR):** static + unit + component + integration + **E2E critical journeys** + a11y + SEO/structured-data + CWV budgets all green. Coverage **floor** on critical-path modules (engine, payments, data layer); advisory elsewhere.
-- **Pre-deploy:** full E2E on the preview env; migration/backfill **dry-run** for any §9 schema change.
+- **Commit gate (CI on every push to `main`):** static + unit + component + integration + **E2E critical journeys** + a11y + SEO/structured-data + CWV budgets all green. **Coverage is complete on every feature**; critical-path modules (engine, payments, data layer) additionally carry property tests and the strictest bar.
+- **Pre-deploy:** full E2E on the staging env; migration/backfill **dry-run** for any §9 schema change.
 - **Post-deploy:** **smoke E2E** against production (read-only journeys + one synthetic Stripe **test-mode** registration) + Sentry/RUM watch; **automated rollback** on smoke failure or CWV/error-rate regression.
-- **Definition of done (a feature):** its views' empty/loading/error states (UI §2.8) covered, its §9.5 access pattern tested, its analytics events (§2.1) asserted, and its journey added to the E2E suite.
+- **Definition of done (a feature):** **the code is first reviewed for quality/organization and then (read-only) for bugs — fixing problems at each pass — before any tests are written;** its views' empty/loading/error states (UI §2.8) covered, its §9.5 access pattern tested, its analytics events (§2.1) asserted, and its journey added to the E2E suite — with **coverage complete**.
 
 ---
 
-*Prepared as the build spec for PicklerPal. Cross-reference `pickleheads-features.md` for usability/SEO precedent and `research/seo-keyword-research.md` for demand prioritization.*
+*Prepared as the build spec for PickleLoko. Cross-reference `pickleheads-features.md` for usability/SEO precedent and `research/seo-keyword-research.md` for demand prioritization.*
