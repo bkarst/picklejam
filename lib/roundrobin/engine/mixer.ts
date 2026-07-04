@@ -27,12 +27,13 @@ export function mixerFeasibleMax(n: number): number {
 const pk = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
- * Greedily seat partnerships into matches, minimizing repeat opponents. A
- * leftover (odd) partnership sits out — both its players take a bye.
+ * Greedily seat partnerships into matches, minimizing repeat opponents. When the
+ * partnership count is ODD exactly one sits out — chosen for BYE FAIRNESS.
  */
 function seatTables(
   partnerships: Pair[],
   oppCount: Map<string, number>,
+  byeCount: Map<string, number>,
   courts: number,
   roundNum: number,
   rng: () => number,
@@ -41,6 +42,38 @@ function seatTables(
   const matches: Match[] = [];
   const byes: string[] = [];
   let idx = 0;
+
+  // Odd partnership count ⇒ one partnership sits out. Pick the FAIREST bye — the pair whose
+  // players have the fewest prior byes (rng tie-break) — instead of whatever the greedy
+  // opponent-picker happened to leave over, which starved some players and benched others
+  // 4-of-5 rounds (M27). `byeCount` spans BOTH the sentinel bye and this leftover bye.
+  if (remaining.length % 2 === 1) {
+    // Rank byeable pairs by (max prior byes of the two, then their sum) ascending, so we
+    // bench the pair that pushes NO player far ahead — keeping the per-player bye counts
+    // tight rather than benching a low-bye player next to an already-benched partner.
+    let bestMax = Infinity;
+    let bestSum = Infinity;
+    const candidates: number[] = [];
+    for (let k = 0; k < remaining.length; k++) {
+      const [a, b] = remaining[k];
+      const ca = byeCount.get(a) ?? 0;
+      const cb = byeCount.get(b) ?? 0;
+      const mx = Math.max(ca, cb);
+      const sm = ca + cb;
+      if (mx < bestMax || (mx === bestMax && sm < bestSum)) {
+        bestMax = mx;
+        bestSum = sm;
+        candidates.length = 0;
+        candidates.push(k);
+      } else if (mx === bestMax && sm === bestSum) {
+        candidates.push(k);
+      }
+    }
+    const [a, b] = remaining.splice(candidates[Math.floor(rng() * candidates.length)], 1)[0];
+    byes.push(a, b);
+    byeCount.set(a, (byeCount.get(a) ?? 0) + 1);
+    byeCount.set(b, (byeCount.get(b) ?? 0) + 1);
+  }
 
   while (remaining.length >= 2) {
     const P = remaining.shift() as Pair;
@@ -65,7 +98,6 @@ function seatTables(
     matches.push(mkMatch(roundNum, idx, [...P], [...Q], { court: (idx % courts) + 1 }));
     idx++;
   }
-  if (remaining.length === 1) byes.push(...remaining[0]);
   return { matches, byes };
 }
 
@@ -88,6 +120,7 @@ export function generateMixer(config: RrConfig): RrRound[] {
 
   const pass = circleRounds(m); // each round = perfect matching of indices
   const oppCount = new Map<string, number>();
+  const byeCount = new Map<string, number>(); // total byes per player, for bye fairness (M27)
   const rounds: RrRound[] = [];
 
   for (let r = 0; r < total; r++) {
@@ -103,8 +136,11 @@ export function generateMixer(config: RrConfig): RrRound[] {
       else if (b === null) byes.push(a);
       else partnerships.push([a, b]);
     }
+    // The sentinel bye (odd player count, rotated fairly by the circle method) counts toward
+    // bye history so seatTables balances the leftover-partnership bye against it too.
+    for (const b of byes) byeCount.set(b, (byeCount.get(b) ?? 0) + 1);
     const rng = makeRng(deriveSeed(config.rngSeed, r + 1));
-    const seated = seatTables(partnerships, oppCount, courts, r + 1, rng);
+    const seated = seatTables(partnerships, oppCount, byeCount, courts, r + 1, rng);
     rounds.push({
       round: r + 1,
       matches: seated.matches,

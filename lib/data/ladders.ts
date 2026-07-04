@@ -504,13 +504,53 @@ export async function registerForLadder(
     updatedAt: iso,
   };
   let rung: RungItem;
+  let claimedMember = false;
   if (existing) {
-    // Full-replace the terminal rung's slot — a clean pending entry that drops any stale
-    // refundedAmount / paymentIntentId carried by the old refunded rung.
+    // REJOIN: reuse the uid's existing (terminal) slot — keyed by its FIXED position, so
+    // two concurrent rejoins converge on ONE row (last-write-wins, no duplication). A clean
+    // pending entry that drops any stale refundedAmount / paymentIntentId from the old rung.
     rung = { ...ladderKeys.rung(lid, existing.position), position: existing.position, ...rungFields };
     await putItem(asItem(rung));
   } else {
-    rung = await appendRung(lid, rungFields);
+    // FIRST-EVER JOIN. Claim a per-uid MEMBER marker atomically BEFORE appending. The
+    // duplicate read above is non-atomic and RUNG rows are keyed by POSITION, so two
+    // concurrent first-joins would each pass the read and appendRung would hand them two
+    // DISTINCT positions → two rungs, two payable Checkout sessions, a double charge (M11).
+    // The conditional putNew serializes them: exactly one claims the uid, the loser 409s.
+    try {
+      await putNew(asItem({ ...ladderKeys.member(lid, uid), entity: "LADDERMEMBER", lid, uid, createdAt: iso }));
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) conflict("You are already on this ladder");
+      throw err;
+    }
+    claimedMember = true;
+    try {
+      rung = await appendRung(lid, rungFields);
+    } catch (err) {
+      await deleteItem(ladderKeys.member(lid, uid)).catch(() => {});
+      throw err;
+    }
+  }
+
+  // FREE ladder (total $0): a $0 Stripe Checkout session is REJECTED by real Stripe (its
+  // ~$0.50 minimum), so a free ladder would 500 on every join in prod (M24). Skip Checkout
+  // and fulfill the join immediately (mark the rung paid + DUPR-seed via confirmLadderPayment),
+  // then return the success URL so the client's redirect lands on confirmation as usual.
+  if (breakdown.total.amount <= 0) {
+    try {
+      await confirmLadderPayment({ lid, uid, amountTotal: 0, currency: ladder!.currency });
+    } catch (err) {
+      await deleteItem(ladderKeys.rung(lid, rung.position)).catch(() => {});
+      if (claimedMember) await deleteItem(ladderKeys.member(lid, uid)).catch(() => {});
+      throw err;
+    }
+    return {
+      checkoutUrl: `${publicEnv.siteUrl}/ladders/${lid}?checkout=success`,
+      checkoutSessionId: "",
+      paymentIntentId: "",
+      amount: toStored(breakdown.total),
+      applicationFee: toStored(breakdown.applicationFee),
+    };
   }
 
   let session;
@@ -527,8 +567,10 @@ export async function registerForLadder(
       clientReferenceId: `${lid}#${uid}`,
     });
   } catch (err) {
-    // Roll the pending rung back so a failed Checkout leaves no orphan seat.
+    // Roll the pending rung back so a failed Checkout leaves no orphan seat (and release the
+    // uid marker for a first-join so a retry isn't permanently blocked).
     await deleteItem(ladderKeys.rung(lid, rung.position)).catch(() => {});
+    if (claimedMember) await deleteItem(ladderKeys.member(lid, uid)).catch(() => {});
     throw err;
   }
 
@@ -966,8 +1008,23 @@ export async function confirmChallengeResult(
     throw err;
   }
 
-  // Apply the confirmed outcome to the board (re-rank + win/loss tally), once.
-  await applyOutcome(lid, challenge!, challenge!.winnerUid!);
+  // Apply the confirmed outcome to the board (re-rank + win/loss tally), once. If the
+  // re-rank exhausts its retries it throws WITHOUT committing (each attempt's transaction
+  // is all-or-nothing), so the board is unchanged — roll the status back to `reported` so
+  // the confirm stays RETRYABLE. Without this, the challenge is stuck `confirmed` with the
+  // upset never applied and every re-confirm 409s on the `#st = :reported` gate (M12).
+  try {
+    await applyOutcome(lid, challenge!, challenge!.winnerUid!);
+  } catch (err) {
+    await updateItem({
+      key: ladderKeys.challenge(lid, cid, "", ""),
+      update: "SET #st = :reported REMOVE confirmedBy",
+      names: { "#st": "status" },
+      condition: "#st = :confirmed",
+      values: { ":reported": "reported" satisfies ChallengeStatus, ":confirmed": "confirmed" satisfies ChallengeStatus },
+    }).catch(() => {});
+    throw err;
+  }
 
   // ⚙ match_played (§2.1) — a ladder challenge is a confirmed match once the
   // non-reporting participant confirms it (the conditional transition runs once).
@@ -1044,8 +1101,21 @@ export async function expireChallenges(lid: string, nowIso: string): Promise<num
       if (err instanceof ConditionalCheckFailedException) continue; // already resolved
       throw err;
     }
-    // Forfeit: the challenger wins by default → re-rank.
-    await applyOutcome(lid, challenge, challenge.challengerUid);
+    // Forfeit: the challenger wins by default → re-rank. If the re-rank exhausts retries it
+    // throws WITHOUT committing, so roll the status back to `open` (retryable on the next
+    // sweep) and skip rather than leave it stuck `expired` with the forfeit never applied (M12).
+    try {
+      await applyOutcome(lid, challenge, challenge.challengerUid);
+    } catch {
+      await updateItem({
+        key: ladderKeys.challenge(lid, challenge.cid, "", ""),
+        update: "SET #st = :open REMOVE winnerUid",
+        names: { "#st": "status" },
+        condition: "#st = :expired",
+        values: { ":open": "open" satisfies ChallengeStatus, ":expired": "expired" satisfies ChallengeStatus },
+      }).catch(() => {});
+      continue;
+    }
     await createNotification(challenge.challengedUid, {
       type: "system",
       title: "Challenge forfeited",

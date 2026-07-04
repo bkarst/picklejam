@@ -150,6 +150,7 @@ export function ParticipantConsole({ lid }: { lid: string }): JSX.Element {
             <div className="mt-3">
               {thisWeek ? (
                 <MatchConfirmRow
+                  key={thisWeek.mid}
                   lid={lid}
                   match={thisWeek}
                   mySide={mySideOf(thisWeek)}
@@ -220,7 +221,7 @@ export function ParticipantConsole({ lid }: { lid: string }): JSX.Element {
             <h2 className="font-display text-base font-bold text-foreground">Availability — Week {upcomingWeek}</h2>
             <p className="mt-1 text-xs text-muted">Let your team and the sub pool know if you can play.</p>
             <div className="mt-3">
-              <AvailabilityToggle lid={lid} week={upcomingWeek} status={availByWeek.get(upcomingWeek)} />
+              <AvailabilityToggle key={upcomingWeek} lid={lid} week={upcomingWeek} status={availByWeek.get(upcomingWeek)} />
             </div>
           </section>
 

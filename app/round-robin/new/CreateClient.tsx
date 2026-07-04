@@ -235,7 +235,7 @@ export function CreateClient(): JSX.Element {
       courts,
       ...(showRoundsStepper ? { rounds } : {}),
       ...(showTwice ? { playEveryoneTwice: twice } : {}),
-      scoring: { pointsToWin, winBy, cap: null },
+      scoring: { pointsToWin, winBy, cap: null, ...(timeCapMin ? { timeCapMin } : {}) },
       rngSeed,
       ...(showMovement ? { movement } : {}),
       ...(showPopcorn ? { popcorn } : {}),
@@ -243,7 +243,7 @@ export function CreateClient(): JSX.Element {
     };
   }, [
     format, doubles, isMixer, entrants, courts, showRoundsStepper, rounds, showTwice, twice,
-    pointsToWin, winBy, rngSeed, showMovement, movement, showPopcorn, popcorn, showPools,
+    pointsToWin, winBy, timeCapMin, rngSeed, showMovement, movement, showPopcorn, popcorn, showPools,
     poolCount, advancePerPool, elim,
   ]);
 

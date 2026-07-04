@@ -70,6 +70,40 @@ describe("E2 mixer — rotating partners (§6.8)", () => {
     );
   });
 
+  it("M27: byes are shared fairly — the report's 6-player seed-42 case (was e4:4 / e1:0)", () => {
+    const cfg = mixerConfig(6, { popcorn: true, rngSeed: 42 });
+    const { rounds } = generateSchedule(cfg);
+    const byes = new Map<string, number>(entrants(6).map((e) => [e.id, 0]));
+    for (const r of rounds) for (const id of r.byes) byes.set(id, (byes.get(id) ?? 0) + 1);
+    const counts = [...byes.values()];
+    // Fair for 6 players over 5 rounds (2 bench-slots/round = 10) is 2,2,2,2,1,1 (spread 1).
+    // Pre-fix the greedy leftover benched e4 four times and e1 never (spread 4).
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+  });
+
+  it("M27: no player is benched grossly above their fair share (across sizes/seeds)", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 4, max: 16 }), fc.integer({ min: 1, max: 1_000_000 }), (n, seed) => {
+        const cfg = mixerConfig(n, { rngSeed: seed, rounds: mixerFeasibleMax(n) });
+        const { rounds } = generateSchedule(cfg);
+        const byes = new Map<string, number>(entrants(n).map((e) => [e.id, 0]));
+        let total = 0;
+        for (const r of rounds) {
+          for (const id of r.byes) {
+            byes.set(id, (byes.get(id) ?? 0) + 1);
+            total += 1;
+          }
+        }
+        const fairShare = Math.ceil(total / n);
+        // Nobody is benched more than 2 above their fair share. Pre-fix the greedy leftover
+        // could bench a player 4+ above fair (one player 7 byes when fair was 3). The +2 slack
+        // is the structural limit of a per-round greedy over a fixed partnership factorization.
+        expect(Math.max(...byes.values())).toBeLessThanOrEqual(fairShare + 2);
+      }),
+      { numRuns: 80 },
+    );
+  });
+
   it("popcorn ⇒ zero repeat partners AND rounds clamped to the feasible max", () => {
     fc.assert(
       fc.property(fc.integer({ min: 4, max: 16 }), (n) => {

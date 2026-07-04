@@ -57,3 +57,16 @@ describe("metadata factory (§3.3)", () => {
     expect(courtTitle("Riverside")).toContain("Play Pickleball at Riverside");
   });
 });
+
+describe("segmented sitemap route (§3.7)", () => {
+  it("M15: opts into ISR revalidation so segments aren't frozen at build", async () => {
+    // `sitemap.js` is a Route Handler cached at BUILD by default; without a dynamic
+    // config option every /sitemap/<id>.xml is generated once at deploy and never again
+    // (outings advertises only the build day's window; news/tournaments/etc. never list
+    // anything published after the build). A finite positive `revalidate` opts into ISR.
+    const mod = await import("@/app/sitemap");
+    expect(typeof mod.revalidate).toBe("number");
+    expect(Number.isFinite(mod.revalidate as number)).toBe(true);
+    expect(mod.revalidate as number).toBeGreaterThan(0);
+  });
+});

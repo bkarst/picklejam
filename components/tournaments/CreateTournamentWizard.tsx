@@ -12,7 +12,7 @@
  * add every division, then publish — and route to the organizer dashboard.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useRouter } from "next/navigation";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
@@ -101,6 +101,11 @@ export function CreateTournamentWizard(): JSX.Element {
 
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  // Resume state so a RETRY after a mid-flow failure doesn't recreate the draft +
+  // divisions and orphan a partial tournament (M21): remember the created tid + how many
+  // divisions landed, and continue from there on the next Publish click.
+  const createdTidRef = useRef<string | null>(null);
+  const createdDivisionsRef = useRef(0);
 
   const feeConfig: FeeConfig = { mode: feeMode, ...DEFAULT_FEE };
   const ready = connectIsComplete(connect.data);
@@ -142,22 +147,30 @@ export function CreateTournamentWizard(): JSX.Element {
     setError(null);
     setPublishing(true);
     try {
-      const created = await createMut.mutateAsync({
-        title: title.trim(),
-        ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
-        startDate,
-        ...(endDate ? { endDate } : {}),
-        elim,
-        feeMode,
-        currency: "usd",
-      });
-      const tid = created.tid;
-      // Add divisions sequentially, then publish (server re-checks Connect + ≥1 division).
-      for (const d of validDivisions) {
+      // Reuse a draft already created by a prior (failed) attempt — never create a second.
+      let tid = createdTidRef.current ?? "";
+      if (!tid) {
+        const created = await createMut.mutateAsync({
+          title: title.trim(),
+          ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+          startDate,
+          ...(endDate ? { endDate } : {}),
+          elim,
+          feeMode,
+          currency: "usd",
+        });
+        tid = created.tid;
+        createdTidRef.current = tid;
+      }
+      // Add divisions sequentially, RESUMING from the first not-yet-created one (so a retry
+      // doesn't duplicate ones that already landed), then publish (server re-checks Connect
+      // + ≥1 division).
+      for (let i = createdDivisionsRef.current; i < validDivisions.length; i++) {
         await authed(`/api/tournaments/${tid}/divisions`, {
           method: "POST",
-          body: JSON.stringify(toInput(d)),
+          body: JSON.stringify(toInput(validDivisions[i])),
         });
+        createdDivisionsRef.current = i + 1;
       }
       await authed<TourneyItem>(`/api/tournaments/${tid}/publish`, { method: "POST" });
       router.push(organizeTournamentPath(tid));

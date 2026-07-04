@@ -15,6 +15,57 @@ import { computeStandings } from "./standings";
 const mk = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
+ * Pair `order` (standings order, nearest record first) into a perfect matching that
+ * MINIMIZES rematches, preferring to pair nearest records. `order.length` is even (any
+ * bye already removed).
+ *
+ * A plain greedy (top player + first non-played opponent) commits early pairings that can
+ * force a later AVOIDABLE rematch even when a fully rematch-free matching exists (M28). This
+ * is small-n backtracking: at each step it tries opponents non-rematch-first then nearest,
+ * and keeps the first matching of the minimum rematch count — so it emits zero rematches
+ * whenever a rematch-free perfect matching exists, and the fewest otherwise. Deterministic.
+ */
+function pairAvoidingRematches(order: string[], played: Set<string>): Array<[string, string]> {
+  const n = order.length;
+  const used = new Array<boolean>(n).fill(false);
+  const cur: Array<[string, string]> = [];
+  const holder: { best: { pairs: Array<[string, string]>; rematches: number } | null } = { best: null };
+
+  const dfs = (matched: number, rematches: number): void => {
+    // Prune: this branch can't beat the best so far. Adding pairs only adds rematches, so a
+    // partial total ≥ best is hopeless — and this also keeps the FIRST (nearest-preferring)
+    // matching found at the minimum rematch count rather than a later, less-near one.
+    if (holder.best && rematches >= holder.best.rematches) return;
+    if (matched === n) {
+      holder.best = { pairs: cur.map((p) => [p[0], p[1]] as [string, string]), rematches };
+      return;
+    }
+    let i = 0;
+    while (used[i]) i++;
+    used[i] = true;
+    const cands: number[] = [];
+    for (let j = i + 1; j < n; j++) if (!used[j]) cands.push(j);
+    // Try non-rematch opponents first, then nearest record (lower index).
+    cands.sort((a, b) => {
+      const ra = played.has(mk(order[i], order[a])) ? 1 : 0;
+      const rb = played.has(mk(order[i], order[b])) ? 1 : 0;
+      return ra - rb || a - b;
+    });
+    for (const j of cands) {
+      used[j] = true;
+      cur.push([order[i], order[j]]);
+      dfs(matched + 2, rematches + (played.has(mk(order[i], order[j])) ? 1 : 0));
+      cur.pop();
+      used[j] = false;
+    }
+    used[i] = false;
+  };
+
+  dfs(0, 0);
+  return holder.best ? holder.best.pairs : [];
+}
+
+/**
  * Build the next Swiss round (round `completed.length + 1`), or null once the
  * configured number of rounds is reached.
  */
@@ -62,14 +113,10 @@ export function swissRound(config: RrConfig, completed: RrRound[]): RrRound | nu
       matches.push(mkMatch(roundNum, i, [pool[i]], [pool[i + half]], { court: court(i) }));
     }
   } else {
-    // Later rounds: pair nearest records, avoiding rematches until unavoidable.
-    const remaining = pool.slice();
+    // Later rounds: pair nearest records, avoiding rematches until GENUINELY unavoidable —
+    // a backtracking min-rematch matching (a plain greedy forces avoidable rematches, M28).
     let idx = 0;
-    while (remaining.length > 0) {
-      const p = remaining.shift() as string;
-      let k = remaining.findIndex((q) => !played.has(mk(p, q)));
-      if (k < 0) k = 0;
-      const q = remaining.splice(k, 1)[0];
+    for (const [p, q] of pairAvoidingRematches(pool, played)) {
       matches.push(mkMatch(roundNum, idx, [p], [q], { court: court(idx) }));
       idx++;
     }

@@ -38,7 +38,11 @@ export interface Entrant {
 export interface ScoringConfig {
   pointsToWin: number; // e.g. 11
   winBy: number; // e.g. 2
-  cap?: number | null; // hard ceiling (e.g. 15); at cap win-by is ignored; null/undefined = none
+  cap?: number | null; // hard SCORE ceiling (e.g. 15 points); at cap win-by is ignored; null/undefined = none
+  /** Wall-clock TIME cap in minutes (games may end in a tie when the timer runs out).
+   *  Distinct from `cap` (a points ceiling); human-enforced, so purely informational for
+   *  scorers + the time estimate. null/undefined = no time cap. */
+  timeCapMin?: number | null;
   gamesPerMatch?: number; // best-of; v1 defaults to 1 (single game)
 }
 

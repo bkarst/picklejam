@@ -8,6 +8,7 @@ process.env.STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "whsec_
 
 import { describe, it, expect, vi } from "vitest";
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { getDocClient } from "@/lib/db/table";
 import { money } from "@/lib/money";
 import { getGateway } from "@/lib/stripe";
@@ -189,6 +190,60 @@ d("ladders data layer (DynamoDB Local)", () => {
     expect(payments.filter((p) => p.status === "paid")).toHaveLength(1);
   });
 
+  it("M11: two concurrent first-joins create exactly ONE rung + one 409 (no double rung / double charge)", async () => {
+    const organizer = uid("org-m11");
+    await connectComplete(organizer);
+    const { lid } = await makePublishedLadder(organizer, { price: 2000 });
+    const player = uid("m11-dblclick");
+
+    // A double-clicked "Register": two concurrent joins for the SAME uid. RUNG rows are
+    // keyed by position, so pre-fix appendRung hands each a DISTINCT seat → two rungs, two
+    // payable Checkout sessions, a double charge. The per-uid MEMBER marker serializes them.
+    const results = await Promise.allSettled([
+      registerForLadder(lid, player, {}),
+      registerForLadder(lid, player, {}),
+    ]);
+    const ok = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(ok).toHaveLength(1); // exactly one join wins
+    expect(rejected).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({ status: 409 });
+
+    // The board holds exactly ONE rung for this uid (pre-fix under the race: two).
+    const rungs = (await getLadder(lid))!.rungs.filter((r) => r.uid === player);
+    expect(rungs).toHaveLength(1);
+    expect(rungs[0].paymentStatus).toBe("pending");
+
+    // And that single rung confirms to exactly one paid rung + one Payment.
+    const winner = (ok[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof registerForLadder>>>).value;
+    await confirmLadderPayment({
+      lid,
+      uid: player,
+      paymentIntentId: winner.paymentIntentId,
+      amountTotal: winner.amount.amount,
+      currency: winner.amount.currency,
+    });
+    expect((await getLadder(lid))!.rungs.filter((r) => r.uid === player)).toHaveLength(1);
+    expect((await getMyPayments(player)).filter((p) => p.refId === lid)).toHaveLength(1);
+  });
+
+  it("M24: a FREE ladder (price 0) joins immediately — no $0 Checkout, rung paid", async () => {
+    const organizer = uid("org-m24");
+    await connectComplete(organizer);
+    const { lid } = await makePublishedLadder(organizer, { price: 0 });
+    const player = uid("m24-p");
+
+    const res = await registerForLadder(lid, player, {});
+    // No Checkout session — a $0 session is rejected by real Stripe (~$0.50 min).
+    expect(res.checkoutSessionId).toBe("");
+    expect(res.paymentIntentId).toBe("");
+    // The rung is already paid + placed with NO webhook (pre-fix: a $0 session was created
+    // and the rung stayed `pending`, so real Stripe would 500 the join).
+    const rungs = (await getLadder(lid))!.rungs.filter((r) => r.uid === player);
+    expect(rungs).toHaveLength(1);
+    expect(rungs[0].paymentStatus).toBe("paid");
+  });
+
   it("DUPR-seeded placement: a rated joiner is inserted above lower-rated players", async () => {
     const organizer = uid("org2b");
     await connectComplete(organizer);
@@ -271,6 +326,43 @@ d("ladders data layer (DynamoDB Local)", () => {
     expect(rungs.find((r) => r.uid === p2)?.losses).toBe(1);
   });
 
+  it("M12: a re-rank failure during confirm leaves the challenge RETRYABLE (not stuck confirmed)", async () => {
+    const organizer = uid("org-m12");
+    await connectComplete(organizer);
+    const { lid } = await makePublishedLadder(organizer, { challengeRange: 3 });
+    const [p1, p2, p3, p4] = await placeMany(lid, ["m12a", "m12b", "m12c", "m12d"]);
+    const before = [p1, p2, p3, p4];
+
+    const ch = await issueChallenge(lid, p4, p2); // rung 4 challenges rung 2
+    await respondChallenge(lid, ch.cid, p2, true);
+    await reportChallengeResult(lid, ch.cid, p4, 11, 5); // challenger wins the upset
+
+    // Force the re-rank to fail: reject the board's optimistic version bump (the first item
+    // of reorderBoard's transaction) on EVERY attempt, exhausting its 6 retries so
+    // applyOutcome throws — exactly the "busy ladder" contention the bug hinges on.
+    const client = getDocClient();
+    const realSend = client.send.bind(client);
+    const spy = vi.spyOn(client, "send").mockImplementation((async (cmd: { constructor: { name: string }; input?: { UpdateExpression?: string } }) =>
+      cmd?.constructor?.name === "UpdateCommand" && (cmd.input?.UpdateExpression ?? "").includes("rungsVersion")
+        ? Promise.reject(new ConditionalCheckFailedException({ message: "forced contention", $metadata: {} }))
+        : realSend(cmd as never)) as never);
+
+    // The confirm throws (the re-rank couldn't commit)…
+    await expect(confirmChallengeResult(lid, ch.cid, p2)).rejects.toMatchObject({ status: 409 });
+    spy.mockRestore();
+
+    // …but the challenge was ROLLED BACK to `reported` and the board is untouched. Pre-fix
+    // it stayed stuck `confirmed` with the upset never applied, and every retry 409'd on the
+    // `#st = :reported` gate → the result was lost with no way to recover.
+    expect((await getLadder(lid))!.challenges.find((c) => c.cid === ch.cid)?.status).toBe("reported");
+    expect((await getLadder(lid))!.rungs.map((r) => r.uid)).toEqual(before);
+
+    // Retry now that contention has cleared → confirms AND applies the upset.
+    const confirmed = await confirmChallengeResult(lid, ch.cid, p2);
+    expect(confirmed.status).toBe("confirmed");
+    expect((await getLadder(lid))!.rungs.map((r) => r.uid)).toEqual([p1, p4, p2, p3]);
+  });
+
   it("response-window expiry: an unanswered challenge expires to a challenger forfeit-win + re-ranks", async () => {
     const organizer = uid("org6");
     await connectComplete(organizer);
@@ -288,6 +380,38 @@ d("ladders data layer (DynamoDB Local)", () => {
     const detail = await getLadder(lid);
     expect(detail!.challenges.find((c) => c.cid === ch.cid)?.status).toBe("expired");
     expect(detail!.rungs.map((r) => r.uid)).toEqual(applyResult([p1, p2, p3], p3, p1, p3)); // [p3, p1, p2]
+  });
+
+  it("M12: an expire re-rank failure leaves the challenge OPEN (retryable next sweep), not stuck expired", async () => {
+    const organizer = uid("org-m12b");
+    await connectComplete(organizer);
+    const { lid } = await makePublishedLadder(organizer, { challengeRange: 3, responseWindowDays: 3 });
+    const [p1, p2, p3] = await placeMany(lid, ["m12e", "m12f", "m12g"]);
+    const before = [p1, p2, p3];
+
+    const ch = await issueChallenge(lid, p3, p1); // rung 3 → rung 1
+    const past = new Date(new Date(ch.dueDate).getTime() + 1).toISOString();
+
+    // Force the forfeit re-rank to fail (same version-bump rejection as the confirm case).
+    const client = getDocClient();
+    const realSend = client.send.bind(client);
+    const spy = vi.spyOn(client, "send").mockImplementation((async (cmd: { constructor: { name: string }; input?: { UpdateExpression?: string } }) =>
+      cmd?.constructor?.name === "UpdateCommand" && (cmd.input?.UpdateExpression ?? "").includes("rungsVersion")
+        ? Promise.reject(new ConditionalCheckFailedException({ message: "forced contention", $metadata: {} }))
+        : realSend(cmd as never)) as never);
+
+    // The sweep can't apply the forfeit → it rolls the status back to `open` and reports 0
+    // expired (pre-fix: the flip to `expired` committed, then applyOutcome threw and the
+    // whole sweep rejected, leaving the challenge stuck `expired` with no forfeit applied).
+    expect(await expireChallenges(lid, past)).toBe(0);
+    spy.mockRestore();
+
+    expect((await getLadder(lid))!.challenges.find((c) => c.cid === ch.cid)?.status).toBe("open");
+    expect((await getLadder(lid))!.rungs.map((r) => r.uid)).toEqual(before);
+
+    // Next sweep (contention cleared) expires + re-ranks it.
+    expect(await expireChallenges(lid, past)).toBe(1);
+    expect((await getLadder(lid))!.rungs.map((r) => r.uid)).toEqual(applyResult(before, p3, p1, p3));
   });
 
   it("notifications: the challenged player is notified, and the challenge lands in their inbox (GSI1)", async () => {

@@ -17,6 +17,7 @@ import {
   getOutingMeta,
   rsvp,
   cancelRsvp,
+  deleteOuting,
 } from "@/lib/data/outings";
 import type { CourtItem, OutingRefItem, Counts } from "@/lib/db/types";
 
@@ -289,6 +290,57 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
     expect(meta?.waitlistCount).toBe(0);
   });
 
+  it("M7: a waitlist → declined transition renumbers survivors so a later joiner can't duplicate a position", async () => {
+    // capacity 1, filled by p0 → every subsequent "going" lands on the waitlist.
+    const outing = await createOuting({
+      title: "Waitlist Renumber",
+      courtId: COURT_CAP,
+      organizerId: `og-${RUN}-m7`,
+      startTs: START_TS,
+      capacity: 1,
+      visibility: "public",
+    });
+    const p0 = `og-${RUN}-m7-0`;
+    const a = `og-${RUN}-m7-a`;
+    const b = `og-${RUN}-m7-b`;
+    const c = `og-${RUN}-m7-c`;
+    const dd = `og-${RUN}-m7-d`;
+
+    await rsvp(outing.outingId, p0, "going"); // takes the only going spot
+    expect((await rsvp(outing.outingId, a, "going")).rsvp.waitlistPos).toBe(1);
+    expect((await rsvp(outing.outingId, b, "going")).rsvp.waitlistPos).toBe(2);
+    expect((await rsvp(outing.outingId, c, "going")).rsvp.waitlistPos).toBe(3);
+
+    // Head of the waitlist leaves via the RSVP path (not cancelRsvp). Pre-fix this
+    // decremented waitlistCount to 2 but left b@2, c@3 → the next joiner reused pos 3.
+    await rsvp(outing.outingId, a, "declined");
+
+    // A new joiner takes the next position. Post-fix survivors were renumbered to
+    // b@1, c@2, so this must be pos 3 — unique. Pre-fix it collided with c at pos 3.
+    expect((await rsvp(outing.outingId, dd, "going")).rsvp.waitlistPos).toBe(3);
+
+    const after = await getOuting(outing.outingId);
+    const posByUid = new Map(
+      after!.rsvps
+        .filter((r) => r.status === "waitlist")
+        .map((r) => [r.uid, r.waitlistPos]),
+    );
+    expect(posByUid.get(a)).toBeUndefined(); // a declined
+    expect(posByUid.get(b)).toBe(1); // renumbered up from 2
+    expect(posByUid.get(c)).toBe(2); // renumbered up from 3
+    expect(posByUid.get(dd)).toBe(3);
+
+    // The real symptom is gone: every surviving waitlist position is DISTINCT.
+    const positions = [...posByUid.values()];
+    expect(new Set(positions).size).toBe(positions.length);
+    expect([...positions].sort()).toEqual([1, 2, 3]);
+
+    // p0 was never disturbed; the going seat wasn't freed (a waitlister left, not a goer).
+    const meta = await getOutingMeta(outing.outingId);
+    expect(meta?.goingCount).toBe(1);
+    expect(meta?.waitlistCount).toBe(3);
+  });
+
   it("RSVP appears under my outings 'attending' (GSI1, hydrated)", async () => {
     const outing = await createOuting({
       title: "Attendee View",
@@ -327,5 +379,32 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
     const { country, state, city } = parseCityKey(CITY_CNT);
     const cityItem = await getItem<{ counts?: Counts }>(geoKeys.city(country, state, city));
     expect(cityItem?.counts?.games).toBe(n); // geo counts.games via OUTING meta insert
+  });
+
+  it("M13: deleting an outing DECREMENTS geo counts.games (not just the court gamesCount)", async () => {
+    // Dedicated court + city so both counters start at exactly this one outing.
+    const COURT_DEL = `court-og-${RUN}-del`;
+    const CITY_DEL = `zz#ogdel#${RUN}`;
+    await makeCourt(COURT_DEL, CITY_DEL);
+    const { country, state, city } = parseCityKey(CITY_DEL);
+    const cityKeyPk = geoKeys.city(country, state, city);
+
+    const outing = await createOuting({
+      title: "Ephemeral Game",
+      courtId: COURT_DEL,
+      organizerId: `og-${RUN}-del`,
+      startTs: START_TS,
+      visibility: "public",
+    });
+    expect((await getItem<CourtItem>(courtKeys.meta(COURT_DEL)))?.gamesCount).toBe(1);
+    expect((await getItem<{ counts?: Counts }>(cityKeyPk))?.counts?.games).toBe(1);
+
+    // deleteOuting emits BOTH removes: the OUTINGREF remove drops the court gamesCount, and
+    // the OUTING META remove must drop geo counts.games. Pre-fix the META remove routed to
+    // the INSERT-only onCreateGeoCount and was silently ignored → counts.games stuck at 1.
+    await deleteOuting(outing.outingId);
+
+    expect((await getItem<CourtItem>(courtKeys.meta(COURT_DEL)))?.gamesCount).toBe(0);
+    expect((await getItem<{ counts?: Counts }>(cityKeyPk))?.counts?.games).toBe(0); // pre-fix: 1
   });
 });

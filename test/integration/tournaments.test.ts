@@ -33,6 +33,7 @@ import {
   registerForDivision,
   cancelRegistration,
   refundRegistration,
+  markRegistrationRefunded,
   cancelTournament,
   seedBracket,
   advanceBracket,
@@ -255,6 +256,23 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     expect(result.registration.paymentStatus).toBe("partnerPending");
     expect(result.registration.partnerStatus).toBe("pending");
     expect(result.registration.partnerUid).toBe(uid("d-2"));
+  });
+
+  it("M24: a FREE division (price 0) registers as PAID immediately — no $0 Checkout", async () => {
+    const organizer = uid("org-m24");
+    await connectComplete(organizer);
+    const { tid, dids } = await makePublished(organizer, [
+      { name: "Free Singles", price: money(0), capacity: 8, playMode: "singles" },
+    ]);
+    const did = dids[0];
+    const player = uid("m24-p");
+
+    // No webhook / confirm call — a free registration must fulfil in registerForDivision.
+    await registerForDivision(tid, did, player, {});
+
+    const reg = (await getTournament(tid))!.registrations.find((r) => r.uid === player);
+    expect(reg?.paymentStatus).toBe("paid"); // pre-fix: stuck `pending` (a $0 session, no webhook)
+    expect((await getDivision(tid, did))?.registeredCount).toBe(1);
   });
 
   it("DUPR gate: uses the STORED verified rating server-side (a forged request value can't unlock it)", async () => {
@@ -485,6 +503,35 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     expect(payB?.refundedAmount?.amount).toBe(1500);
   });
 
+  it("M8: two concurrent full refunds for one reg free the division spot exactly ONCE (no double-release)", async () => {
+    const organizer = uid("org-m8");
+    await connectComplete(organizer);
+    const { tid, dids } = await makePublished(organizer, [
+      { name: "M8 Div", price: money(2000), capacity: 8, playMode: "singles" },
+    ]);
+    const did = dids[0];
+
+    // Two paid players hold two spots → registeredCount 2.
+    const target = uid("m8-target");
+    await registerAndPay(tid, did, target);
+    await registerAndPay(tid, did, uid("m8-other"));
+    expect((await getDivision(tid, did))?.registeredCount).toBe(2);
+
+    // A duplicate charge.refunded webhook races itself (equally: an organizer API refund
+    // racing the webhook). Both read `paid`; pre-fix each releases from its stale read →
+    // count drops to 0 (a phantom free spot → later oversell). Post-fix the conditional
+    // paid→refunded transition wins for exactly one caller → exactly one release.
+    await Promise.all([
+      markRegistrationRefunded({ tid, did, uid: target, amountRefunded: 2000, currency: "usd" }),
+      markRegistrationRefunded({ tid, did, uid: target, amountRefunded: 2000, currency: "usd" }),
+    ]);
+
+    const div = await getDivision(tid, did);
+    expect(div?.registeredCount).toBe(1); // freed exactly once (pre-fix under the race: 0)
+    const detail = await getTournament(tid);
+    expect(detail!.registrations.find((r) => r.uid === target)?.paymentStatus).toBe("refunded");
+  });
+
   it("cancelTournament mass-refunds every paid registration (organizer-cancel ⇒ fee refunded) + reconciles", async () => {
     const organizer = uid("org8");
     await connectComplete(organizer);
@@ -557,5 +604,42 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     const scored = after.find((m) => m.round === 1 && m.index === 0)!;
     expect(scored.status).toBe("scored");
     expect(scored.scoreA).toBe(11);
+  });
+
+  it("M9: re-seeding a SMALLER bracket deletes stale rows so advanceBracket doesn't route off ghosts", async () => {
+    const organizer = uid("org-m9");
+    await connectComplete(organizer);
+    const { tid, dids } = await makePublished(organizer, [
+      { name: "Reseed Div", price: money(1000), capacity: 16, playMode: "singles" },
+    ]);
+    const did = dids[0];
+
+    // Seed with 8 paid → a 3-round bracket (R1×4, R2×2, R3 Final) + a 3rd-place row.
+    const players = Array.from({ length: 8 }, (_, i) => uid(`m9-${i}`));
+    for (const p of players) await registerAndPay(tid, did, p);
+    const big = await seedBracket(tid, did, { thirdPlace: true });
+    expect(Math.max(...big.map((m) => m.round))).toBe(3); // 8 → rounds 3
+
+    // Refund 4 → 4 paid remain, then RE-SEED → a 2-round bracket (R1×2 semis, R2 Final +
+    // R2 3rd-place). The old round-3 rows (and R1M2/R1M3) must NOT survive as ghosts.
+    for (let i = 0; i < 4; i++) await cancelRegistration(tid, did, players[i]);
+    const small = await seedBracket(tid, did, { thirdPlace: true });
+    expect(small).toHaveLength(4); // R1M0, R1M1, R2M0 (Final), R2M1 (3rd)
+
+    const board = await getBracket(tid, did);
+    // Pre-fix: the 8-bracket's R1M2/R1M3/R3M0/R3M1 ghosts survive (board length 8, max round 3).
+    expect(board).toHaveLength(4);
+    expect(Math.max(...board.map((m) => m.round))).toBe(2);
+    expect(board.some((m) => m.round === 3)).toBe(false); // no phantom Final
+
+    // Downstream symptom: score a REAL semifinal (round 1). Its loser must drop into the
+    // 3rd-place match (R2M1). Pre-fix finalRound=3 (ghost) → `round === finalRound-1` (=2)
+    // is false for the round-1 semi → the loser is never routed. Post-fix finalRound=2 → routed.
+    const semi0 = board.find((m) => m.round === 1 && m.index === 0)!;
+    const loser = semi0.sideB!; // A (11) beats B (5)
+    await advanceBracket(tid, did, 1, 0, 11, 5);
+    const afterScore = await getBracket(tid, did);
+    const thirdPlace = afterScore.find((m) => m.round === 2 && m.index === 1)!;
+    expect(thirdPlace.sideA).toEqual(loser); // semifinal loser routed to 3rd place
   });
 });

@@ -13,7 +13,7 @@
  * route to the organizer dashboard.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useRouter } from "next/navigation";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
@@ -109,6 +109,11 @@ export function CreateLeagueWizard(): JSX.Element {
 
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  // Resume state so a RETRY after a mid-flow failure doesn't recreate everything and
+  // orphan drafts (M21): once the draft (and each division) is created it's remembered,
+  // and the next Publish click continues from where it failed instead of from scratch.
+  const createdIdRef = useRef<string | null>(null);
+  const createdDivisionsRef = useRef(0);
 
   const feeConfig: FeeConfig = { mode: feeMode, ...DEFAULT_FEE };
   const ready = connectIsComplete(connect.data);
@@ -145,21 +150,28 @@ export function CreateLeagueWizard(): JSX.Element {
     setError(null);
     setPublishing(true);
     try {
-      let lid: string;
+      // Reuse a draft already created by a prior (failed) attempt — never create a second.
+      let lid = createdIdRef.current ?? "";
       if (format === "league") {
-        const created = await createLeague.mutateAsync({
-          title: title.trim(),
-          cityKey: city!.cityKey,
-          ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
-          startDate,
-          seasonWeeks: Number(seasonWeeks) || 8,
-          playMode: leaguePlayMode,
-          feeMode,
-          currency: "usd",
-        });
-        lid = created.lid;
+        if (!lid) {
+          const created = await createLeague.mutateAsync({
+            title: title.trim(),
+            cityKey: city!.cityKey,
+            ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+            startDate,
+            seasonWeeks: Number(seasonWeeks) || 8,
+            playMode: leaguePlayMode,
+            feeMode,
+            currency: "usd",
+          });
+          lid = created.lid;
+          createdIdRef.current = lid;
+        }
         const price = moneyFromMajor(fee || "0", "usd");
-        for (const d of validDivisions) {
+        // Resume from the first division not yet created (so a retry doesn't duplicate the
+        // ones that already succeeded, nor recreate the draft).
+        for (let i = createdDivisionsRef.current; i < validDivisions.length; i++) {
+          const d = validDivisions[i];
           const min = d.min ? Number(d.min) : undefined;
           const max = d.max ? Number(d.max) : undefined;
           await authed(`/api/leagues/${lid}/divisions`, {
@@ -173,22 +185,26 @@ export function CreateLeagueWizard(): JSX.Element {
               ...(d.ratingSystem === "skill" ? { skillMin: min, skillMax: max } : {}),
             }),
           });
+          createdDivisionsRef.current = i + 1;
         }
         await authed<LeagueItem>(`/api/leagues/${lid}/publish`, { method: "POST" });
       } else {
-        const created = await createLadder.mutateAsync({
-          title: title.trim(),
-          cityKey: city!.cityKey,
-          ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
-          startDate,
-          playMode: ladderPlayMode,
-          price: moneyFromMajor(ladderPrice || "0", "usd"),
-          challengeRange: Number(challengeRange) || 3,
-          responseWindowDays: Number(responseWindowDays) || 3,
-          feeMode,
-          currency: "usd",
-        });
-        lid = created.lid;
+        if (!lid) {
+          const created = await createLadder.mutateAsync({
+            title: title.trim(),
+            cityKey: city!.cityKey,
+            ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+            startDate,
+            playMode: ladderPlayMode,
+            price: moneyFromMajor(ladderPrice || "0", "usd"),
+            challengeRange: Number(challengeRange) || 3,
+            responseWindowDays: Number(responseWindowDays) || 3,
+            feeMode,
+            currency: "usd",
+          });
+          lid = created.lid;
+          createdIdRef.current = lid;
+        }
         await authed<LadderItem>(`/api/ladders/${lid}/publish`, { method: "POST" });
       }
       router.push(organizeLeaguePath(lid));

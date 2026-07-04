@@ -10,6 +10,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api/authed";
+import { accountListKeys } from "@/lib/api/account-lists";
 import type { CheckinItem, ReviewItem } from "@/lib/db/types";
 
 /** Where the anonymous browser token is persisted between visits. */
@@ -83,6 +84,10 @@ export function useFollowCourt(courtId: string) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: communityKeys.following(courtId) });
+      // The "Saved courts" list (/account/courts) reads `accountListKeys.followedCourts`;
+      // invalidate it so a follow/unfollow shows up on return instead of lingering stale
+      // for the 60s global staleTime (M20). The `following` key above has no query reader.
+      void qc.invalidateQueries({ queryKey: accountListKeys.followedCourts });
     },
   });
 }

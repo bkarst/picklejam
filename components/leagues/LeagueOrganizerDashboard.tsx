@@ -335,23 +335,34 @@ export function LeagueOrganizerDashboard({ lid }: { lid: string }): JSX.Element 
         </TableWrap>
       )}
 
-      {/* Messaging */}
+      {/* Messaging — NOT wired to a backend yet (no announcement endpoint exists). The
+          control was live-looking but did nothing, silently losing the organizer's message
+          (M22). Present it honestly as coming-soon + disabled until a real send is built. */}
       {tab === "messaging" && (
         <section className="rounded-2xl border border-border bg-surface p-6">
-          <h2 className="font-display text-lg font-bold text-foreground">Message participants</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-lg font-bold text-foreground">Message participants</h2>
+            <span className="rounded-full bg-surface-secondary px-2 py-0.5 text-xs font-semibold text-muted">
+              Coming soon
+            </span>
+          </div>
           <p className="mt-1 text-sm text-muted">
-            Send an announcement to everyone in the league — schedule changes, weather calls, and reminders are
-            delivered through the notification rail.
+            Announcements to everyone in the league — schedule changes, weather calls, and reminders — will be
+            delivered through the notification rail. This isn&apos;t available yet.
           </p>
           <textarea
             aria-label="Announcement message"
             rows={4}
+            disabled
             placeholder="Write an announcement…"
-            className="mt-4 w-full rounded-xl border border-border bg-field p-3 text-sm text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="mt-4 w-full rounded-xl border border-border bg-field p-3 text-sm text-field-foreground placeholder:text-field-placeholder disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           />
           <button
             type="button"
-            className="mt-3 inline-flex h-11 items-center rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            disabled
+            aria-disabled="true"
+            title="Coming soon"
+            className="mt-3 inline-flex h-11 cursor-not-allowed items-center rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground opacity-60"
           >
             Send announcement
           </button>

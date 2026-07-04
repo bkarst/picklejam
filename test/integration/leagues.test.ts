@@ -26,6 +26,7 @@ import {
   getLeagueDivision,
   registerForLeague,
   confirmLeaguePayment,
+  markLeagueRegRefunded,
   generateSchedule,
   materializeStandings,
   reportScore,
@@ -343,6 +344,68 @@ d("leagues data layer (DynamoDB Local)", () => {
     expect(forDiv[2].wins).toBe(0);
   });
 
+  it("M10: regenerating for a SHRUNK roster deletes orphaned fixtures (no stale confirmed rows double-count)", async () => {
+    const organizer = uid("org-m10");
+    await connectComplete(organizer);
+    const { lid, dids } = await makePublished(
+      organizer,
+      [{ name: "Reschedule Div", price: money(1000), capacity: 8, playMode: "singles" }],
+      {},
+      1, // one season week keeps the fixture set small + deterministic
+    );
+    const did = dids[0];
+
+    // 6 paid → 3 fixtures in week 1 (mids did-0000..did-0002).
+    const players = Array.from({ length: 6 }, (_, i) => uid(`m10-${i}`));
+    for (const p of players) await registerAndPay(lid, did, p);
+    await generateSchedule(lid);
+    let week1 = (await getLeague(lid))!.schedule.filter((m) => m.week === 1);
+    expect(week1).toHaveLength(3);
+
+    // Play + confirm every week-1 fixture → 3 confirmed results.
+    for (const fx of week1) {
+      await reportScore(lid, 1, fx.mid, fx.sideA![0], 11, 2);
+      await confirmScore(lid, 1, fx.mid, fx.sideB![0]);
+    }
+    expect(
+      (await getLeague(lid))!.schedule.filter((m) => m.confirmStatus === "confirmed"),
+    ).toHaveLength(3);
+
+    // Two players are refunded → 4 paid remain → 2 fixtures/week. Regenerate.
+    await markLeagueRegRefunded({ lid, did, uid: players[4], amountRefunded: 1000, currency: "usd" });
+    await markLeagueRegRefunded({ lid, did, uid: players[5], amountRefunded: 1000, currency: "usd" });
+    await generateSchedule(lid);
+
+    // Pre-fix: the old 3rd fixture (did-0002, confirmed) survives as an orphan → week 1
+    // still shows 3 rows, one still `confirmed`. Post-fix it's deleted: exactly 2 rows,
+    // both freshly `scheduled`, so materializeStandings can't double-count a ghost result.
+    week1 = (await getLeague(lid))!.schedule.filter((m) => m.week === 1);
+    expect(week1).toHaveLength(2);
+    expect(
+      (await getLeague(lid))!.schedule.filter((m) => m.confirmStatus === "confirmed"),
+    ).toHaveLength(0);
+
+    const rows = (await materializeStandings(lid)).filter((r) => r.did === did);
+    expect(rows.every((r) => r.wins === 0)).toBe(true); // clean slate after a full regen
+  });
+
+  it("M24: a FREE league (price 0) registers as PAID immediately — no $0 Checkout", async () => {
+    const organizer = uid("org-m24");
+    await connectComplete(organizer);
+    const { lid, dids } = await makePublished(organizer, [
+      { name: "Free Div", price: money(0), capacity: 8, playMode: "singles" },
+    ]);
+    const did = dids[0];
+    const player = uid("m24-p");
+
+    // No webhook / confirm call — a free join must fulfil in registerForLeague itself.
+    await registerForLeague(lid, did, player, {});
+
+    const reg = (await getLeague(lid))!.registrations.find((r) => r.uid === player);
+    expect(reg?.paymentStatus).toBe("paid"); // pre-fix: stuck `pending` (a $0 session, no webhook)
+    expect((await getLeagueDivision(lid, did))?.registeredCount).toBe(1);
+  });
+
   it("availability: upserts the member's weekly sub-pool flag", async () => {
     const organizer = uid("org8");
     await connectComplete(organizer);
@@ -364,6 +427,33 @@ d("leagues data layer (DynamoDB Local)", () => {
 
     // A non-registered user cannot set availability (access-control gate, §7.2).
     await expect(setAvailability(lid, uid("a-stranger"), 2, "in")).rejects.toThrow(/registered player/i);
+  });
+
+  it("M8: two concurrent full refunds for one league reg free the division spot exactly ONCE", async () => {
+    const organizer = uid("org-m8");
+    await connectComplete(organizer);
+    const { lid, dids } = await makePublished(organizer, [
+      { name: "M8 Div", price: money(2000), capacity: 8, playMode: "singles" },
+    ]);
+    const did = dids[0];
+
+    const target = uid("m8-target");
+    await registerAndPay(lid, did, target);
+    await registerAndPay(lid, did, uid("m8-other"));
+    expect((await getLeagueDivision(lid, did))?.registeredCount).toBe(2);
+
+    // Duplicate charge.refunded webhooks race for the SAME reg. Post-fix the conditional
+    // paid→refunded transition wins for exactly one caller → exactly one release, whatever
+    // the interleaving (identical code path to the tournaments M8 case, which reproduces
+    // the pre-fix double-release red→green; dynalite serializes this pair unpredictably).
+    await Promise.all([
+      markLeagueRegRefunded({ lid, did, uid: target, amountRefunded: 2000, currency: "usd" }),
+      markLeagueRegRefunded({ lid, did, uid: target, amountRefunded: 2000, currency: "usd" }),
+    ]);
+
+    expect((await getLeagueDivision(lid, did))?.registeredCount).toBe(1); // freed exactly once
+    const detail = await getLeague(lid);
+    expect(detail!.registrations.find((r) => r.uid === target)?.paymentStatus).toBe("refunded");
   });
 
   it("cancelLeague mass-refunds every paid registration (organizer-cancel ⇒ fee refunded)", async () => {

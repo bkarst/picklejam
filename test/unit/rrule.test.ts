@@ -101,6 +101,32 @@ describe("nextOccurrences", () => {
     const next = nextOccurrences("FREQ=WEEKLY;COUNT=2", DTSTART, "2026-07-05T00:00:00.000Z", 5);
     expect(next).toEqual(["2026-07-08T18:00:00.000Z"]);
   });
+
+  it("M26: still returns upcoming occurrences when `from` is far past DTSTART (window reaches from)", () => {
+    // MWF from Jan 1, queried 6 months later. Pre-fix the DTSTART-anchored 52-occurrence
+    // window ended ~May 1 (before `from`), so nextOccurrences returned [] — the upcoming
+    // list silently vanished. Now the window is sized to REACH `from`.
+    const dtstart = "2026-01-01T18:00:00.000Z"; // a Thursday
+    const from = "2026-07-02T00:00:00.000Z";
+    const next = nextOccurrences("FREQ=WEEKLY;BYDAY=MO,WE,FR", dtstart, from, 3);
+    expect(next).toHaveLength(3); // pre-fix: []
+    // Every returned occurrence is on/after `from` and lands on a Mon/Wed/Fri.
+    for (const iso of next) {
+      expect(new Date(iso).getTime()).toBeGreaterThanOrEqual(new Date(from).getTime());
+      expect([1, 3, 5]).toContain(new Date(iso).getUTCDay()); // Mon=1, Wed=3, Fri=5
+    }
+    // Chronological + the FIRST is the earliest MWF occurrence on/after `from`.
+    expect(next).toEqual([...next].sort());
+    expect(next[0]).toBe("2026-07-03T18:00:00.000Z"); // Fri Jul 3 is the first MWF ≥ Jul 2
+  });
+
+  it("M26: a plain weekly series a year out still yields the next occurrences", () => {
+    const dtstart = "2026-01-05T18:00:00.000Z"; // Monday
+    const next = nextOccurrences("FREQ=WEEKLY", dtstart, "2027-01-04T00:00:00.000Z", 2);
+    expect(next).toHaveLength(2); // pre-fix (52-week window ended ~Jan 2027-ish from DTSTART): []
+    expect(next[0]).toBe("2027-01-04T18:00:00.000Z"); // Mon Jan 4 2027
+    expect(next[1]).toBe("2027-01-11T18:00:00.000Z");
+  });
 });
 
 describe("toIcs (VCALENDAR/VEVENT shape)", () => {
@@ -126,6 +152,29 @@ describe("toIcs (VCALENDAR/VEVENT shape)", () => {
     expect(ics).toContain("SUMMARY:Open Play\\; all levels");
     expect(ics).toContain("DESCRIPTION:Bring water\\, paddles");
     expect(ics).toContain("URL:https://pickleloko.com/outings/abc");
+  });
+
+  it("M25: a recurring series emits an RRULE line inside the VEVENT (imports every occurrence)", () => {
+    const ics = toIcs({ title: "Weekly Open Play", startTs: DTSTART, rrule: "FREQ=WEEKLY;INTERVAL=1" });
+    const lines = ics.split("\r\n");
+    expect(lines).toContain("RRULE:FREQ=WEEKLY;INTERVAL=1"); // pre-fix: no RRULE line at all
+    // RRULE must live inside the VEVENT, after DTSTART.
+    const iDtstart = lines.findIndex((l) => l.startsWith("DTSTART:"));
+    const iRrule = lines.findIndex((l) => l.startsWith("RRULE:"));
+    expect(iRrule).toBeGreaterThan(iDtstart);
+    expect(iRrule).toBeLessThan(lines.indexOf("END:VEVENT"));
+  });
+
+  it("M25: a one-off outing has NO RRULE line", () => {
+    expect(toIcs({ title: "One-off Game", startTs: DTSTART })).not.toContain("RRULE:");
+  });
+
+  it("M25: normalizes a stray RRULE: prefix and strips line breaks (no ICS injection)", () => {
+    const ics = toIcs({ title: "Weekly", startTs: DTSTART, rrule: "RRULE:FREQ=WEEKLY\r\nSUMMARY:evil" });
+    // Exactly one RRULE line; the prefix is dropped and the injected break removed.
+    const rruleLines = ics.split("\r\n").filter((l) => l.startsWith("RRULE:"));
+    expect(rruleLines).toEqual(["RRULE:FREQ=WEEKLYSUMMARY:evil"]);
+    expect(ics).not.toContain("\r\nSUMMARY:evil"); // no injected property line
   });
 });
 

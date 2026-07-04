@@ -479,8 +479,12 @@ export async function rsvp(
 
   // Won the race. If we vacated a `going` seat, promote the waitlist head into it now
   // (the row is committed to its new non-going status, so it can't promote itself).
+  // If we vacated a WAITLIST position, renumber the survivors so positions stay
+  // contiguous and a later joiner can't collide with a surviving one (M7).
   if (sOld === "going") {
     await promoteWaitlistIntoFreedSpot(outingId, startTs, meta.capacity);
+  } else if (sOld === "waitlist") {
+    await renumberWaitlistAfterDeparture(outingId, startTs, existing?.waitlistPos ?? Infinity);
   }
 
   const fresh = await getOutingMeta(outingId);
@@ -561,6 +565,33 @@ async function promoteWaitlistIntoFreedSpot(
 }
 
 /**
+ * Shift every waitlister behind `departedPos` up by one, keeping positions
+ * contiguous `1..waitlistCount` after a waitlister leaves the list (a cancel, or a
+ * waitlist→going/maybe/declined transition). `waitlistPos` is derived from the
+ * post-ADD `waitlistCount`, so if a departure decrements the count WITHOUT
+ * renumbering, the gap left behind means the next joiner — assigned the reused
+ * counter value — COLLIDES with a surviving waitlister, making `promoteFromWaitlist`
+ * order the duplicates arbitrarily (M7). The caller MUST have already decremented
+ * `waitlistCount`. No-op when `departedPos` is unknown (nothing safe to shift).
+ */
+async function renumberWaitlistAfterDeparture(
+  outingId: string,
+  startTs: string,
+  departedPos: number,
+): Promise<void> {
+  const after = await getOuting(outingId);
+  for (const r of after?.rsvps ?? []) {
+    if (r.status === "waitlist" && (r.waitlistPos ?? 0) > departedPos) {
+      await updateItem({
+        key: outingKeys.rsvp(outingId, r.uid, startTs),
+        update: "SET waitlistPos = :p",
+        values: { ":p": (r.waitlistPos ?? 1) - 1 },
+      });
+    }
+  }
+}
+
+/**
  * Cancel the caller's RSVP. If a `going` RSVP is cancelled, the head of the
  * waitlist is promoted into the freed spot (counts adjusted accordingly), and the
  * remaining waitlisters are repositioned.
@@ -590,17 +621,7 @@ export async function cancelRsvp(outingId: string, uid: string): Promise<RsvpRes
   } else if (existing.status === "waitlist") {
     await addOutingCounter(outingId, "waitlistCount", -1);
     // Shift waitlisters behind the cancelled one up by a position.
-    const cancelledPos = existing.waitlistPos ?? Infinity;
-    const after = await getOuting(outingId);
-    for (const r of after?.rsvps ?? []) {
-      if (r.status === "waitlist" && (r.waitlistPos ?? 0) > cancelledPos) {
-        await updateItem({
-          key: outingKeys.rsvp(outingId, r.uid, startTs),
-          update: "SET waitlistPos = :p",
-          values: { ":p": (r.waitlistPos ?? 1) - 1 },
-        });
-      }
-    }
+    await renumberWaitlistAfterDeparture(outingId, startTs, existing.waitlistPos ?? Infinity);
   }
 
   const fresh = await getOutingMeta(outingId);

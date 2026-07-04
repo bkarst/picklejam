@@ -13,7 +13,7 @@
  * statically pulls in the data layer (and next/cache).
  */
 
-import { query, batchWrite } from "@/lib/db/client";
+import { query, batchWrite, deleteItem } from "@/lib/db/client";
 import type { CourtItem, CityItem } from "@/lib/db/types";
 
 /** Court fields the typeahead needs (compact keys — the whole US index is ~4 MB). */
@@ -66,10 +66,40 @@ const CITY_PREFIX = "CITIES#";
 // ~160 KB/chunk of CourtSearchLite, comfortably under DynamoDB's 400 KB item cap.
 const CHUNK_SIZE = 800;
 
+/** Number of chunks `arr` splits into at {@link CHUNK_SIZE}. */
+const chunkCount = (len: number) => Math.ceil(len / CHUNK_SIZE);
+
+/**
+ * Delete any chunk under `prefix` whose index is ≥ `keep` — i.e. leftovers from a LARGER
+ * prior ingest. Without this a cleaned re-ingest that produced fewer chunks would leave the
+ * old higher-numbered chunks in place, and `loadChunks` concatenates EVERY chunk under the
+ * prefix → deleted courts/cities resurface in typeahead (plus cross-chunk dupes) (M29).
+ * Projects only the key so it never loads the heavy `data` payloads.
+ */
+async function deleteStaleChunks(pk: string, prefix: string, keep: number): Promise<void> {
+  const stale: string[] = [];
+  let startKey: Record<string, unknown> | undefined;
+  do {
+    const { items, lastKey } = await query<{ sk: string }>({
+      pk,
+      skBeginsWith: prefix,
+      projection: ["sk"],
+      startKey,
+    });
+    for (const it of items) {
+      const idx = Number(it.sk.slice(prefix.length));
+      if (Number.isFinite(idx) && idx >= keep) stale.push(it.sk);
+    }
+    startKey = lastKey;
+  } while (startKey);
+  for (const sk of stale) await deleteItem({ pk, sk });
+}
+
 /**
  * Persist the index as chunked items (called by scripts/ingest.ts after the
  * courts are written). Idempotent by chunk key: re-ingesting the same directory
- * overwrites chunk 0..N in place.
+ * overwrites chunk 0..N in place — and PRUNES any higher-numbered chunks a larger
+ * previous ingest left behind, so a shrunk index never serves stale rows (M29).
  */
 export async function writeSearchIndex(country: string, index: SearchIndex): Promise<void> {
   const pk = idxPk(country);
@@ -88,6 +118,10 @@ export async function writeSearchIndex(country: string, index: SearchIndex): Pro
   chunkInto(COURT_PREFIX, index.courts);
   chunkInto(CITY_PREFIX, index.cities);
   await batchWrite(items);
+
+  // Prune leftover higher chunks AFTER writing the new ones (no empty-index window).
+  await deleteStaleChunks(pk, COURT_PREFIX, chunkCount(index.courts.length));
+  await deleteStaleChunks(pk, CITY_PREFIX, chunkCount(index.cities.length));
 }
 
 async function loadChunks<T>(country: string, prefix: string): Promise<T[]> {

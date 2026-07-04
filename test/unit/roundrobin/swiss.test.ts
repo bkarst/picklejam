@@ -47,6 +47,53 @@ describe("E4 swiss — nearest-record pairing (§6.8)", () => {
     );
   });
 
+  // Undirected pairing key (mirrors the engine) + a brute-force "does a rematch-free
+  // perfect matching exist on these players given prior pairings?" oracle.
+  const mk = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+  function hasRematchFreeMatching(players: string[], played: Set<string>): boolean {
+    if (players.length === 0) return true;
+    const [p, ...rest] = players;
+    for (let k = 0; k < rest.length; k++) {
+      if (!played.has(mk(p, rest[k]))) {
+        const remaining = [...rest.slice(0, k), ...rest.slice(k + 1)];
+        if (hasRematchFreeMatching(remaining, played)) return true;
+      }
+    }
+    return false;
+  }
+  /** Assert every scheduled rematch was GENUINELY unavoidable (no rematch-free matching). */
+  function assertNoAvoidableRematch(cfg: RrConfig): void {
+    const played = new Set<string>();
+    for (const r of simulate(cfg, sideAWins)) {
+      const players = r.matches.flatMap((m) => [m.sideA[0], m.sideB[0]]);
+      const rematched = r.matches.some((m) => played.has(mk(m.sideA[0], m.sideB[0])));
+      if (rematched) {
+        // A rematch is only legitimate when NO rematch-free perfect matching existed on
+        // this round's paired players. Pre-fix the greedy emitted rematches while one did.
+        expect(hasRematchFreeMatching(players, played)).toBe(false);
+      }
+      for (const m of r.matches) played.add(mk(m.sideA[0], m.sideB[0]));
+    }
+  }
+
+  it("M28: 8 players over 6 rounds (seed 1) — no avoidable rematch (smoke)", () => {
+    assertNoAvoidableRematch(swissConfig(8, 6, 1));
+  });
+
+  // The red→green anchor: the greedy scheduled avoidable rematches for some (n, rounds, seed);
+  // the brute-force oracle catches ANY rematch the engine could have avoided.
+  it("M28: never schedules an avoidable rematch across sizes/rounds/seeds (brute-force verified)", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 4, max: 10 }),
+        fc.integer({ min: 3, max: 6 }),
+        fc.integer({ min: 1, max: 1_000_000 }),
+        (n, rounds, seed) => assertNoAvoidableRematch(swissConfig(n, rounds, seed)),
+      ),
+      { numRuns: 120 },
+    );
+  });
+
   it("no rematch while avoidable (8 players, 3 rounds)", () => {
     const cfg = swissConfig(8, 3, 55);
     const seen = new Set<string>();

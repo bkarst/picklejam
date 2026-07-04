@@ -27,6 +27,7 @@ import {
   useConnectDupr,
   type ProfileUpdate,
 } from "@/lib/api/profile";
+import { isSlug } from "@/lib/util/slug";
 import { CityPicker } from "./CityPicker";
 import {
   RATING_BLURBS,
@@ -133,13 +134,23 @@ function ProfileEditorInner({ profile }: { profile: UserProfileItem }): JSX.Elem
     const t = setTimeout(() => setDebouncedUsername(form.username), 300);
     return () => clearTimeout(t);
   }, [form.username]);
-  const { data: availability } = useUsernameAvailable(usernameChanged ? debouncedUsername : "");
-  const usernameChecking = usernameChanged && debouncedUsername === form.username && !availability;
-  const usernameInvalid = usernameChanged && availability?.valid === false;
+  // Validate the slug LOCALLY. The availability query is `enabled: isSlug`, so for a non-slug
+  // username (space, underscore, uppercase, trailing hyphen, cleared) it never runs and
+  // `availability` stays undefined — deriving "checking" from just `!availability` then stuck
+  // it at "Checking availability…" forever with no error, permanently disabling Save (M17).
+  const usernameSlugValid = isSlug(form.username);
+  const { data: availability } = useUsernameAvailable(
+    usernameChanged && usernameSlugValid ? debouncedUsername : "",
+  );
+  const usernameChecking =
+    usernameChanged && usernameSlugValid && debouncedUsername === form.username && !availability;
+  // A structurally-invalid username is invalid IMMEDIATELY (not a perpetual "checking"); the
+  // server's own `valid === false` is a belt-and-braces fallback.
+  const usernameInvalid = usernameChanged && (!usernameSlugValid || availability?.valid === false);
   const usernameTaken =
-    usernameChanged && availability?.valid === true && availability?.available === false;
+    usernameChanged && usernameSlugValid && availability?.valid === true && availability?.available === false;
   const usernameOk =
-    usernameChanged && availability?.valid === true && availability?.available === true;
+    usernameChanged && usernameSlugValid && availability?.valid === true && availability?.available === true;
 
   const dirty = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(baseline),

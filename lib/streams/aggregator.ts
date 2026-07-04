@@ -292,10 +292,19 @@ async function onMember(record: StreamRecord): Promise<void> {
   const pk = str(img, "pk");
   const groupId = pk ? stripPrefix(pk, "GROUP#") : undefined;
   if (!groupId) return;
+  // Guard on the GROUP META still existing. Deleting a group cascade-deletes its MEMBER#
+  // rows in one transaction; in prod the real Stream then delivers a REMOVE for each — and
+  // an unconditional `ADD memberCount` on the now-gone META would CREATE a ghost
+  // `{GROUP#id/META, memberCount:-N}` (ADD-on-missing-item creates it) that `getGroupMeta`
+  // returns as a truthy corrupt group (M23). The condition makes that write a no-op.
   await updateItem({
     key: groupKeys.meta(groupId),
     update: "ADD memberCount :d",
+    condition: "attribute_exists(pk)",
     values: { ":d": delta },
+  }).catch((err) => {
+    if (err instanceof ConditionalCheckFailedException) return; // group gone → nothing to count
+    throw err;
   });
 }
 
@@ -390,6 +399,49 @@ async function onOutingRef(record: StreamRecord): Promise<void> {
   });
 }
 
+// ── OUTING/META insert/remove → geo counts.games (§9.4, Stage 4) ─────────────
+
+/**
+ * An outing create/delete rolls `counts.games` up the geo hierarchy (CITY → STATE →
+ * COUNTRY). INSERT +1 / REMOVE -1 — SYMMETRIC (mirrors {@link onGroupMeta}) so a deleted
+ * outing decrements the metric instead of leaving it inflated forever (M13). The
+ * shared `onCreateGeoCount` is INSERT-only and was silently dropping the delete's REMOVE.
+ * The court-level `gamesCount` is handled separately on the OUTINGREF pointer.
+ */
+async function onOutingMeta(record: StreamRecord): Promise<void> {
+  let delta = 0;
+  if (record.eventName === "INSERT") delta = 1;
+  else if (record.eventName === "REMOVE") delta = -1;
+  else return; // a META edit (organizer field change) never changes the games count
+  const img = currentImage(record);
+  if (!img) return;
+  const cityKey = str(img, "cityKey");
+  if (!cityKey) return;
+  await bumpCityStateCountry(cityKey, "games", delta);
+}
+
+// ── USER/PROFILE insert/modify/remove → geo counts.players (§9.4) ─────────────
+
+/**
+ * `counts.players` follows a user's HOME CITY. A profile is created WITHOUT a city
+ * (§13.8) and only gets one later at onboarding (a MODIFY), so the previous INSERT-only
+ * counter could never fire in the real signup flow (M14). Attribute on the homeCityKey
+ * EDGE instead:
+ *   INSERT with a city     → +1 that city
+ *   MODIFY old ≠ new       → -1 old (if any) and +1 new (if any)  [first-set / move / clear]
+ *   REMOVE with a city     → -1 that city
+ * so a user is counted once their home city is known, and RE-attributed when they move.
+ */
+async function onProfile(record: StreamRecord): Promise<void> {
+  const oldCity = record.oldImage ? str(record.oldImage, "homeCityKey") : undefined;
+  const newCity = record.newImage ? str(record.newImage, "homeCityKey") : undefined;
+  if (oldCity === newCity) return; // no home-city change (covers a city-less INSERT + unrelated edits)
+  await Promise.all([
+    oldCity ? bumpCityStateCountry(oldCity, "players", -1) : Promise.resolve(),
+    newCity ? bumpCityStateCountry(newCity, "players", 1) : Promise.resolve(),
+  ]);
+}
+
 // ── dispatcher ───────────────────────────────────────────────────────────────
 
 /**
@@ -414,7 +466,7 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
   }
 
   if (pk.startsWith("USER#")) {
-    if (sk === "PROFILE") await onCreateGeoCount(record, "players", "homeCityKey");
+    if (sk === "PROFILE") await onProfile(record);
     return;
   }
 
@@ -425,7 +477,7 @@ export async function applyStreamRecord(record: StreamRecord): Promise<void> {
   }
 
   if (pk.startsWith("OUTING#")) {
-    if (sk === "META") await onCreateGeoCount(record, "games", "cityKey");
+    if (sk === "META") await onOutingMeta(record);
     return;
   }
 

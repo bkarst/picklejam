@@ -20,6 +20,7 @@ import {
   UsernameTakenError,
   type ProfileInput,
 } from "@/lib/data/users";
+import { emitModify } from "@/lib/streams/inline";
 import { guarded, bad, jsonBody, readOptText } from "../_util";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,13 @@ export async function PUT(req: NextRequest): Promise<Response> {
       if (err instanceof UsernameTakenError) bad("username taken", 409);
       throw err;
     }
+    // Emit the profile MODIFY so the §9.4 aggregator re-attributes geo `counts.players`
+    // on the homeCityKey edge — first-set at onboarding, or a later home-city move (M14).
+    // No-op in prod (real Streams own it); applies inline in dev/CI.
+    await emitModify(
+      current as unknown as Record<string, unknown>,
+      item as unknown as Record<string, unknown>,
+    );
     return Response.json(item);
   });
 }

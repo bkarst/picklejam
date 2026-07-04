@@ -51,6 +51,7 @@ export function OrganizerDashboard({ tid }: { tid: string }): JSX.Element {
   const refundMut = useRefundRegistration(tid);
   const [tab, setTab] = useState<Tab>("registrations");
   const [refunding, setRefunding] = useState<string | null>(null);
+  const [refundError, setRefundError] = useState<{ sk: string; message: string } | null>(null);
 
   const divisionsById = useMemo(() => {
     const m = new Map<string, DivisionItem>();
@@ -90,9 +91,18 @@ export function OrganizerDashboard({ tid }: { tid: string }): JSX.Element {
 
   const doRefund = (r: RegistrationItem) => {
     setRefunding(r.sk);
+    setRefundError(null);
     refundMut
       .mutateAsync({ did: r.did, uid: r.uid })
-      .catch(() => {})
+      // On success the invalidated refetch flips the row to `refunded` (the feedback). On
+      // failure, SURFACE it — a silently-swallowed error left the organizer thinking the
+      // refund worked, or double-clicking (compounding the double-refund risk, H4) — M19.
+      .catch((e: unknown) => {
+        setRefundError({
+          sk: r.sk,
+          message: e instanceof Error ? e.message : "Refund failed — it was not applied. Please try again.",
+        });
+      })
       .finally(() => setRefunding(null));
   };
 
@@ -210,6 +220,11 @@ export function OrganizerDashboard({ tid }: { tid: string }): JSX.Element {
                             </button>
                           ) : (
                             <span className="text-xs text-muted">—</span>
+                          )}
+                          {refundError?.sk === r.sk && (
+                            <p role="alert" className="mt-1 text-xs text-danger">
+                              {refundError.message}
+                            </p>
                           )}
                         </td>
                       </tr>

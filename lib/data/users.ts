@@ -22,6 +22,7 @@ import {
 import { GSI } from "@/lib/db/table";
 import { userKeys, usernameKey } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
+import { emitInsert } from "@/lib/streams/inline";
 import type { AuthedUser } from "@/lib/auth/verify";
 import type {
   UserProfileItem,
@@ -267,6 +268,10 @@ export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileI
     });
     try {
       await putProfileWithUsername(profile); // create (no old username)
+      // Emit the profile INSERT so the §9.4 aggregator runs (inline in dev/CI; the real
+      // Streams Lambda in prod). The new profile has no homeCityKey yet, so this attributes
+      // no player until onboarding sets the city (a MODIFY the PUT route emits, M14).
+      await emitInsert(profile as unknown as Record<string, unknown>);
       return profile;
     } catch (err) {
       if (err instanceof UsernameTakenError) continue; // race — retry with a suffix

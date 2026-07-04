@@ -431,6 +431,15 @@ export const ladderKeys = {
     sk: `RUNG${SEP}${pad(position)}`,
   }),
   rungPrefix: (): string => `RUNG${SEP}`,
+  /**
+   * Per-uid membership marker. RUNG rows are keyed by POSITION, so a conditional
+   * `putNew` on this uid-keyed row is what enforces one rung per uid across concurrent
+   * first-joins (M11). Lives in the ladder partition; ignored by rung/challenge reads.
+   */
+  member: (lid: string, uid: string): PrimaryKey => ({
+    pk: `LADDER${SEP}${lid}`,
+    sk: `MEMBER${SEP}${uid}`,
+  }),
   /** Challenge row + GSI1 (my incoming challenges) (§9.5 #22). */
   challenge: (lid: string, cid: string, challengedUid: string, dueDate: string): PrimaryKey & Gsi1Key => ({
     pk: `LADDER${SEP}${lid}`,

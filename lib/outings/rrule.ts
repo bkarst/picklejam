@@ -151,9 +151,20 @@ export function expandRrule(
   return results;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+/** Runaway guard on the reach-`from` expansion (an absurdly far `from`). */
+const NEXT_OCC_MAX = 5200;
+
 /**
- * The next `n` occurrences at/after `from`. Expands the rule (respecting
- * COUNT/UNTIL) and returns the first `n` whose instant is ≥ `from`.
+ * The next `n` occurrences at/after `from`. Expands the rule (respecting COUNT/UNTIL)
+ * and returns the first `n` whose instant is ≥ `from`.
+ *
+ * The expansion window must be sized to REACH `from`, not just cover the first
+ * {@link DEFAULT_MAX} occurrences from DTSTART — otherwise a long-lived weekly series
+ * whose `from` is months/years past DTSTART expands only early occurrences (all < `from`)
+ * and returns `[]`, so "upcoming occurrences" silently vanishes (M26). We size the cap by
+ * the interval-weeks between DTSTART and `from` (plus room for `n` more); COUNT/UNTIL still
+ * bound the true sequence inside {@link expandRrule}.
  */
 export function nextOccurrences(
   rrule: string,
@@ -163,8 +174,16 @@ export function nextOccurrences(
 ): string[] {
   if (n <= 0) return [];
   const fromMs = new Date(from).getTime();
-  // Expand generously so we can still find `n` future ones far from DTSTART.
-  const all = expandRrule(rrule, dtstart, { max: Math.max(DEFAULT_MAX, n * 4) });
+  const startMs = new Date(dtstart).getTime();
+  if (Number.isNaN(fromMs)) throw new Error(`Invalid from: ${from}`);
+  if (Number.isNaN(startMs)) throw new Error(`Invalid dtstart: ${dtstart}`);
+
+  const rule = parseRrule(rrule);
+  const daysPerWeek = rule.byday && rule.byday.length > 0 ? rule.byday.length : 1;
+  const weeksToFrom = Math.max(0, Math.ceil((fromMs - startMs) / (WEEK_MS * rule.interval)));
+  const max = Math.min(NEXT_OCC_MAX, Math.max(DEFAULT_MAX, (weeksToFrom + n + 2) * daysPerWeek));
+
+  const all = expandRrule(rrule, dtstart, { max });
   const future = all.filter((iso) => new Date(iso).getTime() >= fromMs);
   return future.slice(0, n);
 }
@@ -180,6 +199,12 @@ export interface IcsEvent {
   location?: string;
   /** Stable UID; defaults to a value derived from the start time + title. */
   uid?: string;
+  /**
+   * RFC 5545 recurrence rule VALUE (bare `FREQ=WEEKLY;…`, no `RRULE:` prefix). When
+   * present, `toIcs` emits an `RRULE:` line so a recurring series imports every
+   * occurrence — not just the first (M25).
+   */
+  rrule?: string;
 }
 
 /** Format an ISO instant as an iCalendar UTC value `YYYYMMDDTHHMMSSZ`. */
@@ -218,6 +243,12 @@ export function toIcs(o: IcsEvent): string {
     `DTSTART:${dtStart}`,
   ];
   if (o.endTs) lines.push(`DTEND:${toIcsDate(o.endTs)}`);
+  if (o.rrule) {
+    // RRULE is a STRUCTURED property value (its `;`/`,` are syntax) — do NOT text-escape.
+    // Normalize a stray `RRULE:` prefix and strip line breaks so it can't inject ICS lines.
+    const rule = o.rrule.trim().replace(/^RRULE:/i, "").replace(/[\r\n]+/g, "");
+    if (rule) lines.push(`RRULE:${rule}`);
+  }
   lines.push(`SUMMARY:${escapeIcsText(o.title)}`);
   if (o.description) lines.push(`DESCRIPTION:${escapeIcsText(o.description)}`);
   if (o.location) lines.push(`LOCATION:${escapeIcsText(o.location)}`);

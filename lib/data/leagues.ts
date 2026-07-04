@@ -451,6 +451,42 @@ async function releaseDivisionSpot(lid: string, did: string): Promise<void> {
   });
 }
 
+/**
+ * Atomically flip a registration's `paymentStatus` from `from` → `to`, reporting
+ * whether THIS caller performed the transition. The `paymentStatus = :from` condition
+ * is the concurrency gate for freeing a division spot (M8): the pending-cancel branch,
+ * the organizer API refund, and the `charge.refunded` webhook all read the reg's status
+ * non-atomically before releasing — under a concurrent refund/cancel (or an API refund
+ * racing the webhook) they'd each read the same non-terminal status and each release,
+ * dropping `registeredCount` by 2 for a single claim (→ later oversell). Releasing ONLY
+ * when this transition wins guarantees exactly one release. Returns false (never throws)
+ * when another writer already moved the reg off `from`.
+ */
+async function transitionRegStatus(
+  key: { pk: string; sk: string },
+  from: string,
+  to: string,
+  extra?: { refundedAmount?: StoredMoney },
+): Promise<boolean> {
+  const values: Record<string, unknown> = {
+    ":to": to,
+    ":from": from,
+    ":u": new Date().toISOString(),
+  };
+  let update = "SET paymentStatus = :to, updatedAt = :u";
+  if (extra?.refundedAmount) {
+    update = "SET paymentStatus = :to, refundedAmount = :r, updatedAt = :u";
+    values[":r"] = extra.refundedAmount;
+  }
+  try {
+    await updateItem({ key, update, condition: "paymentStatus = :from", values });
+    return true;
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return false;
+    throw err;
+  }
+}
+
 // ── register (capacity race + Checkout + free-agent / partner-pending) ───────────
 
 /** Enforce a division's DUPR/skill gate (§7.2 rated flights). */
@@ -561,24 +597,30 @@ export async function registerForLeague(
   const breakdown = computeFees(fromStored(division!.price), feeConfigOf(league!));
   const regKey = `${did}#${uid}`;
 
+  // FREE league (total $0): a $0 Stripe Checkout session is REJECTED by real Stripe (its
+  // ~$0.50 minimum), so a free league would 500 on every join in prod (M24). Skip Checkout
+  // when free and fulfill the (non-partner) join immediately below.
+  const isFree = breakdown.total.amount <= 0;
   let session;
-  try {
-    session = await getGateway().createCheckoutSession({
-      connectedAccountId: league!.connectedAccountId!,
-      lineItems: [
-        { name: `${league!.title} — ${division!.name}`, unitAmount: breakdown.total, quantity: 1 },
-      ],
-      applicationFee: breakdown.applicationFee,
-      currency: league!.currency,
-      metadata: { lid, did, uid, regKey, kind: "league" },
-      successUrl: `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=success`,
-      cancelUrl: `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=cancel`,
-      ...(opts.customerEmail ? { customerEmail: opts.customerEmail } : {}),
-      clientReferenceId: regKey,
-    });
-  } catch (err) {
-    if (claimed) await releaseDivisionSpot(lid, did);
-    throw err;
+  if (!isFree) {
+    try {
+      session = await getGateway().createCheckoutSession({
+        connectedAccountId: league!.connectedAccountId!,
+        lineItems: [
+          { name: `${league!.title} — ${division!.name}`, unitAmount: breakdown.total, quantity: 1 },
+        ],
+        applicationFee: breakdown.applicationFee,
+        currency: league!.currency,
+        metadata: { lid, did, uid, regKey, kind: "league" },
+        successUrl: `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=success`,
+        cancelUrl: `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=cancel`,
+        ...(opts.customerEmail ? { customerEmail: opts.customerEmail } : {}),
+        clientReferenceId: regKey,
+      });
+    } catch (err) {
+      if (claimed) await releaseDivisionSpot(lid, did);
+      throw err;
+    }
   }
 
   const iso = new Date().toISOString();
@@ -597,8 +639,7 @@ export async function registerForLeague(
       ? { partnerUid: opts.partnerUid, partnerStatus: "pending" as PartnerStatus }
       : {}),
     paymentStatus,
-    checkoutSessionId: session.id,
-    paymentIntentId: session.paymentIntentId,
+    ...(session ? { checkoutSessionId: session.id, paymentIntentId: session.paymentIntentId } : {}),
     amount: toStored(breakdown.total),
     applicationFee: toStored(breakdown.applicationFee),
     registeredAt: iso,
@@ -622,7 +663,28 @@ export async function registerForLeague(
     throw err;
   }
 
-  return { regKey, registration, checkoutUrl: session.url, status: paymentStatus };
+  // FREE, non-partner: fulfill now (confirmLeaguePayment flips pending→paid + writes a $0
+  // receipt). Partner-pending free regs stay partnerPending (payment isn't due until the
+  // partner accepts). Roll back on failure so the join is retryable.
+  if (isFree && !isDoublesPartner) {
+    try {
+      await confirmLeaguePayment({ lid, did, uid, amountTotal: 0, currency: league!.currency });
+    } catch (err) {
+      await releaseDivisionSpot(lid, did).catch(() => {});
+      await deleteItem(key).catch(() => {});
+      throw err;
+    }
+    return {
+      regKey,
+      registration: { ...registration, paymentStatus: "paid" },
+      checkoutUrl: `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=success`,
+      status: "pending", // redirect hint only; the reg itself is `paid` above
+    };
+  }
+
+  const checkoutUrl =
+    session?.url ?? `${publicEnv.siteUrl}/leagues/${lid}?reg=${encodeURIComponent(regKey)}&checkout=success`;
+  return { regKey, registration, checkoutUrl, status: paymentStatus };
 }
 
 // ── webhook fulfilment (idempotent) — the integrator wires these into the route ──
@@ -799,18 +861,24 @@ export async function markLeagueRegRefunded(
   const currency = reg.amount?.currency ?? input.currency ?? "usd";
   const refunded = input.amountRefunded ?? charged;
   const full = refunded >= charged;
-  const wasFullyRefunded = reg.paymentStatus === "refunded";
+  const refundedMoney: StoredMoney = { amount: refunded, currency };
   const iso = new Date().toISOString();
 
-  const attrs = await updateItem({
-    key,
-    update: "SET paymentStatus = :s, refundedAmount = :r, updatedAt = :u",
-    values: {
-      ":s": full ? "refunded" : "partiallyRefunded",
-      ":r": { amount: refunded, currency } satisfies StoredMoney,
-      ":u": iso,
-    },
-  });
+  // On a FULL refund, flip the reg CONDITIONALLY (M8): the transition wins for exactly
+  // one caller, and only that caller frees the spot below — so a concurrent organizer
+  // API refund racing this webhook can't both release. Skip a reg that is ALREADY
+  // refunded (an idempotent duplicate webhook): a `refunded → refunded` self-transition
+  // would pass its own condition and release the spot a second time.
+  const flipped = full && reg.paymentStatus !== "refunded"
+    ? await transitionRegStatus(key, reg.paymentStatus, "refunded", { refundedAmount: refundedMoney })
+    : false;
+  if (!full) {
+    await updateItem({
+      key,
+      update: "SET paymentStatus = :s, refundedAmount = :r, updatedAt = :u",
+      values: { ":s": "partiallyRefunded", ":r": refundedMoney, ":u": iso },
+    });
+  }
 
   if (reg.paymentIntentId) {
     const pay = (await getMyPayments(uid)).find((p) => p.paymentIntentId === reg.paymentIntentId);
@@ -821,16 +889,15 @@ export async function markLeagueRegRefunded(
         names: { "#st": "status" },
         values: {
           ":s": full ? "refunded" : "partiallyRefunded",
-          ":r": { amount: refunded, currency } satisfies StoredMoney,
+          ":r": refundedMoney,
         },
       });
     }
   }
 
-  // Free the spot exactly once, when the reg FIRST becomes fully refunded — else an
-  // organizer API refund that already freed it is double-released by the webhook.
-  if (full && !wasFullyRefunded) await releaseDivisionSpot(lid, did);
-  return (attrs as unknown as LeagueRegistrationItem) ?? reg;
+  // Free the spot exactly once — only the caller whose full-refund transition won.
+  if (full && flipped) await releaseDivisionSpot(lid, did);
+  return { ...reg, paymentStatus: full ? "refunded" : "partiallyRefunded", refundedAmount: refundedMoney, updatedAt: iso };
 }
 
 // ── weekly schedule (generate the fixtures from the paid roster) ─────────────────
@@ -849,7 +916,7 @@ function entrantIdOf(reg: LeagueRegistrationItem): string {
 export async function generateSchedule(lid: string): Promise<ScheduleMatchItem[]> {
   const detail = await getLeague(lid);
   if (!detail) notFound(`League not found: ${lid}`);
-  const { league, divisions, registrations } = detail!;
+  const { league, divisions, registrations, schedule: existing } = detail!;
   const iso = new Date().toISOString();
 
   const out: ScheduleMatchItem[] = [];
@@ -884,6 +951,18 @@ export async function generateSchedule(lid: string): Promise<ScheduleMatchItem[]
     }
   }
   await Promise.all(out.map((it) => putItem(asItem(it))));
+
+  // Regeneration is a FULL replacement (deterministic per roster). The mid is a
+  // POSITIONAL index within a week, not matchup-stable — a roster change re-points every
+  // mid at a different pairing (and a shrinking roster drops fixtures entirely, e.g. a
+  // week's 3rd match once a 6th entrant leaves). Delete any prior WEEK# rows the new
+  // schedule didn't overwrite, else those orphans survive with a stale `confirmed` result
+  // and materializeStandings double-counts them (M10). Delete AFTER the writes so a
+  // mid-op failure never leaves the schedule missing its real fixtures.
+  const planned = new Set(out.map((it) => `${it.week}#${it.mid}`));
+  const stale = existing.filter((m) => !planned.has(`${m.week}#${m.mid}`));
+  await Promise.all(stale.map((m) => deleteItem(leagueKeys.scheduleMatch(lid, m.week, m.mid))));
+
   return out;
 }
 
@@ -1152,16 +1231,14 @@ export async function refundLeagueRegistration(
 
   // Nothing captured yet — just cancel + free the spot (no gateway refund needed).
   if (!PAID_STATES.has(reg.paymentStatus)) {
-    const iso = new Date().toISOString();
-    await updateItem({
-      key,
-      update: "SET paymentStatus = :s, updatedAt = :u",
-      values: { ":s": "cancelled", ":u": iso },
-    });
-    // Free the spot only for a reg that still HELD one (pending/partnerPending). An
-    // already-terminal reg (cancelled/refunded) released it already — releasing again
-    // would undercount the division.
-    if (ACTIVE_REG.has(reg.paymentStatus)) await releaseDivisionSpot(lid, did);
+    // Flip to cancelled ONLY if the reg is still in its pre-read status. A concurrent
+    // cancel/refund that already transitioned it fails this condition, so exactly one
+    // caller reaches the release below (M8 — no double-release of the spot).
+    const flipped = await transitionRegStatus(key, reg.paymentStatus, "cancelled");
+    // Free the spot only for a reg that still HELD one (pending/partnerPending) AND that
+    // THIS call actually transitioned. An already-terminal reg (cancelled/refunded)
+    // released it already — releasing again would undercount the division.
+    if (flipped && ACTIVE_REG.has(reg.paymentStatus)) await releaseDivisionSpot(lid, did);
     return { ...reg, paymentStatus: "cancelled" };
   }
 
@@ -1181,12 +1258,19 @@ export async function refundLeagueRegistration(
   const refundedAmount: StoredMoney =
     updatedPayment.refundedAmount ?? reg.amount ?? { amount: 0, currency: "usd" };
   const iso = new Date().toISOString();
-  await updateItem({
-    key,
-    update: "SET paymentStatus = :s, refundedAmount = :r, updatedAt = :u",
-    values: { ":s": full ? "refunded" : "partiallyRefunded", ":r": refundedAmount, ":u": iso },
-  });
-  if (full) await releaseDivisionSpot(lid, did);
+  if (full) {
+    // Conditionally flip to refunded; release the spot ONLY if this call performed the
+    // transition. A concurrent API refund or the charge.refunded webhook that already
+    // flipped the reg fails the condition, so the spot is freed exactly once (M8).
+    const flipped = await transitionRegStatus(key, reg.paymentStatus, "refunded", { refundedAmount });
+    if (flipped) await releaseDivisionSpot(lid, did);
+  } else {
+    await updateItem({
+      key,
+      update: "SET paymentStatus = :s, refundedAmount = :r, updatedAt = :u",
+      values: { ":s": "partiallyRefunded", ":r": refundedAmount, ":u": iso },
+    });
+  }
   return { ...reg, paymentStatus: full ? "refunded" : "partiallyRefunded", refundedAmount };
 }
 

@@ -87,6 +87,13 @@ function parseScoring(raw: unknown): ScoringConfig {
   const out: ScoringConfig = { pointsToWin: pointsToWin as number, winBy: winBy as number };
   if (s.cap === null) out.cap = null;
   else if (typeof s.cap === "number" && Number.isInteger(s.cap)) out.cap = s.cap;
+  // Wall-clock time cap in minutes (distinct from the points `cap`). Carry a positive
+  // integer or an explicit null; otherwise omit. Without this the organizer's chosen
+  // time cap is silently stripped on create (M18).
+  if (s.timeCapMin === null) out.timeCapMin = null;
+  else if (typeof s.timeCapMin === "number" && Number.isInteger(s.timeCapMin) && s.timeCapMin > 0) {
+    out.timeCapMin = s.timeCapMin;
+  }
   if (typeof s.gamesPerMatch === "number" && Number.isInteger(s.gamesPerMatch) && s.gamesPerMatch > 0) {
     out.gamesPerMatch = s.gamesPerMatch;
   }
