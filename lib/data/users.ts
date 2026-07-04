@@ -28,6 +28,7 @@ import type {
   RatingItem,
   RatingSystem,
   Visibility,
+  NotifPrefs,
 } from "@/lib/db/types";
 
 // ── reads (one query/getItem each) ───────────────────────────────────────────
@@ -180,6 +181,16 @@ export interface ProfileInput {
   defaultRatingSource?: RatingSystem;
   onboarded?: boolean;
   completedSteps?: string[];
+  /**
+   * Side-channel fields that OTHER subsystems write onto the same PROFILE item via
+   * partial `updateItem`s (notification prefs, the unsubscribe suppression list, and
+   * check-in visibility). They are NOT edited here, but a profile edit does a full
+   * `Put`, so they must be carried through or they get silently wiped — resurrecting a
+   * one-click unsubscribe is a CAN-SPAM / RFC 8058 compliance failure.
+   */
+  notifPrefs?: NotifPrefs;
+  unsubscribed?: string[];
+  checkinVisibility?: "public" | "private";
   /** Preserve the original create timestamp across updates. */
   createdAt?: string;
 }
@@ -204,6 +215,12 @@ export function buildProfileItem(input: ProfileInput): UserProfileItem {
       : {}),
     ...(input.onboarded !== undefined ? { onboarded: input.onboarded } : {}),
     ...(input.completedSteps !== undefined ? { completedSteps: input.completedSteps } : {}),
+    // Preserve side-channel fields owned by other subsystems (see ProfileInput) so a
+    // full-Put profile edit never wipes notif prefs / the unsubscribe list / check-in
+    // visibility.
+    ...(input.notifPrefs !== undefined ? { notifPrefs: input.notifPrefs } : {}),
+    ...(input.unsubscribed !== undefined ? { unsubscribed: input.unsubscribed } : {}),
+    ...(input.checkinVisibility !== undefined ? { checkinVisibility: input.checkinVisibility } : {}),
     createdAt: input.createdAt ?? now,
     updatedAt: now,
   };

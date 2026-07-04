@@ -136,12 +136,17 @@ export class RealStripeGateway implements PaymentGateway {
   }
 
   async createRefund(input: RefundInput): Promise<RefundResult> {
-    const refund = await this.stripe.refunds.create({
-      payment_intent: input.paymentIntentId,
-      ...(input.amount ? { amount: input.amount.amount } : {}),
-      refund_application_fee: input.refundApplicationFee,
-      ...(input.reason ? { reason: input.reason as Stripe.RefundCreateParams.Reason } : {}),
-    });
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: input.paymentIntentId,
+        ...(input.amount ? { amount: input.amount.amount } : {}),
+        refund_application_fee: input.refundApplicationFee,
+        ...(input.reason ? { reason: input.reason as Stripe.RefundCreateParams.Reason } : {}),
+      },
+      // Idempotency: a retried/duplicated refund with the same key returns the SAME
+      // refund object instead of moving money twice (defense against double-clicks).
+      input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
+    );
     return {
       id: refund.id,
       amount: { amount: refund.amount, currency: refund.currency ?? (input.amount?.currency ?? "usd") },
@@ -166,6 +171,7 @@ export interface FakeRefundRecord {
   amount: Money;
   refundApplicationFee: boolean;
   reason?: string;
+  idempotencyKey?: string;
 }
 
 /**
@@ -245,6 +251,12 @@ export class FakeGateway implements PaymentGateway {
   }
 
   async createRefund(input: RefundInput): Promise<RefundResult> {
+    // Honor idempotency exactly like real Stripe: a repeat of the same key returns the
+    // SAME refund without recording a second one (so a double-click collapses to one).
+    if (input.idempotencyKey) {
+      const prior = this.refunds.find((r) => r.idempotencyKey === input.idempotencyKey);
+      if (prior) return { id: prior.id, amount: prior.amount, status: "succeeded" };
+    }
     const id = `re_fake_${nextId()}`;
     // The ledger resolves the exact minor-unit amount (full = remaining) and always
     // passes it in, so the fake can echo it back faithfully.
@@ -254,6 +266,7 @@ export class FakeGateway implements PaymentGateway {
       paymentIntentId: input.paymentIntentId,
       amount,
       refundApplicationFee: input.refundApplicationFee,
+      ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
       ...(input.reason ? { reason: input.reason } : {}),
     });
     return { id, amount, status: "succeeded" };

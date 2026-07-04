@@ -257,7 +257,7 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     expect(result.registration.partnerUid).toBe(uid("d-2"));
   });
 
-  it("DUPR gate: a rated division rejects out-of-range / unrated players and accepts in-range", async () => {
+  it("DUPR gate: uses the STORED verified rating server-side (a forged request value can't unlock it)", async () => {
     const organizer = uid("org3d");
     await connectComplete(organizer);
     const { tid, dids } = await makePublished(organizer, [
@@ -265,30 +265,42 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     ]);
     const did = dids[0];
 
-    // No rating → 403.
-    await expect(registerForDivision(tid, did, uid("g-none"), {})).rejects.toMatchObject({ status: 403 });
-    // Out of range → 403.
-    await expect(
-      registerForDivision(tid, did, uid("g-low"), { dupr: 3.2 }),
-    ).rejects.toMatchObject({ status: 403 });
-    // In range → ok.
-    const ok = await registerForDivision(tid, did, uid("g-ok"), { dupr: 4.25 });
-    expect(ok.status).toBe("pending");
-
-    // The gate also reads a persisted RATING# row (not just the passed override).
-    const rated = uid("g-rated");
-    const rating: RatingItem = {
-      ...userKeys.rating(rated, "DUPR"),
-      entity: "RATING",
-      uid: rated,
-      system: "DUPR",
-      value: 4.1,
-      verified: true,
-    };
     const { putItem } = await import("@/lib/db/client");
-    await putItem(rating as unknown as Record<string, unknown>);
-    const okRated = await registerForDivision(tid, did, rated, {});
-    expect(okRated.status).toBe("pending");
+    const seedDupr = async (u: string, value: number, verified = true) => {
+      const rating: RatingItem = {
+        ...userKeys.rating(u, "DUPR"),
+        entity: "RATING",
+        uid: u,
+        system: "DUPR",
+        value,
+        verified,
+      };
+      await putItem(rating as unknown as Record<string, unknown>);
+    };
+
+    // No stored rating → 403. (The request body carries no rating anymore; the gate is
+    // resolved purely from RATING# rows, so a would-be forger has nothing to forge.)
+    await expect(registerForDivision(tid, did, uid("g-none"), {})).rejects.toMatchObject({
+      status: 403,
+    });
+
+    // Stored rating out of range → 403.
+    const low = uid("g-low");
+    await seedDupr(low, 3.2);
+    await expect(registerForDivision(tid, did, low, {})).rejects.toMatchObject({ status: 403 });
+
+    // A self-entered (verified:false) DUPR does NOT satisfy a DUPR flight, even in range.
+    const unverified = uid("g-unverified");
+    await seedDupr(unverified, 4.25, false);
+    await expect(registerForDivision(tid, did, unverified, {})).rejects.toMatchObject({
+      status: 403,
+    });
+
+    // Stored VERIFIED rating in range → ok.
+    const okUser = uid("g-ok");
+    await seedDupr(okUser, 4.25);
+    const ok = await registerForDivision(tid, did, okUser, {});
+    expect(ok.status).toBe("pending");
   });
 
   it("register → Checkout → webhook: idempotent replay ⇒ REG paid ONCE, one Payment, count unchanged", async () => {

@@ -494,9 +494,6 @@ async function releaseDivisionSpot(tid: string, did: string): Promise<void> {
 export interface RegisterOptions {
   /** Doubles: the partner (registration is partner-pending until they accept, §10). */
   partnerUid?: string;
-  /** The registrant's ratings for the division gate (else read from the RATING# rows). */
-  dupr?: number;
-  skill?: number;
   /** Deferred-capture: when the division is full, hold an authorization on a waitlist. */
   waitlist?: boolean;
   customerEmail?: string;
@@ -533,10 +530,24 @@ function assertRatingGate(division: DivisionItem, dupr?: number, skill?: number)
   }
 }
 
-/** Read the registrant's DUPR value from their RATING# row (for the gate). */
-async function resolveDupr(uid: string, override?: number): Promise<number | undefined> {
-  if (override !== undefined) return override;
-  const rating = await getItem<{ value?: number }>(userKeys.rating(uid, "DUPR"));
+/**
+ * Server-authoritative DUPR for the division gate. Reads the registrant's STORED
+ * DUPR — NEVER a client-supplied value — so the eligibility gate can't be bypassed by
+ * POSTing a forged `dupr` in the register body. Requires `verified:true`: a self-
+ * entered (verified:false) DUPR from the generic ratings route does NOT satisfy a
+ * DUPR flight. (The DUPR-connect route that mints verified ratings is a separately
+ * tracked stub; once it's a real OAuth pull this gate becomes fully authoritative.)
+ */
+async function resolveDupr(uid: string): Promise<number | undefined> {
+  const rating = await getItem<{ value?: number; verified?: boolean }>(
+    userKeys.rating(uid, "DUPR"),
+  );
+  return rating?.verified ? rating.value : undefined;
+}
+
+/** Server-authoritative skill for the division gate: the self-reported SELF rating. */
+async function resolveSkill(uid: string): Promise<number | undefined> {
+  const rating = await getItem<{ value?: number }>(userKeys.rating(uid, "SELF"));
   return rating?.value;
 }
 
@@ -573,9 +584,10 @@ export async function registerForDivision(
     conflict("You are already registered for this division");
   }
 
-  // Rating gate.
-  const dupr = await resolveDupr(uid, opts.dupr);
-  assertRatingGate(division!, dupr, opts.skill);
+  // Rating gate — resolved SERVER-SIDE from stored ratings, never from the request.
+  const dupr = await resolveDupr(uid);
+  const skill = await resolveSkill(uid);
+  assertRatingGate(division!, dupr, skill);
 
   // Claim a spot (or fall through to a deferred-capture waitlist hold).
   const claimed = await claimDivisionSpot(tid, did, division!.capacity);
@@ -686,6 +698,26 @@ export interface ConfirmPaymentResult {
 }
 
 /**
+ * Refund a payment that landed on an already-CANCELLED tournament — a registrant who
+ * completed Checkout after `cancelTournament` ran its mass-refund pass (which only
+ * refunds PAID_STATES, so an in-flight `pending` reg was skipped). Organizer-initiated
+ * ⇒ the platform fee is refunded too (§10). Best-effort: a gateway/DB failure is logged
+ * (not thrown) so the webhook still ACKs and Stripe does not retry forever — the paid
+ * reg + receipt stand, and an organizer refund can recover it. `refundRegistration`
+ * itself is a no-op on an already-refunded reg, so this is safe to re-run on a retry.
+ */
+async function autoRefundCancelledReg(tid: string, did: string, uid: string): Promise<void> {
+  try {
+    await refundRegistration(tid, did, uid, { refundApplicationFee: true });
+  } catch (err) {
+    console.error(
+      `[confirmRegistrationPayment] auto-refund into cancelled tournament ${tid}/${did}/${uid} failed:`,
+      err,
+    );
+  }
+}
+
+/**
  * Mark a registration `paid` and write its durable Payment receipt. Called by the
  * Stripe webhook after signature verify + event de-dupe. Idempotent per REG: the
  * `paymentStatus === paid` guard means sibling events (checkout.session.completed
@@ -700,10 +732,28 @@ export async function confirmRegistrationPayment(
   const key = tourneyKeys.registration(tid, did, uid, "");
   const reg = await getItem<RegistrationItem>(key);
   if (!reg) return { ok: false };
-  if (reg.paymentStatus === "paid") return { ok: true, alreadyPaid: true, registration: reg };
+
+  // Was the event cancelled while this registrant was mid-checkout? If so their money
+  // is captured into a dead event — confirm the capture below, then AUTO-REFUND it.
+  // Checked here (and re-checked on the `paid` retry branch) so a webhook retry after
+  // a transient refund failure re-attempts rather than stranding the money.
+  const eventCancelled = (await getTournamentMeta(tid))?.status === "cancelled";
+
+  if (reg.paymentStatus === "paid") {
+    if (eventCancelled) await autoRefundCancelledReg(tid, did, uid);
+    return { ok: true, alreadyPaid: true, registration: reg };
+  }
 
   const iso = new Date().toISOString();
   const wasDeferred = reg.authorizedNotCaptured === true;
+
+  // Resolve the real PaymentIntent id and BACKFILL it onto the REG below. With
+  // deferred-PI Checkout (Stripe basil+, our pinned api version), the PaymentIntent
+  // does not exist at session creation, so registration stored `paymentIntentId: ""`;
+  // the webhook is the first place the real PI is known. Use `||` (not `??`) so the
+  // stored empty string falls through to the webhook's PI — otherwise every refund
+  // path (organizer refund, receipt reconciliation) has no PI to target and 400s.
+  const paymentIntentId = reg.paymentIntentId || input.paymentIntentId || "";
 
   // Flip to paid ATOMICALLY so exactly one delivery fulfils. Stripe emits two sibling
   // events for one checkout (checkout.session.completed + payment_intent.succeeded);
@@ -713,11 +763,24 @@ export async function confirmRegistrationPayment(
   try {
     const attrs = await updateItem({
       key,
-      update: "SET paymentStatus = :paid, updatedAt = :u REMOVE authorizedNotCaptured",
-      condition: "paymentStatus <> :paid",
-      values: { ":paid": "paid", ":u": iso },
+      update:
+        "SET paymentStatus = :paid, updatedAt = :u, paymentIntentId = :pi REMOVE authorizedNotCaptured",
+      // Flip to paid ONLY from a non-terminal awaiting-payment state. Guarding
+      // `<> :paid` would also match the terminal states (cancelled/refunded/
+      // partiallyRefunded), so a delayed sibling event (payment_intent.succeeded
+      // after an organizer refund) would RESURRECT a refunded reg back to paid,
+      // write a duplicate receipt, and re-fire analytics — while holding no spot.
+      condition: "paymentStatus IN (:pending, :partnerPending)",
+      values: {
+        ":paid": "paid",
+        ":u": iso,
+        ":pi": paymentIntentId,
+        ":pending": "pending",
+        ":partnerPending": "partnerPending",
+      },
     });
-    updated = (attrs as unknown as RegistrationItem) ?? { ...reg, paymentStatus: "paid" };
+    updated =
+      (attrs as unknown as RegistrationItem) ?? { ...reg, paymentStatus: "paid", paymentIntentId };
   } catch (err) {
     if (err instanceof ConditionalCheckFailedException) {
       return { ok: true, alreadyPaid: true, registration: reg };
@@ -734,7 +797,6 @@ export async function confirmRegistrationPayment(
     await claimDivisionSpot(tid, did, division?.capacity);
   }
 
-  const paymentIntentId = reg.paymentIntentId ?? input.paymentIntentId ?? "";
   const currency = reg.amount?.currency ?? input.currency ?? "usd";
   const amount: StoredMoney = reg.amount ?? { amount: input.amountTotal ?? 0, currency };
   const payment = await writePayment({
@@ -748,6 +810,14 @@ export async function confirmRegistrationPayment(
     status: "paid",
     ...(input.receiptUrl ? { receiptUrl: input.receiptUrl } : {}),
   });
+
+  // Payment landed on a cancelled event: refund it immediately and DON'T fire the
+  // confirmation analytics — the entry is not really confirmed (§10). The receipt
+  // above records the (now-refunded) capture for the ledger/audit trail.
+  if (eventCancelled) {
+    await autoRefundCancelledReg(tid, did, uid);
+    return { ok: true, registration: { ...updated, paymentStatus: "refunded" }, payment };
+  }
 
   // ⚙ payment_succeeded + registration_confirmed (§2.1) — emitted once, at the
   // first fulfilment (the `paid` guard above short-circuits replays). Money was

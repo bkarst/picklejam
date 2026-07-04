@@ -171,28 +171,77 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
     );
   }
 
-  const refund = await getGateway().createRefund({
-    paymentIntentId: payment.paymentIntentId,
-    amount: requested,
-    refundApplicationFee: input.refundApplicationFee,
-    ...(input.reason ? { reason: input.reason } : {}),
-  });
-
   const status: PaymentStatus = newRefunded.amount >= total.amount ? "refunded" : "partiallyRefunded";
   const refundedStored: StoredMoney = { amount: newRefunded.amount, currency: newRefunded.currency };
+  const paymentKey = paymentKeys.payment(input.uid, input.ts);
+  const prevAmount = prevRefunded.amount;
 
-  const attrs = await updateItem({
-    key: paymentKeys.payment(input.uid, input.ts),
-    update: "SET refundedAmount = :ra, #st = :st, updatedAt = :u",
-    names: { "#st": "status" },
-    values: { ":ra": refundedStored, ":st": status, ":u": new Date().toISOString() },
-  });
+  // RESERVE the ledger slot FIRST, with optimistic concurrency on the prior
+  // `refundedAmount` (§14.5). Only ONE concurrent refund can advance prev→new; a rival
+  // that read the same `prev` fails this condition and is rejected BEFORE it can reach
+  // the gateway — so two double-clicked partial refunds can't both hit Stripe and
+  // over-refund the customer, and the ledger can never silently last-write-wins.
+  try {
+    await updateItem({
+      key: paymentKey,
+      update: "SET refundedAmount = :ra, #st = :st, updatedAt = :u",
+      names: { "#st": "status" },
+      condition:
+        "attribute_exists(pk) AND (attribute_not_exists(refundedAmount) OR refundedAmount.amount = :prev)",
+      values: {
+        ":ra": refundedStored,
+        ":st": status,
+        ":u": new Date().toISOString(),
+        ":prev": prevAmount,
+      },
+    });
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) {
+      throw new Error(
+        "Refund conflict: this payment was refunded concurrently — re-read the ledger and retry against the remaining balance",
+      );
+    }
+    throw err;
+  }
 
-  const updated = (attrs as unknown as PaymentItem) ?? {
-    ...payment,
-    refundedAmount: refundedStored,
-    status,
-  };
+  // Slot reserved — now move the money. The idempotency key collapses a retried/replayed
+  // gateway call for the SAME reservation so it can never refund twice at Stripe.
+  let refund: RefundResult;
+  try {
+    refund = await getGateway().createRefund({
+      paymentIntentId: payment.paymentIntentId,
+      amount: requested,
+      refundApplicationFee: input.refundApplicationFee,
+      idempotencyKey: `refund:${payment.paymentIntentId}:${prevAmount}:${requested.amount}`,
+      ...(input.reason ? { reason: input.reason } : {}),
+    });
+  } catch (err) {
+    // The gateway refund failed AFTER we reserved the slot. Roll the reservation back
+    // (only if it is still our value) so the ledger never claims a refund that never
+    // moved money. Best-effort — a failed rollback is logged for manual reconciliation.
+    await updateItem({
+      key: paymentKey,
+      update: payment.refundedAmount
+        ? "SET refundedAmount = :prevStored, #st = :prevSt, updatedAt = :u"
+        : "SET #st = :prevSt, updatedAt = :u REMOVE refundedAmount",
+      names: { "#st": "status" },
+      condition: "refundedAmount.amount = :newAmt",
+      values: {
+        ...(payment.refundedAmount ? { ":prevStored": payment.refundedAmount } : {}),
+        ":prevSt": payment.status,
+        ":u": new Date().toISOString(),
+        ":newAmt": refundedStored.amount,
+      },
+    }).catch((rbErr) => {
+      console.error(
+        `[refundPayment] reservation rollback failed for ${input.uid}/${input.ts} — needs manual reconcile:`,
+        rbErr,
+      );
+    });
+    throw err;
+  }
+
+  const updated: PaymentItem = { ...payment, refundedAmount: refundedStored, status };
 
   // ⚙ refund_issued (§2.1) — money returned. This is the SINGLE gateway-refund
   // point for every in-app refund (tournament / league / ladder cancels all route

@@ -66,6 +66,37 @@ describe("<MembershipButton>", () => {
     expect(screen.getByRole("button", { name: "Accept invitation" })).toBeInTheDocument();
   });
 
+  it("loading (overlay unresolved) → non-clickable placeholder, never an actionable Join", () => {
+    const { container } = render(
+      <MembershipButton groupId="g1" joinPolicy="open" membership={null} loading />,
+    );
+    // No enabled/clickable Join button while membership is unknown (prevents a member
+    // from re-POSTing /join before their status resolves).
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
+  });
+
+  it("keyed remount re-seeds membership when the overlay resolves (a member never sticks on Join)", () => {
+    // Mirror GroupDetailClient: mount loading with membership=null under key "none"…
+    const { rerender } = render(
+      <MembershipButton key="none" groupId="g1" joinPolicy="open" membership={null} loading />,
+    );
+    expect(screen.queryByRole("button", { name: "Join group" })).not.toBeInTheDocument();
+
+    // …then the overlay resolves to an active member → parent remounts under a new key.
+    rerender(
+      <MembershipButton
+        key="member:active"
+        groupId="g1"
+        joinPolicy="open"
+        membership={{ role: "member", status: "active" }}
+        loading={false}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("You're a member");
+    expect(screen.queryByRole("button", { name: "Join group" })).not.toBeInTheDocument();
+  });
+
   it("has no axe violations", async () => {
     const { container } = render(<MembershipButton groupId="g1" joinPolicy="request" />);
     expect(await axe(container)).toHaveNoViolations();

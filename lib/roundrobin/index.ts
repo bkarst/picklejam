@@ -13,6 +13,7 @@ export {
   computeStandings,
   champion,
   isComplete,
+  poolRoundCount,
 } from "./engine";
 
 // Randomness primitives (the ONLY source of randomness) — handy for callers that

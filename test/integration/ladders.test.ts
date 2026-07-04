@@ -24,6 +24,7 @@ import {
   getMyChallenges,
   registerForLadder,
   confirmLadderPayment,
+  markLadderRefunded,
   issueChallenge,
   respondChallenge,
   reportChallengeResult,
@@ -143,6 +144,49 @@ d("ladders data layer (DynamoDB Local)", () => {
     expect(replay.alreadyPaid).toBe(true);
     expect((await getMyPayments(player)).filter((p) => p.refId === lid)).toHaveLength(1);
     expect((await getLadder(lid))!.rungs.filter((r) => r.uid === player)).toHaveLength(1);
+  });
+
+  it("rejoin after a refund REUSES the rung (one rung per uid) and the new payment confirms", async () => {
+    const organizer = uid("org-rejoin");
+    await connectComplete(organizer);
+    const { lid } = await makePublishedLadder(organizer, { price: 2000 });
+    const player = uid("rejoiner");
+
+    // Join + pay → a paid rung.
+    const first = await placePlayer(lid, player);
+    expect(first.rung?.paymentStatus).toBe("paid");
+    const pos = first.rung!.position;
+
+    // charge.refunded webhook → the rung goes terminal (refunded).
+    await markLadderRefunded({ lid, uid: player, paymentIntentId: first.payment?.paymentIntentId });
+    const afterRefund = (await getLadder(lid))!.rungs.filter((r) => r.uid === player);
+    expect(afterRefund).toHaveLength(1);
+    expect(afterRefund[0].paymentStatus).toBe("refunded");
+
+    // Rejoin + pay → must REUSE the slot (no second rung) and confirm the NEW payment
+    // (pre-fix: a duplicate rung was appended, the webhook confirmed the OLD refunded
+    // rung, and this payment was silently dropped as `alreadyPaid`).
+    const rejoin = await registerForLadder(lid, player, {});
+    const confirmed = await confirmLadderPayment({
+      lid,
+      uid: player,
+      paymentIntentId: rejoin.paymentIntentId,
+      amountTotal: rejoin.amount.amount,
+      currency: rejoin.amount.currency,
+    });
+    expect(confirmed.alreadyPaid).toBeFalsy();
+    expect(confirmed.rung?.paymentStatus).toBe("paid");
+
+    // Exactly ONE rung for the uid, paid, in the reused slot — no duplicate, no board corruption.
+    const rungs = (await getLadder(lid))!.rungs.filter((r) => r.uid === player);
+    expect(rungs).toHaveLength(1);
+    expect(rungs[0].paymentStatus).toBe("paid");
+    expect(rungs[0].position).toBe(pos);
+
+    // Two receipts total: the refunded first join + the paid rejoin (money accounted for).
+    const payments = (await getMyPayments(player)).filter((p) => p.refId === lid);
+    expect(payments).toHaveLength(2);
+    expect(payments.filter((p) => p.status === "paid")).toHaveLength(1);
   });
 
   it("DUPR-seeded placement: a rated joiner is inserted above lower-rated players", async () => {

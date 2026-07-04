@@ -18,6 +18,7 @@ import { poolSchedule, poolsNext, poolsChampion } from "./pools";
 
 export { validateConfig } from "./validate";
 export { computeStandings } from "./standings";
+export { poolRoundCount } from "./pools";
 
 /** Static schedule = f(config). Dynamic formats return what is known up front. */
 export function generateSchedule(config: RrConfig): Schedule {

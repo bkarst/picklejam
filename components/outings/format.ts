@@ -6,6 +6,22 @@
  * time regardless of the viewer's location, with a short zone label (e.g. CDT).
  */
 
+/**
+ * The current runtime's IANA timezone (e.g. "America/Chicago"), or undefined if it
+ * can't be resolved. Call this from CLIENT code when CREATING an outing so the outing
+ * records the organizer's zone — the `startTs` is built from a browser-local wall
+ * clock, so persisting that same zone makes every viewer read the intended local time.
+ * Without it, `tz` stays empty and every time renders in the SERVER's zone (UTC in
+ * prod). (Ideal long-term: an IANA tz on the court itself, set from lat/lng at ingest.)
+ */
+export function browserTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** "Wed Jun 30" in the outing's timezone. */
 export function formatOutingDate(iso: string, tz?: string): string {
   const d = new Date(iso);

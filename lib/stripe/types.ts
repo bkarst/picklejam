@@ -61,6 +61,8 @@ export interface RefundInput {
   amount?: Money;
   refundApplicationFee: boolean;
   reason?: string;
+  /** Stripe idempotency key — a retry/replay with the same key never double-refunds. */
+  idempotencyKey?: string;
 }
 
 export interface RefundResult {

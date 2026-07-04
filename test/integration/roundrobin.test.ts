@@ -84,6 +84,39 @@ async function scoreAllHighWins(
 }
 const idxOf = (entrantId: string) => Number(entrantId.slice(1));
 
+/** An 8-entrant pools→bracket event: 2 pools, top 2 advance, single elimination. */
+const poolsBracketConfig = (): RrConfig => ({
+  format: "poolsBracket",
+  mode: "singles",
+  entrants: entrants(8),
+  courts: 2,
+  scoring: SCORING,
+  rngSeed: 42,
+  pools: { poolCount: 2, advancePerPool: 2, elim: "single" },
+});
+
+/** Score every currently-unscored match decisively (sideA wins 11–4). */
+async function scoreAllUnscored(eventId: string, token: string): Promise<void> {
+  const full = await getRrEvent(eventId);
+  for (const round of full!.rounds) {
+    for (const m of round.matches) {
+      if (m.status === "scored") continue;
+      await recordScore(eventId, { matchId: m.id, scoreA: 11, scoreB: 4 }, { token });
+    }
+  }
+}
+
+/** Drive a dynamic event to completion: score every round decisively, then advance. */
+async function driveToComplete(eventId: string, token: string) {
+  for (let i = 0; i < 12; i++) {
+    await scoreAllUnscored(eventId, token);
+    const cur = await getRrEvent(eventId);
+    if (cur!.event.status === "complete") return cur;
+    await advanceRound(eventId, { token });
+  }
+  return getRrEvent(eventId);
+}
+
 d("round-robin data layer (DynamoDB Local)", () => {
   it("create persists META + ENTRANT# + ROUND#/MATCH# + STANDING#; pattern-16 read reconstructs in ONE query", async () => {
     const config = rrConfig();
@@ -188,6 +221,50 @@ d("round-robin data layer (DynamoDB Local)", () => {
       expect(persisted).toEqual(expected);
       expect(after!.event.status).toBe("running");
     }
+  });
+
+  it("H14: advancing with an unscored round is REJECTED, not silently completed with no champion", async () => {
+    const { eventId, creatorToken } = await createRrEvent({
+      title: "Pools Brick",
+      config: poolsBracketConfig(),
+    });
+    // Pool rounds exist but are unscored — one early "Next" tap must NOT finalize the
+    // event (pre-fix: status→complete, championId=null, editable→false forever).
+    await expect(advanceRound(eventId, { token: creatorToken })).rejects.toMatchObject({
+      status: 400,
+    });
+    const after = await getRrEvent(eventId);
+    expect(after!.event.status).not.toBe("complete");
+    expect(after!.event.championId ?? null).toBeNull();
+  });
+
+  it("H14: pool ties allowed, BRACKET ties rejected; decisive play crowns a champion", async () => {
+    const { eventId, creatorToken: token } = await createRrEvent({
+      title: "Pools Tie",
+      config: poolsBracketConfig(),
+    });
+
+    // A pool match CAN tie (standings award draw points) — this must succeed.
+    const full0 = await getRrEvent(eventId);
+    const poolMatch = full0!.rounds[0].matches[0];
+    await recordScore(eventId, { matchId: poolMatch.id, scoreA: 11, scoreB: 11 }, { token });
+
+    // Finish pools decisively and advance into the bracket (Semifinals).
+    await scoreAllUnscored(eventId, token);
+    await advanceRound(eventId, { token });
+    const withSf = await getRrEvent(eventId);
+    const sfRound = withSf!.rounds[withSf!.rounds.length - 1];
+    const sfMatch = sfRound.matches[0];
+
+    // A TIE on a bracket match is REJECTED (else decidedWinner() stays null → no Final).
+    await expect(
+      recordScore(eventId, { matchId: sfMatch.id, scoreA: 11, scoreB: 11 }, { token }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    // Decisive bracket play → the event completes with a REAL champion.
+    const done = await driveToComplete(eventId, token);
+    expect(done!.event.status).toBe("complete");
+    expect(done!.event.championId).not.toBeNull();
   });
 
   it("claim resolves token→uid, sets GSI1 (byOrganizer); wrong token / already-claimed are rejected", async () => {

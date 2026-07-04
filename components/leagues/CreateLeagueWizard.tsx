@@ -64,6 +64,16 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
+/**
+ * True when `s` is a non-empty, parseable, NON-NEGATIVE major-unit amount — i.e. safe
+ * to hand to `moneyFromMajor` (which THROWS on NaN / negatives). The fee fields are
+ * free `type=text` inputs, so a stray "$" / "," / "-" must never reach the parser.
+ */
+function isValidFeeInput(s: string): boolean {
+  const n = Number(s);
+  return s.trim() !== "" && Number.isFinite(n) && n >= 0;
+}
+
 export function CreateLeagueWizard(): JSX.Element {
   const router = useRouter();
   const authed = useAuthedFetch();
@@ -104,10 +114,15 @@ export function CreateLeagueWizard(): JSX.Element {
   const ready = connectIsComplete(connect.data);
 
   const validDivisions = useMemo(() => divisions.filter((d) => d.name.trim()), [divisions]);
-  const previewFace = useMemo(
-    () => moneyFromMajor(format === "ladder" ? ladderPrice || "15" : fee || "50", "usd"),
-    [format, fee, ladderPrice],
-  );
+  const previewFace = useMemo(() => {
+    const raw = format === "ladder" ? ladderPrice : fee;
+    const fallback = format === "ladder" ? "15" : "50";
+    // Guard: `moneyFromMajor` throws on an unparseable/negative amount. Feeding it the
+    // raw free-text field crashes the whole wizard on a single stray keystroke (e.g.
+    // "$80") and drops ALL entered state, so fall back to the placeholder preview until
+    // the input is a valid number. (CreateTournamentWizard guards this the same way.)
+    return moneyFromMajor(isValidFeeInput(raw) ? raw : fallback, "usd");
+  }, [format, fee, ladderPrice]);
 
   const updateDivision = (key: string, patch: Partial<DraftDivision>) =>
     setDivisions((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch } : d)));
@@ -118,8 +133,10 @@ export function CreateLeagueWizard(): JSX.Element {
       // A structured city is required — the create API rejects a blank cityKey and the
       // league/ladder would otherwise never surface in its city finder.
       if (!title.trim() || !startDate || !city) return false;
-      if (format === "league") return validDivisions.length > 0 && fee !== "";
-      return ladderPrice !== "";
+      // Require a VALID numeric fee (not just non-empty) so the organizer can't advance
+      // to review/publish with a "$80"-style value that would fail server-side.
+      if (format === "league") return validDivisions.length > 0 && isValidFeeInput(fee);
+      return isValidFeeInput(ladderPrice);
     }
     return true;
   };

@@ -37,7 +37,16 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
       <section className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="font-display text-lg font-bold text-foreground">Membership</h2>
         <div className="mt-3">
-          <MembershipButton groupId={groupId} joinPolicy={joinPolicy} membership={membership} />
+          {/* key: remount when the membership overlay resolves so MembershipButton
+              re-seeds its `committed` state from the now-known membership (else a
+              member stays showing "Join group"). loading: show a placeholder until then. */}
+          <MembershipButton
+            key={membership ? `${membership.role}:${membership.status}` : "none"}
+            groupId={groupId}
+            joinPolicy={joinPolicy}
+            membership={membership}
+            loading={isLoading}
+          />
         </div>
         {isManager && (
           <Link

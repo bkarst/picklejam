@@ -11,6 +11,7 @@ import {
   deleteRating,
   UsernameTakenError,
 } from "@/lib/data/users";
+import { updateNotifPrefs, addUnsubscribe } from "@/lib/data/notifications";
 import { verifyRequest } from "@/lib/auth/verify";
 import { encodeDevToken } from "@/lib/auth/dev";
 
@@ -83,6 +84,36 @@ d("profile & ratings spine (DynamoDB Local)", () => {
     const updated = await getUserProfile(uid1);
     expect(updated?.displayName).toBe("Itest One Updated");
     expect(updated?.visibility).toBe("private");
+  });
+
+  it("profile edit PRESERVES notif prefs + the unsubscribe list (CAN-SPAM/RFC 8058)", async () => {
+    // Other subsystems write these side-channel fields onto the PROFILE item.
+    await updateNotifPrefs(uid1, { quietHours: { start: "22:00", end: "07:00" } });
+    await addUnsubscribe(uid1, "one@example.com");
+    const before = await getUserProfile(uid1);
+    expect(before?.unsubscribed).toContain("one@example.com");
+    expect(before?.notifPrefs?.quietHours?.start).toBe("22:00");
+
+    // Simulate the profile PUT route: rebuild the item, CARRYING the side-channel
+    // fields from `current`, then full-Put. Pre-fix these were dropped by the Put.
+    await putProfileWithUsername(
+      buildProfileItem({
+        uid: uid1,
+        username: name1,
+        displayName: "Renamed Again",
+        visibility: before!.visibility,
+        createdAt: before?.createdAt,
+        notifPrefs: before?.notifPrefs,
+        unsubscribed: before?.unsubscribed,
+        checkinVisibility: before?.checkinVisibility,
+      }),
+      name1,
+    );
+
+    const after = await getUserProfile(uid1);
+    expect(after?.displayName).toBe("Renamed Again");
+    expect(after?.unsubscribed).toContain("one@example.com"); // suppression list survives
+    expect(after?.notifPrefs?.quietHours?.start).toBe("22:00"); // prefs survive
   });
 
   it("ratings upsert/delete: removing a system leaves the rest", async () => {

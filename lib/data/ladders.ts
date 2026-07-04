@@ -478,11 +478,17 @@ export async function registerForLadder(
 
   const breakdown = computeFees(money(ladder!.price.amount, ladder!.price.currency), feeConfigOf(ladder!));
 
-  // Append the pending rung FIRST so the rating survives to the webhook; roll it
-  // back if Checkout can't be started.
+  // Create the pending rung FIRST so the rating survives to the webhook; roll it back
+  // if Checkout can't be started. On a REJOIN after a refund/cancel the player already
+  // has a TERMINAL rung (refunded/cancelled passes the ACTIVE_RUNG guard above) —
+  // REUSE that slot with a clean pending entry instead of appending a SECOND rung for
+  // the same uid. A duplicate rung would make the webhook confirm against the OLD
+  // terminal rung (its pending-flip fails, so the payment is silently dropped, money
+  // captured with no receipt) and collapse in reorderBoard's by-uid Map, corrupting the
+  // board (one uid written to two positions).
   const iso = new Date().toISOString();
   const profile = await getUserProfile(uid);
-  const rung = await appendRung(lid, {
+  const rungFields: Omit<RungItem, "pk" | "sk" | "position"> = {
     entity: "RUNG",
     lid,
     uid,
@@ -493,7 +499,16 @@ export async function registerForLadder(
     losses: 0,
     createdAt: iso,
     updatedAt: iso,
-  });
+  };
+  let rung: RungItem;
+  if (existing) {
+    // Full-replace the terminal rung's slot — a clean pending entry that drops any stale
+    // refundedAmount / paymentIntentId carried by the old refunded rung.
+    rung = { ...ladderKeys.rung(lid, existing.position), position: existing.position, ...rungFields };
+    await putItem(asItem(rung));
+  } else {
+    rung = await appendRung(lid, rungFields);
+  }
 
   let session;
   try {
@@ -552,7 +567,13 @@ export async function confirmLadderPayment(
   input: ConfirmLadderPaymentInput,
 ): Promise<ConfirmLadderPaymentResult> {
   const { lid, uid } = input;
-  const rung = (await getRungs(lid)).find((r) => r.uid === uid);
+  // Prefer the PAYABLE (pending) rung. Rejoins now reuse a single rung per uid, but if
+  // a legacy duplicate exists, a refunded rung sorts lower by position and would
+  // otherwise shadow the real pending one — dropping this payment.
+  const rungs = await getRungs(lid);
+  const rung =
+    rungs.find((r) => r.uid === uid && r.paymentStatus === "pending") ??
+    rungs.find((r) => r.uid === uid);
   if (!rung) return { ok: false };
   if (rung.paymentStatus === "paid") return { ok: true, alreadyPaid: true, rung };
 

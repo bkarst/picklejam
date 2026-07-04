@@ -472,10 +472,24 @@ function assertRatingGate(division: LeagueDivisionItem, dupr?: number, skill?: n
   }
 }
 
-/** Read the registrant's DUPR value from their RATING# row (for the gate). */
-async function resolveDupr(uid: string, override?: number): Promise<number | undefined> {
-  if (override !== undefined) return override;
-  const rating = await getItem<{ value?: number }>(userKeys.rating(uid, "DUPR"));
+/**
+ * Server-authoritative DUPR for the division gate. Reads the registrant's STORED
+ * DUPR — NEVER a client-supplied value — so the eligibility gate can't be bypassed by
+ * POSTing a forged `dupr` in the register body. Requires `verified:true`: a self-
+ * entered (verified:false) DUPR from the generic ratings route does NOT satisfy a
+ * DUPR flight. (The DUPR-connect route that mints verified ratings is a separately
+ * tracked stub; once it's a real OAuth pull this gate becomes fully authoritative.)
+ */
+async function resolveDupr(uid: string): Promise<number | undefined> {
+  const rating = await getItem<{ value?: number; verified?: boolean }>(
+    userKeys.rating(uid, "DUPR"),
+  );
+  return rating?.verified ? rating.value : undefined;
+}
+
+/** Server-authoritative skill for the division gate: the self-reported SELF rating. */
+async function resolveSkill(uid: string): Promise<number | undefined> {
+  const rating = await getItem<{ value?: number }>(userKeys.rating(uid, "SELF"));
   return rating?.value;
 }
 
@@ -486,9 +500,6 @@ export interface LeagueRegisterOptions {
   partnerUid?: string;
   /** Solo entrant awaiting a partner from the free-agent pool (§7.2). */
   freeAgent?: boolean;
-  /** The registrant's ratings for the division gate (else read from RATING# rows). */
-  dupr?: number;
-  skill?: number;
   customerEmail?: string;
 }
 
@@ -533,9 +544,10 @@ export async function registerForLeague(
     conflict("You are already registered for this league");
   }
 
-  // Rating gate.
-  const dupr = await resolveDupr(uid, opts.dupr);
-  assertRatingGate(division!, dupr, opts.skill);
+  // Rating gate — resolved SERVER-SIDE from stored ratings, never from the request.
+  const dupr = await resolveDupr(uid);
+  const skill = await resolveSkill(uid);
+  assertRatingGate(division!, dupr, skill);
 
   // Claim a spot (no oversell). A full division is rejected (409) — leagues have
   // no deferred-capture waitlist; use the free-agent / sub pool instead.
@@ -630,6 +642,26 @@ export interface ConfirmLeaguePaymentResult {
 }
 
 /**
+ * Refund a payment that landed on an already-CANCELLED league — a registrant who
+ * completed Checkout after `cancelLeague` ran its mass-refund pass (which only refunds
+ * PAID_STATES, so an in-flight `pending` reg was skipped). Organizer-initiated ⇒ the
+ * platform fee is refunded too (§10). Best-effort: a gateway/DB failure is logged (not
+ * thrown) so the webhook still ACKs and Stripe does not retry forever — the paid reg +
+ * receipt stand, and an organizer refund can recover it. `refundLeagueRegistration` is
+ * a no-op on an already-refunded reg, so this is safe to re-run on a retry.
+ */
+async function autoRefundCancelledLeagueReg(lid: string, did: string, uid: string): Promise<void> {
+  try {
+    await refundLeagueRegistration(lid, did, uid, { refundApplicationFee: true });
+  } catch (err) {
+    console.error(
+      `[confirmLeaguePayment] auto-refund into cancelled league ${lid}/${did}/${uid} failed:`,
+      err,
+    );
+  }
+}
+
+/**
  * Mark a league registration `paid` and write its durable Payment receipt
  * (`kind: "league"`). Called by the Stripe webhook after signature verify + event
  * de-dupe. Idempotent per REG: the `paymentStatus === paid` guard means sibling
@@ -643,9 +675,32 @@ export async function confirmLeaguePayment(
   const key = leagueKeys.registration(lid, uid, "");
   const reg = await getItem<LeagueRegistrationItem>(key);
   if (!reg) return { ok: false };
-  if (reg.paymentStatus === "paid") return { ok: true, alreadyPaid: true, registration: reg };
+  // The league REG is keyed per (lid, uid) — a user has ONE active registration, so
+  // a division switch OVERWRITES it. If this completing Checkout session is for a
+  // division the user is no longer registered in (they cancelled div-A, re-joined
+  // div-B, then a stale div-A tab completed), do NOT confirm it against the current
+  // reg — that would flip div-B's pending reg to paid at div-A's captured price.
+  if (reg.did !== did) return { ok: false };
+
+  // Was the league cancelled while this registrant was mid-checkout? If so their money
+  // is captured into a dead event — confirm the capture below, then AUTO-REFUND it.
+  // Re-checked on the `paid` retry branch so a transient refund failure re-attempts.
+  const eventCancelled = (await getLeagueMeta(lid))?.status === "cancelled";
+
+  if (reg.paymentStatus === "paid") {
+    if (eventCancelled) await autoRefundCancelledLeagueReg(lid, did, uid);
+    return { ok: true, alreadyPaid: true, registration: reg };
+  }
 
   const iso = new Date().toISOString();
+  // Resolve the real PaymentIntent id and BACKFILL it onto the REG below. With
+  // deferred-PI Checkout (Stripe basil+, our pinned api version), the PaymentIntent
+  // does not exist at session creation, so registration stored `paymentIntentId: ""`;
+  // the webhook is the first place the real PI is known. Use `||` (not `??`) so the
+  // stored empty string falls through to the webhook's PI — otherwise every refund
+  // path (organizer refund, receipt reconciliation) has no PI to target and 400s.
+  const paymentIntentId = reg.paymentIntentId || input.paymentIntentId || "";
+
   // Flip to paid ATOMICALLY so exactly one delivery fulfils — Stripe's two sibling
   // events (checkout.session.completed + payment_intent.succeeded) can arrive
   // concurrently and a read-then-write guard lets both pass. First writer wins.
@@ -653,11 +708,24 @@ export async function confirmLeaguePayment(
   try {
     const attrs = await updateItem({
       key,
-      update: "SET paymentStatus = :paid, updatedAt = :u",
-      condition: "paymentStatus <> :paid",
-      values: { ":paid": "paid", ":u": iso },
+      update: "SET paymentStatus = :paid, updatedAt = :u, paymentIntentId = :pi",
+      // Flip to paid ONLY from a non-terminal awaiting-payment state. Guarding
+      // `<> :paid` would also match the terminal states (cancelled/refunded/
+      // partiallyRefunded), so a delayed sibling event (payment_intent.succeeded
+      // after an organizer refund) would RESURRECT a refunded reg back to paid,
+      // write a duplicate receipt, and re-fire analytics — while holding no spot.
+      condition: "paymentStatus IN (:pending, :partnerPending)",
+      values: {
+        ":paid": "paid",
+        ":u": iso,
+        ":pi": paymentIntentId,
+        ":pending": "pending",
+        ":partnerPending": "partnerPending",
+      },
     });
-    updated = (attrs as unknown as LeagueRegistrationItem) ?? { ...reg, paymentStatus: "paid" };
+    updated =
+      (attrs as unknown as LeagueRegistrationItem) ??
+      { ...reg, paymentStatus: "paid", paymentIntentId };
   } catch (err) {
     if (err instanceof ConditionalCheckFailedException) {
       return { ok: true, alreadyPaid: true, registration: reg };
@@ -665,7 +733,6 @@ export async function confirmLeaguePayment(
     throw err;
   }
 
-  const paymentIntentId = reg.paymentIntentId ?? input.paymentIntentId ?? "";
   const currency = reg.amount?.currency ?? input.currency ?? "usd";
   const amount: StoredMoney = reg.amount ?? { amount: input.amountTotal ?? 0, currency };
   const payment = await writePayment({
@@ -679,6 +746,14 @@ export async function confirmLeaguePayment(
     status: "paid",
     ...(input.receiptUrl ? { receiptUrl: input.receiptUrl } : {}),
   });
+
+  // Payment landed on a cancelled league: refund it immediately and DON'T fire the
+  // confirmation analytics — the entry is not really confirmed (§10). The receipt
+  // above records the (now-refunded) capture for the ledger/audit trail.
+  if (eventCancelled) {
+    await autoRefundCancelledLeagueReg(lid, did, uid);
+    return { ok: true, registration: { ...updated, paymentStatus: "refunded" }, payment };
+  }
 
   // ⚙ payment_succeeded + registration_confirmed (§2.1) — emitted once, at the
   // first fulfilment (the `paid` guard above short-circuits replays).

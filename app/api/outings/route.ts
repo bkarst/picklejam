@@ -9,6 +9,7 @@
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { getCourt } from "@/lib/data/courts";
+import { getGroupMember } from "@/lib/data/groups";
 import { createOuting, type CreateOutingInput } from "@/lib/data/outings";
 import { parseRrule } from "@/lib/outings/rrule";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
@@ -63,8 +64,19 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (visibility !== undefined && !VISIBILITIES.includes(visibility)) bad("Invalid visibility");
     const hostType = body.hostType === undefined ? undefined : (body.hostType as OutingHostType);
     if (hostType !== undefined && !HOST_TYPES.includes(hostType)) bad("Invalid hostType");
-    if (hostType === "GROUP" && typeof body.groupId !== "string") {
-      bad("groupId is required when hostType is GROUP");
+    if (hostType === "GROUP") {
+      if (typeof body.groupId !== "string" || !body.groupId.trim()) {
+        bad("groupId is required when hostType is GROUP");
+      }
+      // Write-IDOR guard (§6.7): a group meet-up is a members-only resource, so only
+      // an ACTIVE member of the group may post one into its schedule. This blocks a
+      // non-member, a kicked ex-member, and a pending/invited requester — and a
+      // non-existent group has no membership row, so it's rejected too. Every other
+      // group mutation gates on membership; this create path must as well.
+      const membership = await getGroupMember(body.groupId as string, user.uid);
+      if (!membership || membership.status !== "active") {
+        bad("You must be a member of this group to schedule a meet-up", 403);
+      }
     }
 
     const capacity = optNum(body, "capacity");

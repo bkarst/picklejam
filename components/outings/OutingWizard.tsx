@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSearchSuggest } from "@/lib/api/queries";
 import { useCreateOuting, type CreateOutingInput } from "@/lib/api/outings";
+import { browserTimeZone } from "@/components/outings/format";
 import { trackEvent } from "@/lib/analytics/client";
 import { outingPath } from "@/lib/urls";
 
@@ -452,12 +453,17 @@ export function OutingWizard(): JSX.Element {
       ? `${until.year}-${String(until.month).padStart(2, "0")}-${String(until.day).padStart(2, "0")}`
       : null;
 
+    // Record the organizer's zone: startTs is built from a browser-local wall clock, so
+    // without a stored tz every viewer sees the time in the server's zone (UTC in prod).
+    const tz = browserTimeZone();
+
     const input: CreateOutingInput = {
       title: title.trim(),
       courtId: court.id,
       organizerId: user.uid,
       startTs,
       endTs,
+      ...(tz ? { tz } : {}),
       type,
       visibility,
       ...(skillMin !== "any" ? { skillMin: Number(skillMin) } : {}),

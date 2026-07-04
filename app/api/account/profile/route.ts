@@ -53,6 +53,12 @@ export async function PUT(req: NextRequest): Promise<Response> {
       defaultRatingSource: current.defaultRatingSource,
       onboarded: current.onboarded,
       completedSteps: current.completedSteps,
+      // Carry side-channel fields written by other subsystems (notif prefs, the
+      // unsubscribe suppression list, check-in visibility) so this full-Put edit does
+      // NOT wipe them — resurrecting an unsubscribe is a CAN-SPAM / RFC 8058 failure.
+      notifPrefs: current.notifPrefs,
+      unsubscribed: current.unsubscribed,
+      checkinVisibility: current.checkinVisibility,
       createdAt: current.createdAt,
     };
 

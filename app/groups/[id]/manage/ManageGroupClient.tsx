@@ -20,6 +20,7 @@ import { Skeleton, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useGroup, useUpdateGroup } from "@/lib/api/groups";
 import { useCreateOuting, type CreateOutingInput } from "@/lib/api/outings";
+import { browserTimeZone } from "@/components/outings/format";
 import { InvitePanel, RosterManager } from "@/components/groups";
 import { groupPath, outingPath } from "@/lib/urls";
 import type { GroupItem, GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
@@ -179,12 +180,15 @@ function MeetupScheduler({ group }: { group: GroupItem }): JSX.Element {
       return;
     }
     const endDate = new Date(startDate.getTime() + duration * 60_000);
+    // Record the organizer's zone so the meet-up doesn't render in the server's (UTC).
+    const tz = browserTimeZone();
     const input: CreateOutingInput = {
       title: title.trim(),
       courtId: group.homeCourtId,
       organizerId: user.uid,
       startTs: startDate.toISOString(),
       endTs: endDate.toISOString(),
+      ...(tz ? { tz } : {}),
       type: "open",
       // Group meet-ups follow the group's visibility (public groups list their games).
       visibility: group.visibility === "public" ? "public" : "private",

@@ -49,6 +49,8 @@ import {
   nextRound,
   computeStandings,
   champion,
+  isComplete,
+  poolRoundCount,
 } from "@/lib/roundrobin";
 import type {
   CreateRrInput,
@@ -448,6 +450,19 @@ export async function recordScore(
   );
   if (!target) notFound(`Match not found: ${score.matchId}`);
   const match = target as RrMatchItem;
+
+  // An ELIMINATION match must produce a winner. In poolsBracket, matches whose round is
+  // past the pool phase are bracket matches — a tie there leaves `decidedWinner()` null
+  // forever, so no next bracket round is ever generated and the event deadlocks (and a
+  // "Next" tap would finalize it with no champion). Pool matches CAN tie (standings
+  // award draw points), so only guard the bracket phase.
+  if (
+    meta.config.format === "poolsBracket" &&
+    match.round > poolRoundCount(meta.config) &&
+    score.scoreA === score.scoreB
+  ) {
+    badRequest("A bracket match can't end in a tie — enter a decisive score");
+  }
   // Capture BEFORE the write: a match already "scored" is being CORRECTED, not played
   // for the first time — so match_played must not fire again (§2.1, one per match).
   const wasScored = match.status === "scored";
@@ -524,6 +539,15 @@ export async function advanceRound(eventId: string, actor: RrActor): Promise<RrR
   const iso = new Date().toISOString();
 
   if (!next) {
+    // `nextRound` returns null for THREE different states — pools not fully scored, a
+    // bracket round still in progress, and the bracket genuinely finished — and only
+    // the last means "complete". `isComplete` (all matches scored AND no next round)
+    // tells them apart: if the event isn't actually complete, the current round just
+    // isn't fully scored yet, so REJECT rather than finalizing with a null champion
+    // (which permanently bricks the event: `editable` goes false, no more scores).
+    if (!isComplete(meta.config, completed)) {
+      badRequest("Score every match in the current round before advancing");
+    }
     await updateItem({
       key: rrKeys.meta(eventId),
       update: "SET #st = :complete, championId = :champ, updatedAt = :u",

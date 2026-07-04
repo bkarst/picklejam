@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { registerForDivision, type RegisterOptions } from "@/lib/data/tournaments";
 import { guarded, jsonBody } from "@/app/api/_util";
-import { reqStr, optNum, tourneyErr } from "@/app/api/tournaments/_util";
+import { reqStr, tourneyErr } from "@/app/api/tournaments/_util";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +29,11 @@ export async function POST(
       "did",
       200,
     );
+    // NB: any `dupr`/`skill` in the body is IGNORED — the division rating gate is
+    // resolved server-side from the caller's stored RATING# rows (see registerForDivision),
+    // so a forged rating in the request can't unlock an ineligible division.
     const opts: RegisterOptions = {
       ...(typeof body.partnerUid === "string" && body.partnerUid ? { partnerUid: body.partnerUid } : {}),
-      dupr: optNum(body, "dupr"),
-      skill: optNum(body, "skill"),
       ...(body.waitlist === true ? { waitlist: true } : {}),
       ...(user.email ? { customerEmail: user.email } : {}),
     };

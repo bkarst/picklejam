@@ -106,8 +106,12 @@ export function RunConsole({ eventId }: { eventId: string }): JSX.Element {
   const idx = Math.min(roundIdx, Math.max(0, roundCount - 1));
   const round = rounds[idx];
   const atLast = idx >= roundCount - 1;
+  // Advancing is only valid once the current round is FULLY scored — mirrors the server
+  // guard in advanceRound. Without this, "Next" was enabled with unscored matches, and
+  // one tap finalized the event with no champion (permanently bricking it).
+  const roundFullyScored = !!round && round.matches.every((m) => m.status === "scored");
   const canAdvance =
-    editable && event.dynamic && atLast && event.status !== "complete";
+    editable && event.dynamic && atLast && event.status !== "complete" && roundFullyScored;
 
   const save = (matchId: string, scoreA: number, scoreB: number) => {
     if (!token) return;

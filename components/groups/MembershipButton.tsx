@@ -30,6 +30,13 @@ export interface MembershipButtonProps {
   joinPolicy: GroupJoinPolicy;
   /** The caller's existing membership (from the CSR `useGroup` overlay). */
   membership?: GroupMembership | null;
+  /**
+   * The `useGroup` overlay is still resolving — the caller's membership is unknown, so
+   * render a non-committal placeholder rather than asserting (and letting a member
+   * click) "Join group". Once it resolves, the parent must remount this component via a
+   * membership-derived `key` so `committed` re-seeds from the now-known membership.
+   */
+  loading?: boolean;
 }
 
 const PRIMARY =
@@ -39,6 +46,7 @@ export function MembershipButton({
   groupId,
   joinPolicy,
   membership = null,
+  loading = false,
 }: MembershipButtonProps): JSX.Element {
   const { requireAuth } = useAuth();
   const joinMut = useJoinGroup(groupId);
@@ -49,6 +57,22 @@ export function MembershipButton({
   const [error, setError] = useState<string | null>(null);
 
   const policy = joinPolicyMeta(joinPolicy);
+
+  // Membership still unknown — a non-committal, non-clickable placeholder (never the
+  // wrong "Join group" for an actual member). Keeps the layout stable (UI §1).
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2" aria-busy="true">
+        <div
+          className={`${PRIMARY} pointer-events-none animate-pulse bg-surface-secondary text-transparent`}
+          aria-hidden="true"
+        >
+          {policy.action}
+        </div>
+        <p className="text-sm text-muted">{policy.hint}</p>
+      </div>
+    );
+  }
 
   const join = () => {
     const prev = committed;

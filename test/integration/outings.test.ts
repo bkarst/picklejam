@@ -70,6 +70,7 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
       courtId: COURT_MAIN,
       organizerId: organizer,
       startTs: START_TS,
+      tz: "America/Chicago",
       capacity: 8,
       visibility: "public",
     });
@@ -77,6 +78,9 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
     // #10 — outing detail + RSVPs in ONE Query on PK=OUTING#id.
     const detail = await getOuting(outing.outingId);
     expect(detail?.outing.outingId).toBe(outing.outingId);
+    // H13 — the organizer's zone round-trips onto the stored outing (so times render
+    // in court-local time, not the server's UTC).
+    expect(detail?.outing.tz).toBe("America/Chicago");
     expect(detail?.rsvps).toEqual([]);
 
     // #8 — city games on the court-local day (GSI2). Invariant: appears in its city.

@@ -180,6 +180,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── modal + intent resume ──
   const openAuth = useCallback((tab: AuthTab = "login") => {
+    // A bare "Sign in" (Header / AccountMenu) carries NO intent — drop any intent left
+    // over from a previously dismissed requireAuth() so it can't fire on THIS sign-in
+    // (e.g. auto-launching Stripe Checkout for an event the user already abandoned).
+    pendingIntent.current = null;
     setModalTab(tab);
     setModalOpen(true);
   }, []);
@@ -190,11 +194,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         intent?.();
         return;
       }
-      pendingIntent.current = intent ?? null;
+      // openAuth clears any stale intent first; set THIS one AFTER so it resumes.
       openAuth(tab);
+      pendingIntent.current = intent ?? null;
     },
     [user, openAuth],
   );
+
+  // AuthModal reports a close here ONLY on an explicit dismiss (Esc / backdrop / ×) —
+  // a successful sign-in is closed by the resume effect below, which consumes the
+  // intent. So a dismiss means "cancelled": drop the pending intent so it can never
+  // fire on a later, unrelated sign-in.
+  const handleModalOpenChange = useCallback((open: boolean) => {
+    if (!open) pendingIntent.current = null;
+    setModalOpen(open);
+  }, []);
 
   // Resume the pending intent once a user appears while the modal is open.
   useEffect(() => {
@@ -228,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      <AuthModal open={modalOpen} tab={modalTab} onOpenChange={setModalOpen} onTab={setModalTab} />
+      <AuthModal open={modalOpen} tab={modalTab} onOpenChange={handleModalOpenChange} onTab={setModalTab} />
     </AuthContext.Provider>
   );
 }

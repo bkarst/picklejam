@@ -10,7 +10,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { registerForLeague, type LeagueRegisterOptions } from "@/lib/data/leagues";
 import { guarded, jsonBody } from "@/app/api/_util";
-import { reqStr, optNum, leagueErr } from "@/app/api/leagues/_util";
+import { reqStr, leagueErr } from "@/app/api/leagues/_util";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +25,15 @@ export async function POST(
 
     // Client sends `did`; also accept `divisionId` for symmetry with the data layer.
     const did = reqStr({ did: body.did ?? body.divisionId }, "did", 200);
+    // NB: any `dupr`/`skill` in the body is IGNORED — the division rating gate is
+    // resolved server-side from the caller's stored RATING# rows (see registerForLeague),
+    // so a forged rating in the request can't unlock an ineligible division.
     const opts: LeagueRegisterOptions = {
       ...(typeof body.teamId === "string" && body.teamId ? { teamId: body.teamId } : {}),
       ...(typeof body.partnerUid === "string" && body.partnerUid
         ? { partnerUid: body.partnerUid }
         : {}),
       ...(body.freeAgent === true ? { freeAgent: true } : {}),
-      dupr: optNum(body, "dupr"),
-      skill: optNum(body, "skill"),
       ...(user.email ? { customerEmail: user.email } : {}),
     };
 
