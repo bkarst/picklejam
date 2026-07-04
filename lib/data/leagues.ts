@@ -19,7 +19,7 @@
 
 import { ulid } from "ulid";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import { getItem, query, putItem, putConditional, updateItem, deleteItem, batchGet } from "@/lib/db/client";
+import { getItem, query, queryAll, putItem, putConditional, updateItem, deleteItem, batchGet } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { leagueKeys, userKeys } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
@@ -294,7 +294,10 @@ type LeagueRow =
  * league doesn't exist.
  */
 export async function getLeague(lid: string): Promise<LeagueDetail | undefined> {
-  const { items } = await query<LeagueRow>({ pk: leagueKeys.meta(lid).pk });
+  // queryAll: this partition (META + divisions + teams + ALL registrations + schedule +
+  // standings) feeds the cancel/mass-refund loop and schedule/standings materialization
+  // — a page dropped at 1 MB would strand refunds and seed fixtures from a partial roster.
+  const items = await queryAll<LeagueRow>({ pk: leagueKeys.meta(lid).pk });
   const league = items.find((i) => i.sk === "META") as LeagueItem | undefined;
   if (!league) return undefined;
   const divisions = items.filter((i): i is LeagueDivisionItem => i.entity === "LEAGUEDIVISION");

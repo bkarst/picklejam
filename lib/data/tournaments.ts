@@ -35,6 +35,7 @@ import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import {
   getItem,
   query,
+  queryAll,
   putItem,
   putConditional,
   updateItem,
@@ -290,7 +291,10 @@ export interface TournamentDetail {
  * partition). Returns `undefined` if the tournament doesn't exist.
  */
 export async function getTournament(tid: string): Promise<TournamentDetail | undefined> {
-  const { items } = await query<
+  // queryAll: this partition (META + divisions + ALL registrations + bracket) feeds the
+  // cancel/mass-refund loop and bracket seeding — a page dropped at 1 MB would leave
+  // registrations unrefunded and seed the bracket from a partial roster.
+  const items = await queryAll<
     TourneyItem | DivisionItem | RegistrationItem | BracketMatchItem
   >({ pk: tourneyKeys.meta(tid).pk });
   const tourney = items.find((i) => i.sk === "META") as TourneyItem | undefined;

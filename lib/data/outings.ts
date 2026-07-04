@@ -30,6 +30,7 @@ import {
   getItem,
   query,
   putItem,
+  putConditional,
   updateItem,
   deleteItem,
   batchGet,
@@ -383,41 +384,13 @@ export async function rsvp(
   const meta = await getOutingMeta(outingId);
   if (!meta) throw new Error(`Outing not found: ${outingId}`);
   const startTs = meta.startTs;
-  const existing = await getItem<RsvpItem>(outingKeys.rsvp(outingId, uid, startTs));
-
-  // Release the previous status's counter contribution when the status changes.
-  if (existing && existing.status !== status) {
-    if (existing.status === "going") await addOutingCounter(outingId, "goingCount", -1);
-    else if (existing.status === "waitlist") await addOutingCounter(outingId, "waitlistCount", -1);
-  }
-
-  let finalStatus: RsvpStatus = status;
-  let waitlistPos: number | undefined;
-
-  if (status === "going") {
-    if (existing?.status === "going") {
-      finalStatus = "going"; // already holds a spot — no re-increment
-    } else {
-      const claimed = await claimGoingSpot(outingId, meta.capacity);
-      if (claimed) {
-        finalStatus = "going";
-      } else {
-        finalStatus = "waitlist";
-        waitlistPos = await addOutingCounter(outingId, "waitlistCount", 1);
-      }
-    }
-  } else if (status === "waitlist") {
-    finalStatus = "waitlist";
-    waitlistPos =
-      existing?.status === "waitlist"
-        ? existing.waitlistPos
-        : await addOutingCounter(outingId, "waitlistCount", 1);
-  }
-  // "maybe" / "declined" carry no capacity semantics.
-
+  const key = outingKeys.rsvp(outingId, uid, startTs);
+  const existing = await getItem<RsvpItem>(key);
+  const sOld = existing?.status;
   const now = new Date().toISOString();
-  const item: RsvpItem = {
-    ...outingKeys.rsvp(outingId, uid, startTs),
+
+  const build = (finalStatus: RsvpStatus, waitlistPos: number | undefined): RsvpItem => ({
+    ...key,
     entity: "RSVP",
     outingId,
     uid,
@@ -427,8 +400,88 @@ export async function rsvp(
     respondedAt: now,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
-  };
-  await putItem(item as unknown as Record<string, unknown>);
+  });
+
+  // Same status (e.g. only guestCount changed) → no counter movement and no
+  // serialization needed (a concurrent double-submit is last-write-wins on scalars,
+  // never a counter drift). Preserve the held waitlist position.
+  if (sOld === status) {
+    const item = build(status, existing?.waitlistPos);
+    await putItem(item as unknown as Record<string, unknown>);
+    const same = await getOutingMeta(outingId);
+    return {
+      rsvp: item,
+      goingCount: same?.goingCount ?? 0,
+      waitlistCount: same?.waitlistCount ?? 0,
+    };
+  }
+
+  // ── A genuine STATUS TRANSITION. Serialize it per user (M6): apply this call's
+  // counter deltas, then COMMIT the row with a conditional put on the EXACT prior
+  // status — the concurrency gate. A racing double-submit changes the row first, our
+  // condition fails, and we UNDO our deltas and return the winner's state. The freed-
+  // seat promotion is deferred to AFTER a winning commit so a loser never promotes.
+  let finalStatus: RsvpStatus = status;
+  let waitlistPos: number | undefined;
+  const undo: Array<() => Promise<unknown>> = [];
+
+  if (status === "going") {
+    const claimed = await claimGoingSpot(outingId, meta.capacity);
+    if (claimed) {
+      finalStatus = "going";
+      undo.push(() => addOutingCounter(outingId, "goingCount", -1));
+    } else {
+      finalStatus = "waitlist";
+      waitlistPos = await addOutingCounter(outingId, "waitlistCount", 1);
+      undo.push(() => addOutingCounter(outingId, "waitlistCount", -1));
+    }
+  } else if (status === "waitlist") {
+    finalStatus = "waitlist";
+    waitlistPos = await addOutingCounter(outingId, "waitlistCount", 1);
+    undo.push(() => addOutingCounter(outingId, "waitlistCount", -1));
+  }
+  // "maybe" / "declined" carry no capacity semantics — no counter to apply.
+
+  // Release the OLD status's counter (decrement only; promotion deferred to post-commit).
+  if (sOld === "going") {
+    await addOutingCounter(outingId, "goingCount", -1);
+    undo.push(() => addOutingCounter(outingId, "goingCount", 1));
+  } else if (sOld === "waitlist") {
+    await addOutingCounter(outingId, "waitlistCount", -1);
+    undo.push(() => addOutingCounter(outingId, "waitlistCount", 1));
+  }
+
+  const item = build(finalStatus, waitlistPos);
+  let committed = true;
+  try {
+    await putConditional(
+      item as unknown as Record<string, unknown>,
+      sOld === undefined ? "attribute_not_exists(pk)" : "#s = :sOld",
+      sOld === undefined ? undefined : { names: { "#s": "status" }, values: { ":sOld": sOld } },
+    );
+  } catch (err) {
+    if (!(err instanceof ConditionalCheckFailedException)) throw err;
+    committed = false;
+  }
+
+  if (!committed) {
+    // Lost the race to a concurrent write — undo our counter deltas (in reverse) and
+    // return whatever the winner left, so the double-submit nets a single mutation.
+    for (const u of [...undo].reverse()) await u();
+    const cur = await getItem<RsvpItem>(key);
+    const lost = await getOutingMeta(outingId);
+    return {
+      rsvp: cur ?? item,
+      goingCount: lost?.goingCount ?? 0,
+      waitlistCount: lost?.waitlistCount ?? 0,
+    };
+  }
+
+  // Won the race. If we vacated a `going` seat, promote the waitlist head into it now
+  // (the row is committed to its new non-going status, so it can't promote itself).
+  if (sOld === "going") {
+    await promoteWaitlistIntoFreedSpot(outingId, startTs, meta.capacity);
+  }
 
   const fresh = await getOutingMeta(outingId);
 
@@ -467,6 +520,47 @@ export function promoteFromWaitlist(rsvps: RsvpItem[]): {
 }
 
 /**
+ * A `going` seat just freed up (a cancel, or a going→declined/maybe/waitlist downgrade).
+ * Promote the head of the waitlist into it (bumping `goingCount`, dropping
+ * `waitlistCount`) and reposition the rest. The caller MUST have already decremented
+ * `goingCount` for the departing attendee. No-op when the waitlist is empty.
+ */
+async function promoteWaitlistIntoFreedSpot(
+  outingId: string,
+  startTs: string,
+  capacity: number | undefined,
+): Promise<void> {
+  const after = await getOuting(outingId);
+  const { promoted, remaining } = promoteFromWaitlist(after?.rsvps ?? []);
+  if (!promoted) return;
+  // Claim the freed spot CONDITIONALLY (never oversell). Between the caller's decrement
+  // and now, a concurrent new `going` RSVP may have already refilled capacity — an
+  // unconditional `ADD goingCount :1` would push it past capacity (M5). If the claim
+  // fails, the spot is taken: leave the waitlister in place rather than oversell.
+  const claimed = await claimGoingSpot(outingId, capacity);
+  if (!claimed) return;
+  await putItem({
+    ...outingKeys.rsvp(outingId, promoted.uid, startTs),
+    entity: "RSVP",
+    outingId,
+    uid: promoted.uid,
+    status: "going",
+    ...(promoted.guestCount !== undefined ? { guestCount: promoted.guestCount } : {}),
+    respondedAt: promoted.respondedAt,
+    createdAt: promoted.createdAt,
+    updatedAt: new Date().toISOString(),
+  } as unknown as Record<string, unknown>);
+  await addOutingCounter(outingId, "waitlistCount", -1);
+  for (const r of remaining) {
+    await updateItem({
+      key: outingKeys.rsvp(outingId, r.uid, startTs),
+      update: "SET waitlistPos = :p",
+      values: { ":p": r.waitlistPos },
+    });
+  }
+}
+
+/**
  * Cancel the caller's RSVP. If a `going` RSVP is cancelled, the head of the
  * waitlist is promoted into the freed spot (counts adjusted accordingly), and the
  * remaining waitlisters are repositioned.
@@ -478,36 +572,21 @@ export async function cancelRsvp(outingId: string, uid: string): Promise<RsvpRes
   const existing = await getItem<RsvpItem>(outingKeys.rsvp(outingId, uid, startTs));
   if (!existing) return undefined;
 
-  await deleteItem(outingKeys.rsvp(outingId, uid, startTs));
+  // CONDITIONAL delete: it is the concurrency gate (M6). A double-submitted cancel would
+  // otherwise have both requests read `existing`, both decrement, and both promote — so
+  // one seat frees TWO waitlisters and the count under-reads. Only the request that
+  // actually removes the row proceeds to decrement + promote; the loser no-ops.
+  try {
+    await deleteItem(outingKeys.rsvp(outingId, uid, startTs), "attribute_exists(pk)");
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return undefined;
+    throw err;
+  }
 
   if (existing.status === "going") {
     await addOutingCounter(outingId, "goingCount", -1);
     // Promote the head of the waitlist into the freed spot.
-    const after = await getOuting(outingId);
-    const { promoted, remaining } = promoteFromWaitlist(after?.rsvps ?? []);
-    if (promoted) {
-      await putItem({
-        ...outingKeys.rsvp(outingId, promoted.uid, startTs),
-        entity: "RSVP",
-        outingId,
-        uid: promoted.uid,
-        status: "going",
-        ...(promoted.guestCount !== undefined ? { guestCount: promoted.guestCount } : {}),
-        respondedAt: promoted.respondedAt,
-        createdAt: promoted.createdAt,
-        updatedAt: new Date().toISOString(),
-      } as unknown as Record<string, unknown>);
-      await addOutingCounter(outingId, "goingCount", 1);
-      await addOutingCounter(outingId, "waitlistCount", -1);
-      // Reposition the rest of the waitlist.
-      for (const r of remaining) {
-        await updateItem({
-          key: outingKeys.rsvp(outingId, r.uid, startTs),
-          update: "SET waitlistPos = :p",
-          values: { ":p": r.waitlistPos },
-        });
-      }
-    }
+    await promoteWaitlistIntoFreedSpot(outingId, startTs, meta.capacity);
   } else if (existing.status === "waitlist") {
     await addOutingCounter(outingId, "waitlistCount", -1);
     // Shift waitlisters behind the cancelled one up by a position.

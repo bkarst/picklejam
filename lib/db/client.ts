@@ -160,6 +160,28 @@ export async function query<T>(opts: QueryOptions): Promise<QueryResult<T>> {
   };
 }
 
+/**
+ * Query a single partition and FOLLOW `LastEvaluatedKey` until every matching item is
+ * read. DynamoDB caps one `query` page at 1 MB, so a large partition (thousands of
+ * registrations/rungs/fixtures) is silently truncated. Use this for correctness-
+ * critical full reads — mass refunds, standings/bracket seeding, whole-board reorders,
+ * "mark all" sweeps — where a dropped page means lost money or corrupt state.
+ *
+ * Do NOT use for user-facing paginated lists; pass `limit` + `startKey` to `query` and
+ * expose the cursor instead. (`limit`, if given, becomes the per-page size — the loop
+ * still returns the full result.)
+ */
+export async function queryAll<T>(opts: Omit<QueryOptions, "startKey">): Promise<T[]> {
+  const out: T[] = [];
+  let startKey: Record<string, unknown> | undefined;
+  do {
+    const page = await query<T>({ ...opts, startKey });
+    out.push(...page.items);
+    startKey = page.lastKey;
+  } while (startKey);
+  return out;
+}
+
 /** BatchGet up to 100 items by primary key (one round trip; still not a scan). */
 export async function batchGet<T>(batchKeys: PrimaryKey[]): Promise<T[]> {
   if (batchKeys.length === 0) return [];

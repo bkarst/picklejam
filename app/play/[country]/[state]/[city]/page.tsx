@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCity, getCitiesByKeys } from "@/lib/data/geo";
 import { getCityGames } from "@/lib/data/outings";
+import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
 import { getCourt } from "@/lib/data/courts";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { itemListJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
@@ -21,18 +22,16 @@ export const dynamicParams = true;
 type Params = Promise<{ country: string; state: string; city: string }>;
 type Search = Promise<{ date?: string | string[] }>;
 
-/** Today's yyyymmdd (server-local). */
-function todayYyyymmdd(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}${m}${day}`;
-}
-
-function resolveDay(raw: string | string[] | undefined): string {
+/**
+ * The day to show: an explicit `?date=yyyymmdd`, else `fallbackDay`. The fallback MUST
+ * be the CITY-local day (not the server's), because games are keyed by the court-local
+ * `yyyymmdd` (see getCityGames). Using the server's UTC date defaulted a US-west city to
+ * TOMORROW's games from ~late afternoon until midnight UTC — hiding tonight's games
+ * during peak evening hours.
+ */
+function resolveDay(raw: string | string[] | undefined, fallbackDay: string): string {
   const v = Array.isArray(raw) ? raw[0] : raw;
-  return v && /^\d{8}$/.test(v) ? v : todayYyyymmdd();
+  return v && /^\d{8}$/.test(v) ? v : fallbackDay;
 }
 
 function labelForDay(yyyymmdd: string): string {
@@ -65,7 +64,9 @@ export default async function CityGamesPage({
   const cityItem = await getCity(country, state, city);
   if (!cityItem) notFound();
 
-  const day = resolveDay(date);
+  // Default to the CITY's local day (from its centroid longitude), matching how games
+  // are keyed and how the /courts city page resolves "today". `-98` ≈ US center.
+  const day = resolveDay(date, courtLocalDay({ lng: cityItem.centroidLng ?? -98 }, nowMs()));
   const st = stateAbbr(state);
   const base = brand.siteUrl;
 

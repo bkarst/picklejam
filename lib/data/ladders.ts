@@ -36,6 +36,7 @@ import {
 import {
   getItem,
   query,
+  queryAll,
   putItem,
   putNew,
   updateItem,
@@ -313,7 +314,9 @@ export async function getMyChallenges(uid: string): Promise<ChallengeItem[]> {
 
 /** All rung rows for a ladder, rank-ordered (position asc). */
 async function getRungs(lid: string): Promise<RungItem[]> {
-  const { items } = await query<RungItem>({
+  // queryAll: the FULL board seeds placement + whole-board reorders + payment lookups.
+  // A page dropped at 1 MB would seed from a partial board and corrupt positions.
+  const items = await queryAll<RungItem>({
     pk: ladderKeys.meta(lid).pk,
     skBeginsWith: ladderKeys.rungPrefix(),
   });

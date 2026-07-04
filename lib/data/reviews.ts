@@ -13,7 +13,7 @@
  * `ratingSum` → `ratingAvg`) reconcile without this layer computing them.
  */
 
-import { getItem, query, putItem, deleteItem } from "@/lib/db/client";
+import { getItem, query, queryAll, putItem, deleteItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { courtKeys, userKeys } from "@/lib/db/keys";
 import { emitInsert, emitModify, emitRemove } from "@/lib/streams/inline";
@@ -31,22 +31,24 @@ function byHelpful(a: ReviewItem, b: ReviewItem): number {
 }
 
 /**
- * #4 — a court's reviews, one Query, ordered in the read layer. `sort:"helpful"`
- * ranks by `helpfulCount` (ties broken by recency); default is newest-first.
- * Reviews-per-court are bounded, so the page is sorted after the keyed Query.
+ * #4 — a court's reviews, ordered in the read layer. `sort:"helpful"` ranks by
+ * `helpfulCount` (ties broken by recency); default is newest-first.
+ *
+ * The review SK is `REVIEW#<uid>` (uid-lexicographic), NOT time-ordered — so a keyed
+ * `limit` returns the lowest-uid reviews, and sorting THAT truncated page would make
+ * the actual newest / most-helpful reviews (whose uids happen to sort high) permanently
+ * invisible. Reviews per court are bounded, so read the FULL set, sort, THEN slice.
  */
 export async function getCourtReviews(
   courtId: string,
-  opts?: { sort?: ReviewSort; limit?: number; startKey?: Record<string, unknown> },
-): Promise<{ items: ReviewItem[]; lastKey?: Record<string, unknown> }> {
-  const { items, lastKey } = await query<ReviewItem>({
+  opts?: { sort?: ReviewSort; limit?: number },
+): Promise<{ items: ReviewItem[] }> {
+  const all = await queryAll<ReviewItem>({
     pk: courtKeys.meta(courtId).pk,
     skBeginsWith: courtKeys.reviewPrefix(),
-    limit: opts?.limit,
-    startKey: opts?.startKey,
   });
-  const sorted = [...items].sort(opts?.sort === "helpful" ? byHelpful : byRecent);
-  return { items: sorted, lastKey };
+  all.sort(opts?.sort === "helpful" ? byHelpful : byRecent);
+  return { items: opts?.limit ? all.slice(0, opts.limit) : all };
 }
 
 /** A user's reviews, newest-first (one Query on GSI1). */

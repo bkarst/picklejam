@@ -20,6 +20,19 @@
 > into a private group; a **display** bug that renders every outing time in UTC in production
 > (no outing ever stores a timezone); and a round-robin **"pools + bracket"** event that a single
 > early tap (or one tied bracket score) permanently bricks. 14 HIGH, 29 MEDIUM, 23 LOW in all.
+>
+> ---
+>
+> ### ⏳ Fix progress (updated 2026-07-03)
+>
+> **Fixed & verified: all 14 HIGH (H1–H14) + MEDIUM M1–M6.** Each was re-verified against the
+> code before fixing; fixes carry regression tests where practical (many proven red→green), and
+> most were executed end-to-end against a local DynamoDB (dynalite) — not just code-traced.
+> Per-item fix notes are inline below (`**✅ FIXED**`). A few report claims were corrected in
+> passing (noted per item): H1's suggested `expand:["payment_intent"]` won't work under deferred
+> PI creation (backfill from the webhook is the real fix) and ladders is **not** refund-bricked;
+> H2's `= pending` guard would break doubles (used `IN (pending, partnerPending)`); H8's own
+> integration test encoded the vulnerable design and was rewritten. **Next up: M7.**
 
 ---
 
@@ -30,83 +43,97 @@
 - **Where:** `lib/stripe/gateway.ts:124-125` (`pi?.id ?? ""`), stored at `lib/data/tournaments.ts:630`; consumed at `:737`, `:883`; same in `lib/data/leagues.ts:668,737,1090` and `lib/data/ladders.ts`.
 - **Bug:** The app pins Stripe API version `2026-06-24.dahlia` (`lib/stripe/index.ts:42`). Since `2025-03-31.basil`, payment-mode Checkout Sessions create the PaymentIntent **lazily** — `session.payment_intent` is `null` at creation and `createCheckoutSession` doesn't `expand` it — so the gateway stores `paymentIntentId: ""` on every real registration. Downstream, `reg.paymentIntentId ?? input.paymentIntentId` never falls through to the webhook's real PI because `??` does not coalesce `""`, so the Payment receipt is written with `paymentIntentId: ""` and the REG is never backfilled.
 - **Failure:** In any real-Stripe deployment, `refundRegistration`/`refundLeagueRegistration` hit `if (!reg.paymentIntentId) badRequest("no captured payment to refund")` for **every** paid registration; the organizer refund route 400s, and `cancelTournament` throws on the first paid reg *after* META is already `cancelled`, aborting the mass refund. Works fine under FakeGateway (`pi_fake_n`), so no test sees it. **Fix:** `expand: ["payment_intent"]` on session create, or backfill `paymentIntentId` from the webhook (and use `||`, not `??`).
+- **✅ FIXED:** `confirmRegistrationPayment`/`confirmLeaguePayment` now resolve `reg.paymentIntentId || input.paymentIntentId` and **backfill** it onto the REG during the atomic paid-flip — fixing the organizer refund guard, the receipt lookup, and the `charge.refunded` reconciliation at once. **Correction:** `expand:["payment_intent"]` would NOT help (deferred PI doesn't exist at session-create); the webhook backfill is the only reliable fix. **Correction:** ladders is NOT refund-bricked (no organizer-refund path; its receipt already stores the webhook's real PI).
 
 ### H2. Refunded / cancelled registrations resurrect to `paid` (webhook condition is `<> paid`, not `= pending`)
 - **Confidence:** CONFIRMED
 - **Where:** `lib/data/tournaments.ts:717` (`condition: "paymentStatus <> :paid"`), `lib/data/leagues.ts:654-659`. (Ladders got it right: `condition: "paymentStatus = :pending"`, `ladders.ts:565`.)
 - **Bug:** The atomic paid-flip only guards `paymentStatus <> :paid`. Any non-paid state — `cancelled`, `refunded`, `partiallyRefunded` — satisfies it and is flipped back to `paid`, a second Payment receipt is written, and analytics re-fire.
 - **Failure:** (a) Out-of-order siblings — `checkout.session.completed` marks paid; organizer refunds; the delayed `payment_intent.succeeded` (different event id, passes dedupe) flips `refunded → paid`, writes a duplicate receipt, and the reg is "paid" holding no capacity spot → `registeredCount` permanently undercounts → later oversell. (b) Organizer refunds a *pending* reg → `cancelled` + spot released; the registrant's still-open Checkout tab completes → reg resurrects to `paid` with no spot claimed. League variant is worse: the REG key is per-uid (`REG#<uid>`), so completing a stale div-A session flips the user's *current* div-B registration to paid at div-A's price.
+- **✅ FIXED:** flip condition changed to `paymentStatus IN (:pending, :partnerPending)` in tournaments + leagues (only a non-terminal awaiting-payment state can flip to paid). **Correction:** the report's `= :pending` would break doubles (a `partnerPending` reg is created with a live Checkout and must still confirm), hence the two-value `IN`. Also closed the "league variant is worse" case with a `reg.did !== did` guard in `confirmLeaguePayment` (rejects a stale cross-division session). Regression covered by the tournaments/leagues webhook integration tests.
 
 ### H3. Users can pay into a cancelled tournament/league; money is captured and never refunded
 - **Confidence:** CONFIRMED
 - **Where:** `lib/data/tournaments.ts:696-767` (`confirmRegistrationPayment` never checks event status) vs `:938-960` (`cancelTournament` refunds only `PAID_STATES`, skips `pending`, never expires Checkout sessions); same in `lib/data/leagues.ts`.
 - **Bug:** Cancel flips META to `cancelled` and refunds already-paid regs, but pending regs' Checkout sessions are left live and payment confirmation ignores event status.
 - **Failure:** Organizer cancels while a registrant is mid-checkout; the registrant pays minutes later → webhook flips the reg `paid`, funds land in the organizer's connected account, and the mass-refund loop already ran — so it is never refunded. Customer paid for a cancelled event with no automated recovery.
+- **✅ FIXED:** `confirmRegistrationPayment`/`confirmLeaguePayment` now fetch event status and, if `cancelled`, auto-refund the just-captured payment (organizer-initiated → app fee refunded) and suppress the confirmation analytics. Retry-safe (also checked on the already-paid short-circuit; refund helpers are no-ops on an already-refunded reg) and best-effort (catch-and-log so a failed auto-refund can't wedge Stripe retries). Left session-expiry-on-cancel as a recommended UX enhancement (not airtight vs. the race; the confirm-side auto-refund is).
 
 ### H4. Concurrent partial refunds double-refund at the gateway and lose the ledger update
 - **Confidence:** CONFIRMED
 - **Where:** `lib/data/payments.ts:154-196` — read at `:155`, gateway call at `:174`, **unconditional** `SET refundedAmount = :ra` at `:184-189`; no `ConditionExpression` on prior `refundedAmount`, no Stripe idempotency key on `refunds.create`.
 - **Bug:** Read-compute-refund-write with the over-refund check (`newRefunded > total`) evaluated against a stale read.
 - **Failure:** Organizer double-clicks a 50% partial refund. Both requests read `refundedAmount = 0`, both pass the excess check, both call `createRefund` — Stripe accepts both (sum ≤ charge) → customer gets 100% back while 50% was intended. Both then `SET refundedAmount = 50%` (last-write-wins) → ledger says half-refunded; a later "remaining 50%" refund is attempted against an already-fully-refunded charge.
+- **✅ FIXED:** `refundPayment` reworked to **reserve-first optimistic concurrency** — a conditional `SET refundedAmount` guarded on the prior value commits the ledger slot BEFORE the gateway call, so a concurrent rival fails the condition and is rejected before touching Stripe (409-style "refund conflict"); gateway failure rolls the reservation back. Added an **idempotency key** to the gateway `createRefund` (`RefundInput.idempotencyKey`, honored by both Real + Fake gateways). **Note:** gateway-first-then-write can't be made correct (commits before detecting the conflict); reserve-first is the only sound ordering. Residual: lost-response HTTP retry needs a caller-supplied token (out of scope).
 
 ### H5. JSON-LD stored XSS — user content injected into `<script>` without escaping
 - **Confidence:** CONFIRMED
 - **Where:** `components/JsonLd.tsx:15` (`dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}` — no `<` → `<` escaping); user content reaches it via `reviewJsonLd` (`lib/seo/jsonld.ts:212-213`, review `title`/`body`), outing title/description (`sportsEventJsonLd`), group name/description, player `displayName`, and round-robin event/entrant names (the RR create flow needs **no login**). The repo's own Next docs mandate the escape (`node_modules/next/dist/docs/01-app/02-guides/json-ld.md`).
 - **Bug:** The HTML parser closes a `<script>` at the first literal `</script>` regardless of JSON string context, so a crafted string breaks out of the JSON-LD block.
 - **Failure:** Anyone posts a court review with body `</script><script>…exfiltrate cookies…</script>`. The court page is ISR (`revalidate = 3600`) and bakes it into cached HTML, serving the attacker's script to every visitor for up to an hour per regeneration — persistent, unauthenticated-victim XSS. Same via an anonymous round-robin event title. **Fix:** escape `<`, `>`, `&`, ` / ` in the serialized string.
+- **✅ FIXED:** `JsonLd.tsx` now serializes via a `serializeJsonLd` helper that escapes `<`, `>`, `&` and the JS line/paragraph separators (U+2028/U+2029) to their `\uXXXX` forms — the `serialize-javascript` set, strictly stronger than the Next docs minimum; output stays valid JSON. Verified at runtime in Node that a `</script>` breakout payload is neutralized and still round-trips. Corrected the false "no user HTML" comment.
 
 ### H6. Editing a profile wipes notification prefs **and the unsubscribe suppression list** (CAN-SPAM/RFC 8058)
 - **Confidence:** CONFIRMED
 - **Where:** `app/api/account/profile/route.ts:44-101` builds `next: ProfileInput` (which has **no** `notifPrefs`/`unsubscribed`/`checkinVisibility` fields), then `buildProfileItem` (`lib/data/users.ts:188-210`) + `putProfileWithUsername` (`:138`) do a **full `Put` replace**. But `unsubscribed`/`notifPrefs` live on the same PROFILE item and are written via `updateItem` (`lib/data/notifications.ts:170-195`).
 - **Bug:** Every profile edit rebuilds the item without those attributes, silently erasing them.
 - **Failure:** A user one-click unsubscribes (suppression list set), later edits their display name → full `Put` drops `unsubscribed` → `resolveEmailAllowed` (`lib/notify.ts:60`) no longer suppresses → emails resume to an unsubscribed address (compliance failure). Same wipe for muted channels / quiet hours.
+- **✅ FIXED:** added `notifPrefs`/`unsubscribed`/`checkinVisibility` to `ProfileInput`, emitted them in `buildProfileItem`, and had the profile PUT carry them from `current` — so the full-Put edit is lossless. Verified the profile PUT is the only full-Put path (`completeOnboarding` uses a partial update). Regression test added (`profile.test.ts`): set unsubscribe + prefs, edit display name, assert both survive.
 
 ### H7. Write-IDOR: any authenticated user can post "meet-ups" into any group, including private ones
 - **Confidence:** CONFIRMED (reported independently by the API and community audits)
 - **Where:** `app/api/outings/route.ts:66-68` (only checks `groupId` is a string) → `lib/data/outings.ts:204-216` (`createOuting` writes a `MEETUP#` row into `GROUP#<groupId>` with no membership guard). Every other group mutation funnels through `requireManager`/`getGroupMember`; this one bypasses them.
 - **Bug:** No check that the caller is a member (let alone manager) of the group, or that the group exists.
 - **Failure:** An attacker (or kicked ex-member) POSTs `/api/outings` with `hostType:"GROUP"`, `groupId:<victim private group>`, any valid court. `getGroup` (`lib/data/groups.ts:319-356`) then hydrates the injected meet-up into the group's members-only schedule. Unauthorized write/vandalism of a private resource.
+- **✅ FIXED:** the outings POST now requires an ACTIVE `getGroupMember(groupId, uid)` for `hostType:"GROUP"`, else 403 — blocking non-members, ex-members, pending/invited requesters, and non-existent groups (no membership row). Enforced at the route (its single caller); set the boundary at active-membership (the correct security boundary for a members-only resource) rather than manager-only.
 
 ### H8. Division skill/DUPR eligibility gate is client-forgeable
 - **Confidence:** CONFIRMED
 - **Where:** `app/api/tournaments/[id]/register/route.ts:36-37` and `.../leagues/[id]/register/route.ts:35-36` forward `body.dupr`/`body.skill`; `resolveDupr` returns the override without reading the stored `RATING#` row (`lib/data/tournaments.ts:537-540`), and `skill` has no stored fallback at all.
 - **Bug:** The rating gate trusts a request-body value over the stored rating.
 - **Failure:** Division requires `duprMin: 4.0`; a 3.0 player POSTs `{ did, dupr: 4.5 }` → `assertRatingGate` passes → registered and charged for a division they're ineligible for (fairness + refund burden).
+- **✅ FIXED:** the gate is now resolved SERVER-SIDE from stored ratings only — `resolveDupr(uid)` reads `RATING#DUPR` and requires `verified:true` (self-entered unverified DUPR no longer counts); added `resolveSkill(uid)` reading the self-reported `RATING#SELF`. Removed `dupr`/`skill` from `RegisterOptions`/`LeagueRegisterOptions` and the route body forwarding. **Note:** the report's own integration test encoded the vulnerable design (asserted the override drives the gate) — rewritten to the secure spec (no-stored/out-of-range/unverified all 403). The underlying DUPR-connect stub (verified DUPR is itself client-supplied) is the separately-tracked issue; this makes the gate structurally correct for when real OAuth lands.
 
 ### H9. Ladder rejoin after a refund creates a duplicate rung; the next payment is silently dropped
 - **Confidence:** CONFIRMED
 - **Where:** `lib/data/ladders.ts:474-496` (terminal rungs pass the `ACTIVE_RUNG` guard; `appendRung` adds a second rung for the same uid), `:555`/`:633` (`getRungs(...).find(r => r.uid === uid)` returns the lowest-position match), `:562-575`.
 - **Bug:** A refunded rung stays on the board; rejoining appends a second rung, and `confirmLadderPayment` locates the rung by position order → the OLD refunded rung, whose conditional flip fails → the catch returns `alreadyPaid: true`.
 - **Failure:** Player joins → refunded (rung 5 `refunded`) → rejoins and pays → webhook confirms against rung 5 → condition fails → treated as a duplicate delivery, 200. Money captured; the new rung stays `pending` forever; no receipt. A later `reorderBoard` collapses the duplicate uid in a `Map`, writing one rung to two positions and corrupting the board.
+- **✅ FIXED:** `registerForLadder` now REUSES a terminal rung's slot on rejoin (clean pending entry via full-replace `putItem`, dropping stale `refundedAmount`/`paymentIntentId`) instead of appending a duplicate — maintaining one-rung-per-uid. Also hardened `confirmLadderPayment` to prefer the PENDING rung (defense against legacy duplicates). Regression test added (`ladders.test.ts`): join → refund → rejoin → pay asserts one paid rung in the reused slot + two receipts. Executed green against dynalite.
 
 ### H10. Group members are shown "Join group" (prop captured into state once, never resynced)
 - **Confidence:** CONFIRMED
 - **Where:** `components/groups/MembershipButton.tsx:47` (`useState(membership)`), fed by `app/groups/[id]/GroupDetailClient.tsx:31-40`, which renders the button *while `useGroup` is still loading* (`membership={data?.membership ?? null}`). No key, no sync effect.
 - **Bug:** The button copies the prop into `committed` at mount and never updates when the query resolves.
 - **Failure:** A signed-in active member (or pending requester) opens `/groups/[id]`; the button mounts with `membership=null`, the query resolves to `{role:"member",status:"active"}`, but the button still says "Join group" / "Request to join". Clicking re-POSTs `/join` for an existing member. Owners see a join button next to their own "Manage group" link.
+- **✅ FIXED:** `GroupDetailClient` gives `MembershipButton` a membership-derived `key` (`${role}:${status}` / `"none"`) so it remounts and re-seeds `committed` when the overlay resolves; added a `loading` prop that renders a non-clickable placeholder while membership is unknown (closes the "clicking re-POSTs join" window). Chose keyed-remount over a sync effect (an effect races the post-mutation refetch). Regression tests added to `MembershipButton.test.tsx`.
 
 ### H11. Any non-numeric keystroke in a fee field crashes the league create wizard (all state lost)
 - **Confidence:** CONFIRMED
 - **Where:** `components/leagues/CreateLeagueWizard.tsx:107-110` (`previewFace` `useMemo` calls `moneyFromMajor(fee || "50")` on the raw text input every render); `moneyFromMajor` throws (`lib/money.ts:41`) for anything `Number()` can't parse (`"$80"`, `"80,50"`, `"-"`) or negatives. The fee inputs are `type="text"`. `CreateTournamentWizard` guards this exact case (`:108-116`); the league wizard doesn't.
 - **Failure:** Organizer on step 2 pastes "$80" (or types a stray char) → render throws → Next error boundary replaces the page → **all wizard state (title, city, divisions) lost**.
+- **✅ FIXED:** added an `isValidFeeInput` guard (non-empty, finite, non-negative); `previewFace` falls back to the placeholder unless valid, and `canAdvance` requires a valid numeric fee (matching `CreateTournamentWizard`). Regression test added (`CreateLeagueWizard.test.tsx`), **proven red→green** — reverting fails with the exact `invalid major amount: $` throw.
 
 ### H12. A dismissed auth intent fires on the next, unrelated sign-in (can auto-launch Stripe checkout)
 - **Confidence:** CONFIRMED
 - **Where:** `components/auth/AuthProvider.tsx:187-197` stores `pendingIntent.current`; `openAuth` (`:182-185`, called from Header/AccountMenu "Sign in") never clears it; the resume effect (`:200-208`) runs the stashed intent on any sign-in while the modal is open.
 - **Bug:** Closing the modal without signing in never clears the pending intent.
 - **Failure:** Signed-out user clicks "Continue to payment" on a tournament (intent = register + redirect to Stripe), dismisses the modal, later signs in from the header to check their profile — and is instead immediately registered and bounced to Stripe Checkout for the abandoned event.
+- **✅ FIXED:** `openAuth` now clears `pendingIntent` (a bare sign-in carries none; `requireAuth` reordered to set its intent after), and a `handleModalOpenChange` clears it on dismiss (safe: `AuthModal` only reports a close on explicit dismiss — success is closed by the resume effect). Regression tests added to `AuthModal.test.tsx` (positive control + the dismissed-intent case), **proven red→green**.
 
 ### H13. Every outing time displays in the server timezone (UTC in prod) — no outing ever stores a `tz`
 - **Confidence:** CONFIRMED
 - **Where:** `components/outings/OutingWizard.tsx:455-470` omits `tz` from the create payload; the only writer of `tz` is `app/api/outings/route.ts:100` reading `body.tz`, which **no client sends**. Fallbacks then use the runtime TZ: `components/outings/format.ts:10-30` (`toLocale*String` with no `timeZone`) and `app/outings/[id]/page.tsx:167-171` (forecast-day match).
 - **Bug:** The model, formatters, and weather-day matcher are all "timezone-aware via optional `outing.tz`", but nothing ever populates it, so every branch falls back to the server's timezone. The outing detail page and `OutingCard` are server-rendered.
 - **Failure:** An organizer in Kansas City creates a 6:00 PM game (stored correctly as `…T23:00:00Z`). In prod (UTC server) the outing page renders "11:00 PM" for every viewer; a 7:00 PM PDT game shows the *next day's* date. The weather chip computes `dayStr` in UTC (`2026-07-05`) while Open-Meteo returns court-local dates, so it shows the wrong day's forecast. (Same root cause as **M2**/**L15** on the directory side.)
+- **✅ FIXED:** both outing-create paths (`OutingWizard`, group meet-up `ManageGroupClient`) now populate `tz` from a new `browserTimeZone()` helper — consistent with the browser-local `startTs`, so viewers read the intended local time instead of the server's UTC. The route/data-layer/formatter plumbing already supported `tz`; only population was missing. Regression tests: formatter unit test (locks "6:00 PM" Central vs the buggy "11:00 PM" UTC) + `tz` round-trip in the outings integration test. **Note:** ideal long-term is an IANA tz on the court (from lat/lng at ingest) — flagged in the helper.
 
 ### H14. Round-robin "pools + bracket" bricks on one early tap, and a tied bracket score deadlocks the event
 - **Confidence:** CONFIRMED (executed repro)
 - **Where:** `lib/roundrobin/engine/pools.ts:244-255` (`poolsNext`) and `:184-194` (`nextBracketRound` returns `null` for "in progress"); `lib/data/roundrobin.ts:526-537` (`advanceRound` treats *any* `null` as "event over" → `status="complete"`, `championId=null`); `RunConsole.tsx:109-110` (`canAdvance` never checks the round is fully scored); tie acceptance at `roundrobin.ts:435-443`.
 - **Bug:** `nextRound()` returns `null` in three different states — pools not fully scored, bracket round in progress, and bracket finished — which `advanceRound` cannot tell apart. Separately, `recordScore` accepts tied scores, and a tied bracket match makes `decidedWinner()` null forever.
 - **Failure (both executed):** (1) 8 entrants, 2 pools: enter a semifinal as `11–11` → no Final is ever generated, `isComplete: true`, `champion: null`. (2) On the last pool round the "Next" button is enabled even with unscored matches → one tap → `advanceRound` writes `status="complete"`, `championId=null`, `editable` goes false → the organizer can no longer enter scores. The event is bricked one round in.
+- **✅ FIXED:** (A) `advanceRound` only finalizes when `isComplete(config, completed)` is true; otherwise it rejects ("score every match first") instead of completing with a null champion. (B) `recordScore` rejects a tie on a poolsBracket BRACKET match (`round > poolRoundCount`) — pool matches can still tie (standings award draws). (C) `RunConsole.canAdvance` also requires the current round fully scored. Re-exported `poolRoundCount`. Regression tests added to `roundrobin.test.ts` (unscored-advance rejected; pool ties allowed / bracket ties rejected / decisive play crowns a champion), **proven red→green** against dynalite.
 
 ---
 
@@ -115,26 +142,32 @@
 ### M1. No `LastEvaluatedKey` pagination anywhere — mass refunds, dashboards, and rosters truncate at 1 MB
 - **Confidence:** CONFIRMED · `lib/db/client.ts:108-161` (`query` returns one page; `lastKey` exposed but no data-layer caller loops), e.g. `cancelTournament` (`tournaments.ts:938-960`), `getMyPayments` (`payments.ts:116-123`), ladder reads (`ladders.ts:315-321,763-769`).
 - A tournament whose registration partition exceeds ~1 MB (thousands of regs): `cancelTournament` mass-refunds only the first page — the rest keep their money for a cancelled event, no error surfaced. Same truncation undercounts organizer-dashboard revenue and seeds brackets/schedules from partial rosters. *(Money-loss for large events; MEDIUM only because it needs a very large partition.)*
+- **✅ FIXED:** added a `queryAll<T>` helper (follows `LastEvaluatedKey` to exhaustion) and applied it to the correctness-critical full-partition reads: `getMyPayments`, `getRungs`, `getTournament`, `getLeague`, and the three RR partition reads (`getRrEvent`/`recordScore`/`advanceRound`). Deliberately NOT blanket-applied — user-facing lists keep cursor pagination. Regression test added (`data-layer.test.ts`): `query` with a small `limit` truncates + returns a cursor; `queryAll` returns everything.
 
 ### M2. `/play` city games default to the wrong day (server-UTC vs court-local key)
 - **Confidence:** CONFIRMED · `app/play/[country]/[state]/[city]/page.tsx:24-36` (`todayYyyymmdd` uses `new Date().get*` = server-local) vs the court-local `yyyymmdd` key in `lib/data/outings.ts:128`. The courts city page does this right via `courtLocalDay` (`app/courts/.../page.tsx:59`); only `/play` is wrong.
 - On a US west-coast city, from late afternoon until midnight UTC has already rolled to the next day, so the default view shows *tomorrow's* games and hides tonight's 7pm game — during peak evening hours.
+- **✅ FIXED:** the default day now uses `courtLocalDay({ lng: cityItem.centroidLng ?? -98 }, nowMs())` (the same tested helper the `/courts` city page uses), threaded through `resolveDay(raw, fallbackDay)`; `?date=` still overrides. Verified in Node: 8pm PDT → tonight (`20260704`) not tomorrow (`20260705`). Reuses the directly-unit-tested `courtLocalDay`.
 
 ### M3. Court reviews: `limit` applied before sort — the newest reviews can be permanently invisible
 - **Confidence:** CONFIRMED · `lib/data/reviews.ts:38-50` passes `limit` into the DynamoDB Query (rows keyed `REVIEW#<uid>`, uid-lexicographic), then sorts the returned page by `createdAt`. Sort-after-limit.
 - A court with 25 reviews requested at `limit:20` returns the 20 lowest-uid reviews, then sorts *those*; the actual 5 newest (high-sorting uids) never appear regardless of pagination. Same defect for `sort:"helpful"`.
+- **✅ FIXED:** `getCourtReviews` now reads the FULL review set (`queryAll`), sorts, THEN slices to `limit` (reviews-per-court are bounded). Dropped the meaningless SK cursor from the signature (the only caller never used it). Regression test added (`community.test.ts`): a newest review with a high-sorting uid is returned at `limit:1` for both `recent` and `helpful`, **proven red→green**.
 
 ### M4. RSVP downgrade (going → declined/maybe) frees a spot but never promotes the waitlist
 - **Confidence:** CONFIRMED · `lib/data/outings.ts:389-392` decrements `goingCount`, but promotion lives only in `cancelRsvp` (`:483-510`), not the POST path.
 - Capacity 4, full, 2 waitlisted. An attendee posts `declined` (the natural "can't make it") → `goingCount=3`, waitlist untouched → waitlisters stay stuck while the free spot goes to the next brand-new RSVP, jumping the queue.
+- **✅ FIXED:** extracted a shared `promoteWaitlistIntoFreedSpot` helper (used by both `cancelRsvp` and the `rsvp` downgrade path) and called it whenever an existing `going` RSVP transitions to a non-going status — placed before the RSVP re-write so a going→waitlist move can't promote itself. Regression test added (`outings.test.ts`): a going→declined downgrade promotes the waitlist, **proven red→green**.
 
 ### M5. `cancelRsvp` waitlist promotion can oversell capacity (unconditional increment)
 - **Confidence:** CONFIRMED · `lib/data/outings.ts:484-501` — decrements then promotes the waitlist head with an **unconditional** `ADD goingCount :1` (unlike `claimGoingSpot`, no `goingCount < capacity` guard).
 - Capacity 4, full, waitlist non-empty: A cancels (4→3); concurrently E claims a spot (3→4, conditional passes); A's promotion then `ADD +1` → 5 > capacity. The "never oversold" invariant is violated.
+- **✅ FIXED:** the shared promotion helper now claims the freed spot CONDITIONALLY via `claimGoingSpot(capacity)` before writing the promoted RSVP — if a concurrent claimer already refilled capacity, the claim fails and the waitlister is left in place (no oversell). Regression test added (`outings.test.ts`): a deterministic reconstruction of the race's critical moment (count at capacity when promotion runs), **proven red→green** (buggy code oversells to 2). *(Note: `Promise.all` didn't reproduce this race under dynalite's deterministic interleaving — hence the deterministic reconstruction.)*
 
 ### M6. RSVP / cancel counters aren't serialized per user — double-submits drift the counts
 - **Confidence:** CONFIRMED · `lib/data/outings.ts:386-431`, `:474-481` — read-`existing` → adjust counter → blind `putItem`/`deleteItem`, no conditional/version guard.
 - Double-click "Going": both see `existing=undefined`, both `claimGoingSpot` → `goingCount +2` for one attendee (burning a stranger's spot). Double-click cancel: both `ADD -1` → count under-reads and two waitlisters get promoted for one seat. A `attribute_exists`/conditional put closes it.
+- **✅ FIXED:** `rsvp` rewritten as a **conditional-put gate** (optimistic concurrency on the exact prior status): apply counter deltas, commit the row via `putConditional` on `attribute_not_exists(pk)`/`#status = :sOld`, and on a lost race undo the deltas + return the winner's state; the freed-seat promotion is deferred to after a winning commit so a loser never promotes. `cancelRsvp` uses a conditional delete (`attribute_exists(pk)`) so only the winner decrements + promotes. Regression tests added (`outings.test.ts`): double-"going" → count 1 (not 2), double-cancel → count 0 (never −1), **both proven red→green**.
 
 ### M7. Waitlist positions duplicate after a status change off the waitlist
 - **Confidence:** CONFIRMED · `lib/data/outings.ts:389-415` — `waitlistPos` is the post-ADD counter value; a waitlist→declined/going change decrements the count but doesn't renumber remaining positions (only `cancelRsvp` renumbers).

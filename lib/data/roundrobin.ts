@@ -35,6 +35,7 @@ import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import {
   getItem,
   query,
+  queryAll,
   putItem,
   updateItem,
   deleteItem,
@@ -361,7 +362,9 @@ export async function getRrEventItem(eventId: string): Promise<RrEventItem | und
  * `undefined` if the event doesn't exist.
  */
 export async function getRrEvent(eventId: string): Promise<RrEventFull | undefined> {
-  const { items } = await query<BaseItem>({ pk: rrKeys.meta(eventId).pk });
+  // queryAll: the engine computes nextRound/standings from the FULL partition (all
+  // ROUND#/MATCH#/STANDING# rows) — a page dropped at 1 MB corrupts advance/standings.
+  const items = await queryAll<BaseItem>({ pk: rrKeys.meta(eventId).pk });
   const metaItem = items.find((i) => i.sk === "META") as RrEventItem | undefined;
   if (!metaItem) return undefined;
   return assembleFull(metaItem, items);
@@ -428,7 +431,9 @@ export async function recordScore(
   score: ScoreInput,
   actor: RrActor,
 ): Promise<RrEventFull> {
-  const { items } = await query<BaseItem>({ pk: rrKeys.meta(eventId).pk });
+  // queryAll: the engine computes nextRound/standings from the FULL partition (all
+  // ROUND#/MATCH#/STANDING# rows) — a page dropped at 1 MB corrupts advance/standings.
+  const items = await queryAll<BaseItem>({ pk: rrKeys.meta(eventId).pk });
   const metaItem = items.find((i) => i.sk === "META") as RrEventItem | undefined;
   if (!metaItem) notFound(`Round-robin event not found: ${eventId}`);
   const meta = metaItem as RrEventItem;
@@ -527,7 +532,9 @@ export async function recordScore(
  * `null`. Rejects on static events (nothing to advance).
  */
 export async function advanceRound(eventId: string, actor: RrActor): Promise<RrRound | null> {
-  const { items } = await query<BaseItem>({ pk: rrKeys.meta(eventId).pk });
+  // queryAll: the engine computes nextRound/standings from the FULL partition (all
+  // ROUND#/MATCH#/STANDING# rows) — a page dropped at 1 MB corrupts advance/standings.
+  const items = await queryAll<BaseItem>({ pk: rrKeys.meta(eventId).pk });
   const metaItem = items.find((i) => i.sk === "META") as RrEventItem | undefined;
   if (!metaItem) notFound(`Round-robin event not found: ${eventId}`);
   const meta = metaItem as RrEventItem;

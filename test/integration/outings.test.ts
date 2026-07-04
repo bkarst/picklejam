@@ -188,6 +188,107 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
     expect(freshMeta?.waitlistCount).toBe(0);
   });
 
+  it("M6: a double-submitted 'going' claims ONE spot, not two", async () => {
+    const outing = await createOuting({
+      title: "Double Going",
+      courtId: COURT_CAP,
+      organizerId: `og-${RUN}-d6a`,
+      startTs: START_TS,
+      capacity: 4,
+      visibility: "public",
+    });
+    const p = `og-${RUN}-d6ap`;
+    await Promise.all([
+      rsvp(outing.outingId, p, "going"),
+      rsvp(outing.outingId, p, "going"),
+    ]);
+    const meta = await getOutingMeta(outing.outingId);
+    expect(meta?.goingCount).toBe(1); // pre-fix: both claimed → 2
+    const after = await getOuting(outing.outingId);
+    expect(after?.rsvps.filter((r) => r.uid === p && r.status === "going")).toHaveLength(1);
+  });
+
+  it("M6: a double-submitted cancel decrements the count exactly ONCE (never negative)", async () => {
+    const outing = await createOuting({
+      title: "Double Cancel",
+      courtId: COURT_CAP,
+      organizerId: `og-${RUN}-d6b`,
+      startTs: START_TS,
+      capacity: 4,
+      visibility: "public",
+    });
+    const p1 = `og-${RUN}-d6b1`;
+    await rsvp(outing.outingId, p1, "going"); // count 1
+    expect((await getOutingMeta(outing.outingId))?.goingCount).toBe(1);
+
+    await Promise.all([
+      cancelRsvp(outing.outingId, p1),
+      cancelRsvp(outing.outingId, p1),
+    ]);
+
+    // Only the request that actually removed the row decrements — pre-fix both did,
+    // driving goingCount to -1.
+    const meta = await getOutingMeta(outing.outingId);
+    expect(meta?.goingCount).toBe(0);
+  });
+
+  it("M5: promotion respects capacity — won't oversell when the freed spot was already refilled", async () => {
+    // Reconstruct the race's critical moment DETERMINISTICALLY: at promotion time the
+    // outing is already at capacity (a concurrent claim took the spot the departing
+    // attendee is about to free). Cancelling must NOT push goingCount past capacity.
+    const outing = await createOuting({
+      title: "Promote Respects Cap",
+      courtId: COURT_CAP,
+      organizerId: `og-${RUN}-cap2`,
+      startTs: START_TS,
+      capacity: 1,
+      visibility: "public",
+    });
+    const p1 = `og-${RUN}-cap2a`;
+    const p2 = `og-${RUN}-cap2b`;
+    await rsvp(outing.outingId, p1, "going"); // count 1 (full)
+    await rsvp(outing.outingId, p2, "going"); // waitlist pos 1
+
+    // Bump goingCount to 2 so that after p1's decrement it's still AT capacity — i.e. a
+    // concurrent claimer already holds the freed spot.
+    await putItem({ ...(await getOutingMeta(outing.outingId))!, goingCount: 2 });
+
+    await cancelRsvp(outing.outingId, p1); // decrement 2→1; promotion must SKIP (1 not < 1)
+
+    const meta = await getOutingMeta(outing.outingId);
+    expect(meta?.goingCount).toBe(1); // never oversold (pre-fix: unconditional +1 → 2)
+    const after = await getOuting(outing.outingId);
+    expect(after?.rsvps.find((r) => r.uid === p2)?.status).toBe("waitlist"); // not promoted
+  });
+
+  it("M4: a going → declined downgrade promotes the waitlist (not only cancelRsvp)", async () => {
+    const outing = await createOuting({
+      title: "Downgrade Promotes",
+      courtId: COURT_CAP,
+      organizerId: `og-${RUN}-dg`,
+      startTs: START_TS,
+      capacity: 1,
+      visibility: "public",
+    });
+    const p1 = `og-${RUN}-dg1`;
+    const p2 = `og-${RUN}-dg2`;
+
+    await rsvp(outing.outingId, p1, "going"); // takes the only spot
+    const w = await rsvp(outing.outingId, p2, "going"); // full → waitlist
+    expect(w.rsvp.status).toBe("waitlist");
+
+    // p1 changes their mind to "declined" via the RSVP path (the natural "can't make it").
+    await rsvp(outing.outingId, p1, "declined");
+
+    const after = await getOuting(outing.outingId);
+    expect(after?.rsvps.find((r) => r.uid === p1)?.status).toBe("declined");
+    // The waitlisted p2 is PROMOTED into the freed spot (pre-fix: stayed stuck).
+    expect(after?.rsvps.find((r) => r.uid === p2)?.status).toBe("going");
+    const meta = await getOutingMeta(outing.outingId);
+    expect(meta?.goingCount).toBe(1);
+    expect(meta?.waitlistCount).toBe(0);
+  });
+
   it("RSVP appears under my outings 'attending' (GSI1, hydrated)", async () => {
     const outing = await createOuting({
       title: "Attendee View",

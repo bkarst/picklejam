@@ -14,7 +14,7 @@
  */
 
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import { getItem, putNew, putItem, updateItem, query, deleteItem } from "@/lib/db/client";
+import { getItem, putNew, putItem, updateItem, queryAll, deleteItem } from "@/lib/db/client";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { paymentKeys } from "@/lib/db/keys";
 import { getGateway } from "@/lib/stripe";
@@ -114,7 +114,9 @@ export async function writePayment(input: WritePaymentInput): Promise<PaymentIte
  * `PAYMENT#` sort-key prefix.
  */
 export async function getMyPayments(uid: string): Promise<PaymentItem[]> {
-  const { items } = await query<PaymentItem>({
+  // queryAll: a payer's receipts feed dashboard revenue AND refund lookups — a page
+  // dropped at 1 MB would undercount revenue and hide a receipt from a refund.
+  const items = await queryAll<PaymentItem>({
     pk: paymentKeys.payment(uid, "").pk,
     skBeginsWith: paymentKeys.paymentPrefix(),
     ascending: false,

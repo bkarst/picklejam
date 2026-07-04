@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { loadFixture, fixture } from "@/test/fixtures/fixture";
-import { getItem, query } from "@/lib/db/client";
+import { getItem, query, queryAll, putItem } from "@/lib/db/client";
 import { courtKeys, cityKeyOf } from "@/lib/db/keys";
 import { GSI } from "@/lib/db/table";
 import type { CourtItem } from "@/lib/db/types";
@@ -50,5 +50,24 @@ d("single-table access patterns (DynamoDB Local)", () => {
   it("fixture is deterministic (same ids/values every load)", () => {
     expect(fixture.courts[0].courtId).toBe("court-ateam");
     expect(fixture.courts[0].geohash).toHaveLength(9);
+  });
+
+  it("M1: queryAll follows LastEvaluatedKey across pages (a single query truncates)", async () => {
+    const pk = `TEST#pagination#${fixture.courts[0].courtId}`;
+    const N = 10;
+    for (let i = 0; i < N; i++) {
+      await putItem({ pk, sk: `SEQ#${String(i).padStart(4, "0")}`, entity: "TESTROW", n: i });
+    }
+
+    // A single `query` with a small page size TRUNCATES and hands back a cursor —
+    // this is the shape that silently dropped registrations / rungs / receipts.
+    const onePage = await query<{ n: number }>({ pk, skBeginsWith: "SEQ#", limit: 3 });
+    expect(onePage.items).toHaveLength(3);
+    expect(onePage.lastKey).toBeDefined();
+
+    // `queryAll` follows the cursor and returns EVERY row regardless of page size.
+    const all = await queryAll<{ n: number }>({ pk, skBeginsWith: "SEQ#", limit: 3 });
+    expect(all).toHaveLength(N);
+    expect(all.map((r) => r.n).sort((a, b) => a - b)).toEqual([...Array(N).keys()]);
   });
 });

@@ -132,6 +132,41 @@ d("community data + streams wiring (DynamoDB Local)", () => {
     expect((await getMyReviews(uid2)).map((r) => r.courtId)).toContain(COURT_ID);
   });
 
+  it("M3: #4 returns the NEWEST reviews even when their uid sorts high (sort BEFORE limit)", async () => {
+    const courtId = `court-m3-${RUN}`;
+    // Oldest review, LOW-sorting uid → first by the `REVIEW#<uid>` sort key.
+    await putItem({
+      ...courtKeys.reviewByUser(courtId, "aaa", "2020-01-01T00:00:00.000Z"),
+      entity: "REVIEW",
+      courtId,
+      uid: "aaa",
+      rating1to5: 3,
+      helpfulCount: 0,
+      createdAt: "2020-01-01T00:00:00.000Z",
+      updatedAt: "2020-01-01T00:00:00.000Z",
+    });
+    // NEWEST review, HIGH-sorting uid → LAST by sort key (the one the old bug dropped).
+    await putItem({
+      ...courtKeys.reviewByUser(courtId, "zzz", "2030-01-01T00:00:00.000Z"),
+      entity: "REVIEW",
+      courtId,
+      uid: "zzz",
+      rating1to5: 5,
+      helpfulCount: 9,
+      createdAt: "2030-01-01T00:00:00.000Z",
+      updatedAt: "2030-01-01T00:00:00.000Z",
+    });
+
+    // Pre-fix: limit:1 queried the lowest-uid row ("aaa") then sorted → the newest
+    // review ("zzz") was permanently invisible. Now the full set is sorted, then sliced.
+    const recent = await getCourtReviews(courtId, { sort: "recent", limit: 1 });
+    expect(recent.items.map((r) => r.uid)).toEqual(["zzz"]);
+
+    // Same defect for helpful: "zzz" has the higher helpfulCount.
+    const helpful = await getCourtReviews(courtId, { sort: "helpful", limit: 1 });
+    expect(helpful.items.map((r) => r.uid)).toEqual(["zzz"]);
+  });
+
   it("follow/unfollow is idempotent and exposes followers for fan-out", async () => {
     await followCourt(uid1, COURT_ID);
     await followCourt(uid1, COURT_ID); // idempotent
