@@ -24,6 +24,7 @@ import {
   getLeaguesInCity,
   getMyLeagueRegistrations,
   getLeagueDivision,
+  addLeagueTeam,
   registerForLeague,
   confirmLeaguePayment,
   markLeagueRegRefunded,
@@ -207,8 +208,12 @@ d("leagues data layer (DynamoDB Local)", () => {
     expect(partnered.registration.partnerStatus).toBe("pending");
     expect(partnered.registration.partnerUid).toBe(uid("d-2"));
 
-    const teamed = await registerForLeague(lid, doublesDid, uid("t-1"), { teamId: `team-${RUN}` });
-    expect(teamed.registration.teamId).toBe(`team-${RUN}`);
+    // A team entry references a REAL team in that division whose member is the registrant
+    // (an arbitrary teamId is now rejected — L4).
+    const teamer = uid("t-1");
+    const team = await addLeagueTeam(lid, doublesDid, { name: "Team A", memberUids: [teamer] });
+    const teamed = await registerForLeague(lid, doublesDid, teamer, { teamId: team.teamId });
+    expect(teamed.registration.teamId).toBe(team.teamId);
 
     const freeAgent = await registerForLeague(lid, singlesDid, uid("fa-1"), { freeAgent: true });
     expect(freeAgent.registration.freeAgent).toBe(true);
@@ -454,6 +459,31 @@ d("leagues data layer (DynamoDB Local)", () => {
     expect((await getLeagueDivision(lid, did))?.registeredCount).toBe(1); // freed exactly once
     const detail = await getLeague(lid);
     expect(detail!.registrations.find((r) => r.uid === target)?.paymentStatus).toBe("refunded");
+  });
+
+  it("L4: registration rejects a teamId the caller doesn't own in this division", async () => {
+    const organizer = uid("org-l4");
+    await connectComplete(organizer);
+    const { lid, dids } = await makePublished(organizer, [
+      { name: "L4 Div", price: money(1000), capacity: 8, playMode: "doubles" },
+    ]);
+    const did = dids[0];
+    const member = uid("l4-member");
+    const outsider = uid("l4-outsider");
+    const team = await addLeagueTeam(lid, did, { name: "Real Team", memberUids: [member] });
+
+    // A made-up teamId → 400 (no such team).
+    await expect(
+      registerForLeague(lid, did, member, { teamId: `${team.teamId}-nope` }),
+    ).rejects.toMatchObject({ status: 400 });
+    // A real team, but the caller isn't a member → 403 (can't hijack another team's entrant).
+    await expect(
+      registerForLeague(lid, did, outsider, { teamId: team.teamId }),
+    ).rejects.toMatchObject({ status: 403 });
+
+    // The member registering with their OWN team succeeds.
+    const ok = await registerForLeague(lid, did, member, { teamId: team.teamId });
+    expect(ok.registration.teamId).toBe(team.teamId);
   });
 
   it("cancelLeague mass-refunds every paid registration (organizer-cancel ⇒ fee refunded)", async () => {

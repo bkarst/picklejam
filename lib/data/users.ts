@@ -35,8 +35,11 @@ import type {
 // ── reads (one query/getItem each) ───────────────────────────────────────────
 
 /** The caller's profile by uid (GetItem on `USER#<uid>`/`PROFILE`). */
-export async function getUserProfile(uid: string): Promise<UserProfileItem | undefined> {
-  return getItem<UserProfileItem>(userKeys.profile(uid));
+export async function getUserProfile(
+  uid: string,
+  opts?: { consistentRead?: boolean },
+): Promise<UserProfileItem | undefined> {
+  return getItem<UserProfileItem>(userKeys.profile(uid), opts);
 }
 
 /** #12 — public profile by username (GSI3), one Query. */
@@ -147,12 +150,20 @@ export async function putProfileWithUsername(
     return;
   }
 
+  const isCreate = oldUsername === undefined;
   const items: TransactItem[] = [
     txPut(
       reservationItem(profile.username, profile.uid) as unknown as Record<string, unknown>,
       "attribute_not_exists(pk)",
     ),
-    txPut(profile as unknown as Record<string, unknown>),
+    // On a first-time CREATE, guard the PROFILE row with `attribute_not_exists(pk)` too (L14):
+    // a concurrent first-access for the SAME uid must not create a second profile pointing at a
+    // second reservation — the losing call's reservation would be orphaned (a permanently-dead
+    // handle). The whole transaction fails atomically if EITHER row already exists. An EDIT that
+    // changes the username (oldUsername defined) legitimately overwrites the existing profile.
+    isCreate
+      ? txPut(profile as unknown as Record<string, unknown>, "attribute_not_exists(pk)")
+      : txPut(profile as unknown as Record<string, unknown>),
   ];
   // On a real change (not first-time create), release the previously-held slug.
   if (oldUsername !== undefined && oldUsername !== profile.username) {
@@ -267,14 +278,22 @@ export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileI
       onboarded: false,
     });
     try {
-      await putProfileWithUsername(profile); // create (no old username)
+      await putProfileWithUsername(profile); // create (create-only: reservation + profile)
       // Emit the profile INSERT so the §9.4 aggregator runs (inline in dev/CI; the real
       // Streams Lambda in prod). The new profile has no homeCityKey yet, so this attributes
       // no player until onboarding sets the city (a MODIFY the PUT route emits, M14).
       await emitInsert(profile as unknown as Record<string, unknown>);
       return profile;
     } catch (err) {
-      if (err instanceof UsernameTakenError) continue; // race — retry with a suffix
+      if (err instanceof UsernameTakenError) {
+        // A conditional failed. Either a CONCURRENT first-access for THIS uid already created
+        // the profile — return the winner's profile (never leak a second reservation, L14) — or
+        // the username was taken by a DIFFERENT uid, in which case retry with a fresh suffix. A
+        // strongly-consistent read distinguishes the two without racing the winner's commit.
+        const winner = await getUserProfile(user.uid, { consistentRead: true });
+        if (winner) return winner;
+        continue; // username taken by someone else → retry with a suffix
+      }
       throw err;
     }
   }

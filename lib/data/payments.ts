@@ -13,6 +13,7 @@
  *   • refundPayment — gateway refund (fee retained vs refunded) + ledger update.
  */
 
+import { ulid } from "ulid";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { getItem, putNew, putItem, updateItem, queryAll, deleteItem } from "@/lib/db/client";
 import { trackServerEvent } from "@/lib/analytics/server";
@@ -89,12 +90,19 @@ export interface WritePaymentInput {
  * last lexicographically). Returns the persisted item.
  */
 export async function writePayment(input: WritePaymentInput): Promise<PaymentItem> {
-  const iso = input.ts ?? new Date(input.now ?? Date.now()).toISOString();
+  const iso = new Date(input.now ?? Date.now()).toISOString();
+  // Unique per-payer sort key. `PAYMENT#<iso-ms>` alone COLLIDES when two receipts land for
+  // one payer in the same millisecond (concurrent fulfilments) → a plain putItem clobbers the
+  // first, silently losing a receipt (revenue + refund target). Disambiguate with a ulid
+  // suffix: the iso prefix preserves time ordering, the ulid guarantees uniqueness. `ts` IS the
+  // per-uid key discriminator (refunds relocate by the stored `payment.ts`), so an explicit
+  // `input.ts` is still honored verbatim for a caller that wants exact control (L7).
+  const ts = input.ts ?? `${iso}#${ulid()}`;
   const item: PaymentItem = {
-    ...paymentKeys.payment(input.uid, iso),
+    ...paymentKeys.payment(input.uid, ts),
     entity: "PAYMENT",
     uid: input.uid,
-    ts: iso,
+    ts,
     kind: input.kind,
     refId: input.refId,
     ...(input.divisionId !== undefined ? { divisionId: input.divisionId } : {}),

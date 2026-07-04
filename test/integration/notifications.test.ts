@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   createNotification,
   getMyNotifications,
@@ -7,6 +7,8 @@ import {
   markAllRead,
 } from "@/lib/data/notifications";
 import { fanOut } from "@/lib/notify";
+import { getDocClient } from "@/lib/db/table";
+import { notifKeys } from "@/lib/db/keys";
 
 /**
  * Notification rail integration (PRD §9.3) against DynamoDB Local — skipped when
@@ -52,6 +54,36 @@ d("notification rail (DynamoDB Local)", () => {
     // markRead on an unknown id is a no-op (no throw, no phantom row).
     await markRead(uid, "does-not-exist", new Date(t0).toISOString());
     expect(await getUnreadCount(uid)).toBe(0);
+  });
+
+  it("L12: markAllRead flips unread rows BEYOND the first page (pagination)", async () => {
+    const u = `notif-l12-${RUN}`;
+    const t0 = Date.now();
+    for (let i = 0; i < 3; i++) {
+      await createNotification(u, { type: "system", title: `n${i}` }, { now: new Date(t0 + i * 1000) });
+    }
+    expect(await getUnreadCount(u)).toBe(3);
+
+    // Force the sweep to see ONE unread row per page: inject `Limit: 1` into the byOwner query so
+    // dynalite hands back a real `LastEvaluatedKey` — reproducing a >1 MB feed without the bulk.
+    // A single-page markAllRead flips only that first row; a paginating one flips them all.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client);
+    const gsi1pk = notifKeys.notif(u, "", "").gsi1pk;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      if (input.KeyConditionExpression && input.ExpressionAttributeValues?.[":pk"] === gsi1pk) {
+        input.Limit = 1; // one row per page → forces LastEvaluatedKey pagination
+      }
+      return originalSend(command);
+    });
+
+    const flipped = await markAllRead(u);
+    sendSpy.mockRestore();
+
+    expect(flipped).toBe(3); // pre-fix: 1 (only the first page's row was flipped)
+    expect(await getUnreadCount(u)).toBe(0); // pre-fix: 2 rows still unread
   });
 
   it("fanOut writes one notification per recipient", async () => {

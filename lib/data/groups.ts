@@ -40,6 +40,8 @@ import {
   getItem,
   query,
   putItem,
+  putItemReturningOld,
+  updateItem,
   deleteItem,
   batchGet,
   transactWrite,
@@ -541,8 +543,16 @@ export async function joinGroup(groupId: string, uid: string): Promise<JoinResul
   const iso = new Date().toISOString();
   const status: GroupMemberStatus = group.joinPolicy === "open" ? "active" : "pending";
   const member = buildMember(groupId, uid, status, iso);
-  await putItem(asItem(member));
-  await emitInsert(asItem(member)); // active ⇒ memberCount++; pending ⇒ no-op
+  // Emit from the ATOMIC prior image, not the pre-read `existing` (L10): two concurrent joins
+  // for the same uid both saw no member and would both `emitInsert` → memberCount +2 for one
+  // real member. `ALL_OLD` makes the FIRST write an INSERT (memberCount++) and the loser a
+  // MODIFY (active→active ⇒ the aggregator's delta is 0), exactly as real Streams would.
+  const prior = await putItemReturningOld(asItem(member));
+  if (prior) {
+    await emitModify(prior, asItem(member));
+  } else {
+    await emitInsert(asItem(member)); // active ⇒ memberCount++; pending ⇒ no-op
+  }
 
   if (status === "pending") {
     const managers = await getManagers(groupId);
@@ -719,8 +729,15 @@ export async function acceptInvite(
 
   const iso = new Date(now).toISOString();
   const member = buildMember(groupId, uid, "active", iso);
-  await putItem(asItem(member));
-  await emitInsert(asItem(member)); // memberCount++
+  // Emit from the atomic prior image (L10): two concurrent invite accepts for the same uid
+  // must bump memberCount once, not twice. `ALL_OLD` ⇒ first write INSERT (+1), loser MODIFY
+  // (active→active ⇒ 0).
+  const prior = await putItemReturningOld(asItem(member));
+  if (prior) {
+    await emitModify(prior, asItem(member));
+  } else {
+    await emitInsert(asItem(member)); // memberCount++
+  }
   return member;
 }
 
@@ -769,33 +786,53 @@ export async function updateGroup(
     new Set([...(nextHomeCourtId ? [nextHomeCourtId] : []), ...nextCourtIds]),
   );
 
-  // Re-put META with recomputed keys (a full Put drops the GSI2 keys when private).
-  const updated: GroupItem = {
-    ...groupKeys.meta(groupId),
-    ...groupKeys.byCreator(current.creatorId, current.createdAt),
-    ...(isPublic ? groupKeys.inCity(groupId, current.cityKey) : {}),
-    ...groupKeys.bySlug(current.slug),
-    entity: "GROUP",
-    groupId,
-    name: patch.name ?? current.name,
-    slug: current.slug,
-    ...((patch.description ?? current.description) !== undefined
-      ? { description: patch.description ?? current.description }
-      : {}),
-    cityKey: current.cityKey,
-    ...(nextHomeCourtId !== undefined ? { homeCourtId: nextHomeCourtId } : {}),
-    ...(dedupedCourts.length > 0 ? { courtIds: dedupedCourts } : {}),
-    creatorId: current.creatorId,
-    visibility: nextVisibility,
-    joinPolicy: patch.joinPolicy ?? current.joinPolicy,
-    ...((patch.avatarUrl ?? current.avatarUrl) !== undefined
-      ? { avatarUrl: patch.avatarUrl ?? current.avatarUrl }
-      : {}),
-    memberCount: current.memberCount,
-    createdAt: current.createdAt,
-    updatedAt: iso,
+  // Update META in place (L9). A full Put would re-write `memberCount` from the value read at
+  // the top of this function, silently clobbering a concurrent aggregator `ADD memberCount`
+  // (a join/leave landing between our read and our write) — and nothing heals it. Instead SET
+  // only the settings fields, REMOVE the ones being cleared, and leave `memberCount` plus the
+  // stable identity / GSI1 (byCreator) / GSI3 (bySlug) keys untouched. Toggling to private
+  // REMOVEs the GSI2 city-finder keys (matching the old full-Put behaviour of dropping stale
+  // keys); toggling public re-stamps them.
+  const nextDescription = patch.description ?? current.description;
+  const nextAvatarUrl = patch.avatarUrl ?? current.avatarUrl;
+  const sets = ["#name = :name", "visibility = :vis", "joinPolicy = :jp", "updatedAt = :u"];
+  const removes: string[] = [];
+  const names: Record<string, string> = { "#name": "name" };
+  const values: Record<string, unknown> = {
+    ":name": patch.name ?? current.name,
+    ":vis": nextVisibility,
+    ":jp": patch.joinPolicy ?? current.joinPolicy,
+    ":u": iso,
   };
-  await putItem(asItem(updated));
+  const setOrRemove = (attr: string, value: unknown): void => {
+    if (value !== undefined) {
+      sets.push(`${attr} = :${attr}`);
+      values[`:${attr}`] = value;
+    } else {
+      removes.push(attr);
+    }
+  };
+  setOrRemove("description", nextDescription);
+  setOrRemove("homeCourtId", nextHomeCourtId);
+  setOrRemove("courtIds", dedupedCourts.length > 0 ? dedupedCourts : undefined);
+  setOrRemove("avatarUrl", nextAvatarUrl);
+  if (isPublic) {
+    const g2 = groupKeys.inCity(groupId, current.cityKey);
+    sets.push("gsi2pk = :g2pk", "gsi2sk = :g2sk");
+    values[":g2pk"] = g2.gsi2pk;
+    values[":g2sk"] = g2.gsi2sk;
+  } else {
+    removes.push("gsi2pk", "gsi2sk");
+  }
+  const attrs = await updateItem({
+    key: groupKeys.meta(groupId),
+    update: `SET ${sets.join(", ")}` + (removes.length ? ` REMOVE ${removes.join(", ")}` : ""),
+    names,
+    values,
+    condition: "attribute_exists(pk)",
+  });
+  // ALL_NEW reflects the true persisted row (including any concurrent `memberCount` bump).
+  const updated = attrs as unknown as GroupItem;
 
   // Reconcile the COURT→GROUP pointers.
   const oldCourts = new Set([

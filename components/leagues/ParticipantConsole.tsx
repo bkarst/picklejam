@@ -25,7 +25,7 @@ const TH = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide 
 const TD = "px-3 py-3 align-middle";
 
 export function ParticipantConsole({ lid }: { lid: string }): JSX.Element {
-  const { user, requireAuth } = useAuth();
+  const { user, loading, requireAuth } = useAuth();
   const { data, isLoading } = useLeague(user ? lid : undefined);
 
   const myUid = user?.uid;
@@ -73,6 +73,19 @@ export function ParticipantConsole({ lid }: { lid: string }): JSX.Element {
   const upcomingWeek = thisWeek?.week ?? 1;
 
   // ── auth / loading / empty gates ──
+  // Auth resolves asynchronously (real Firebase leaves `user` null for the first few hundred
+  // ms). Show the loading skeleton WHILE it resolves — checking `loading` before `!user` — so a
+  // signed-in member never flashes the clickable "Sign in" gate (L20).
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="rounded-2xl border border-dashed border-border p-8 text-center">

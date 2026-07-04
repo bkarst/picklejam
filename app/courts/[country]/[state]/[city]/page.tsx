@@ -56,7 +56,10 @@ export default async function CityPage({ params }: { params: Params }) {
   const totalCourts = cityItem.counts?.courts ?? courts.reduce((s, c) => s + c.totalCourts, 0);
   const nearby = await getCitiesByKeys((cityItem.nearbyCityKeys ?? []).slice(0, 6));
   const faq = cityFaq(cityItem.name, courts);
-  const cityDay = courtLocalDay({ lng: cityItem.centroidLng ?? -98 }, nowMs());
+  const cityDay = courtLocalDay(
+    { lat: cityItem.centroidLat, lng: cityItem.centroidLng ?? -98 },
+    nowMs(),
+  );
   const upcomingGames = (await getCityGames(cityItem.cityKey, cityDay)).slice(0, 3);
   // Hydrate the (≤3) games' court names so the cards link to the venue.
   const upcomingCourts = new Map(

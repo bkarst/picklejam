@@ -4,8 +4,9 @@
 process.env.STREAMS_INLINE = "1";
 process.env.DYNAMO_EMULATE_TRANSACTIONS = "1";
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { getItem, putItem } from "@/lib/db/client";
+import { getDocClient } from "@/lib/db/table";
 import { courtKeys, groupKeys, geoKeys, userKeys, parseCityKey } from "@/lib/db/keys";
 import { reconcileGroupMemberCount } from "@/lib/streams/reconcile";
 import { createOuting } from "@/lib/data/outings";
@@ -471,5 +472,94 @@ d("groups data + streams wiring (DynamoDB Local)", () => {
 
     expect((await getGroupsInCity(CITY_KEY)).map((x) => x.groupId)).not.toContain(g.groupId);
     expect((await getGroupsAtCourt(COURT_HOME)).map((x) => x.groupId)).not.toContain(g.groupId);
+  });
+
+  // ── updateGroup must not clobber a concurrent aggregator memberCount bump (L9) ─
+  it("L9: a settings edit racing a join does not erase the aggregator's memberCount bump", async () => {
+    const owner = `grp-${RUN}-l9`;
+    const g = await createGroup({
+      name: "Race Club",
+      creatorId: owner,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+      visibility: "public",
+      joinPolicy: "open",
+    });
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(1); // creator only
+
+    // Deterministically stage the exact lost-update window: intercept updateGroup's own META
+    // write and, just before it commits, land a real member JOIN (the inline aggregator applies
+    // an atomic `ADD memberCount +1` → 2). updateGroup had already read `current` (memberCount=1)
+    // by then, so pre-fix its full Put re-wrote memberCount=1, erasing the join. The interceptor
+    // works for BOTH shapes: a PutCommand (pre-fix) and an UpdateCommand (fixed) targeting META.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client); // real send, captured before spying
+    const meta = groupKeys.meta(g.groupId);
+    const isMetaKey = (k: { pk?: string; sk?: string } | undefined) =>
+      !!k && k.pk === meta.pk && k.sk === meta.sk;
+    let injected = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      const isMetaWrite =
+        (input.Item && isMetaKey(input.Item)) || // PutCommand (pre-fix)
+        (input.Key && input.UpdateExpression && isMetaKey(input.Key)); // UpdateCommand (fixed)
+      if (isMetaWrite && !injected) {
+        injected = true;
+        // The join's own writes (incl. the aggregator's `ADD memberCount` on META) re-enter this
+        // mock, but `injected` is now set so they fall through to the real send — no recursion.
+        await joinGroup(g.groupId, `grp-${RUN}-l9-joiner`); // aggregator: memberCount 1 → 2
+        return originalSend(command); // now let updateGroup's original META write land
+      }
+      return originalSend(command);
+    });
+
+    await updateGroup(g.groupId, owner, { name: "Race Club Renamed" });
+    sendSpy.mockRestore();
+
+    const after = await getGroupMeta(g.groupId);
+    expect(after?.name).toBe("Race Club Renamed"); // the edit still applied
+    expect(after?.memberCount).toBe(2); // pre-fix: 1 (the concurrent join was clobbered)
+  });
+
+  // ── two concurrent joins for one uid bump memberCount ONCE, not twice (L10) ────
+  it("L10: a double-submitted join for the same uid counts once (no double memberCount)", async () => {
+    const owner = `grp-${RUN}-l10`;
+    const joiner = `grp-${RUN}-l10-joiner`;
+    const g = await createGroup({
+      name: "Double Join",
+      creatorId: owner,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+      visibility: "public",
+      joinPolicy: "open",
+    });
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(1); // creator only
+
+    // Deterministically stage the race: intercept the first join's MEMBER-row write and, right
+    // before it commits, run a SECOND join for the SAME uid to completion (double-tap / two
+    // devices). Both saw no member, so pre-fix both `emitInsert` → memberCount +2 for one member.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client);
+    const memberKey = groupKeys.member(g.groupId, joiner);
+    let injected = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      const isMemberWrite =
+        input.Item && input.Item.pk === memberKey.pk && input.Item.sk === memberKey.sk;
+      if (isMemberWrite && !injected) {
+        injected = true;
+        await joinGroup(g.groupId, joiner); // concurrent second join, same uid, run to completion
+        return originalSend(command); // then let the first join's write land
+      }
+      return originalSend(command);
+    });
+
+    await joinGroup(g.groupId, joiner);
+    sendSpy.mockRestore();
+
+    // One real joiner + the creator. Pre-fix: 3 (the same join was counted twice).
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
   });
 });

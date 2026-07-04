@@ -1248,12 +1248,24 @@ export async function seedBracket(
   );
   if (paid.length < 2) badRequest("Need at least 2 paid registrations to seed a bracket");
 
-  // Seed order: highest DUPR first (stable), then earliest registration.
+  // Seed order: highest DUPR first (unrated players sort last), then earliest registration
+  // as the tie-break. The comparator previously sorted by time ONLY, silently ignoring DUPR
+  // despite this contract — so strong players who registered late met in round 1 (L6). DUPR
+  // is resolved SERVER-SIDE from the verified RATING# rows (same source the entry gate uses).
+  const duprByUid = new Map<string, number>();
+  await Promise.all(
+    paid.map(async (r) => {
+      const d = await resolveDupr(r.uid);
+      if (d !== undefined) duprByUid.set(r.uid, d);
+    }),
+  );
   const seeds = paid
     .slice()
     .sort((a, b) => {
-      const byTime = (a.registeredAt ?? a.createdAt).localeCompare(b.registeredAt ?? b.createdAt);
-      return byTime;
+      const da = duprByUid.get(a.uid) ?? -Infinity;
+      const db = duprByUid.get(b.uid) ?? -Infinity;
+      if (da !== db) return db - da; // higher DUPR seeds higher
+      return (a.registeredAt ?? a.createdAt).localeCompare(b.registeredAt ?? b.createdAt);
     })
     .map((r) => r.uid);
 

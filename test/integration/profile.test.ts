@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import {
   getUserProfile,
   getUserByUsername,
@@ -7,6 +7,8 @@ import {
   buildProfileItem,
   buildRatingItem,
   putProfileWithUsername,
+  getOrCreateProfile,
+  getUsernameReservation,
   upsertRating,
   deleteRating,
   UsernameTakenError,
@@ -14,6 +16,9 @@ import {
 import { updateNotifPrefs, addUnsubscribe } from "@/lib/data/notifications";
 import { verifyRequest } from "@/lib/auth/verify";
 import { encodeDevToken } from "@/lib/auth/dev";
+import { getDocClient } from "@/lib/db/table";
+import { usernameKey } from "@/lib/db/keys";
+import { slugify } from "@/lib/util/slug";
 
 /**
  * Stage 2 profile & ratings spine integration against DynamoDB Local: §9.5
@@ -137,6 +142,54 @@ d("profile & ratings spine (DynamoDB Local)", () => {
     expect((await getUserByUsername(name2))?.uid).toBe(uid1);
     expect(await getUserByUsername(name1)).toBeUndefined();
     expect(await isUsernameAvailable(name1)).toBe(true); // old slug freed
+  });
+
+  it("L14: two concurrent first-accesses for one uid don't orphan a username reservation", async () => {
+    const uid = `user-itest-${RUN}-l14`;
+    const base = `L14 Racer ${RUN}`;
+    const root = slugify(base); // the username generateUniqueUsername settles on when free
+    const user = { uid, name: base, email: `l14-${RUN}@example.com` };
+
+    // Deterministically stage the race: intercept the OUTER getOrCreateProfile's reservation
+    // claim (the first PutCommand of its create transaction) and, right before it commits, run
+    // a SECOND getOrCreateProfile for the SAME uid to completion. Both generated `root` (it was
+    // free when each probed), so the inner call wins `root` and the outer's claim then fails.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client);
+    const rootResvPk = usernameKey(root).pk;
+    let injected = false;
+    let innerUsername = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      const isRootClaim =
+        input.Item?.pk === rootResvPk &&
+        typeof input.ConditionExpression === "string" &&
+        input.ConditionExpression.includes("attribute_not_exists");
+      if (isRootClaim && !injected) {
+        injected = true;
+        // The inner call's own writes re-enter this mock, but `injected` is set → they fall
+        // through to the real send (no recursion). It commits `root` + the profile first.
+        innerUsername = (await getOrCreateProfile(user)).username;
+        return originalSend(command); // now let the outer's `root` claim land → it fails
+      }
+      return originalSend(command);
+    });
+
+    const outer = await getOrCreateProfile(user);
+    sendSpy.mockRestore();
+
+    // Both calls resolve to the SAME profile — the concurrent winner's — with no second identity.
+    expect(innerUsername).toBe(root);
+    expect(outer.username).toBe(root); // pre-fix: `root-<rand>` (a second profile was created)
+
+    // The invariant holds: the live profile's username is `root`, `root` is reserved for THIS
+    // uid, and the GSI3 slug pointer resolves back to it — no orphaned `root` reservation left
+    // behind (pre-fix the profile moved to `root-<rand>`, orphaning the `root` reservation).
+    const finalProfile = await getUserProfile(uid);
+    expect(finalProfile?.username).toBe(root);
+    expect((await getUsernameReservation(root))?.uid).toBe(uid);
+    expect((await getUserByUsername(root))?.uid).toBe(uid);
   });
 
   it("requireAuth path: verifyRequest rejects without a token, resolves a dev token", async () => {

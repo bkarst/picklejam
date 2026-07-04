@@ -33,7 +33,7 @@
  * vocabulary ever grows large (§13).
  */
 
-import { getItem, query, putItem, batchGet } from "@/lib/db/client";
+import { getItem, query, putItem, deleteItem, batchGet } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { contentKeys, newsKeys, parseCityKey } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
@@ -418,23 +418,35 @@ export async function createNews(input: CreateNewsInput): Promise<NewsItem> {
   };
   await putItem(asItem(item));
 
-  // Fan out one topic pointer per topic (GSI2 key present only when published).
-  if (status === "published") {
-    await Promise.all(
-      topics.map((topic) => {
-        const pointer: NewsTopicPointerItem = {
-          ...newsKeys.topicPointer(input.id, topic, publishedAt),
-          entity: "NEWSTOPIC",
-          newsId: input.id,
-          topic,
-          slug,
-          title: input.title,
-          publishedAt,
-        };
-        return putItem(asItem(pointer));
-      }),
-    );
-  }
+  // Reconcile per-topic pointers (GSI2 `NEWSTOPIC#<topic>`), don't just ADD them (L13). A
+  // re-publish with a SMALLER topic set — or an unpublish (→ desired set empty) — must DELETE
+  // the pointers it no longer wants, else `listNewsTopics` counts orphans (an inflated chip
+  // count) and `getNewsByTopic` either surfaces the item under a topic it dropped or, once the
+  // parent is a draft, opens an empty filtered feed. Pointers share the meta's base partition
+  // (`pk=NEWS#<id>`, `sk=TOPIC#<topic>`), so one bounded Query enumerates the existing set.
+  const desiredTopics = status === "published" ? topics : [];
+  const desired = new Set(desiredTopics);
+  const { items: existing } = await query<NewsTopicPointerItem>({
+    pk: newsKeys.meta(input.id).pk,
+    skBeginsWith: newsKeys.topicPointerPrefix(),
+  });
+  await Promise.all([
+    ...desiredTopics.map((topic) => {
+      const pointer: NewsTopicPointerItem = {
+        ...newsKeys.topicPointer(input.id, topic, publishedAt),
+        entity: "NEWSTOPIC",
+        newsId: input.id,
+        topic,
+        slug,
+        title: input.title,
+        publishedAt,
+      };
+      return putItem(asItem(pointer));
+    }),
+    ...existing
+      .filter((p) => !desired.has(p.topic))
+      .map((p) => deleteItem({ pk: p.pk, sk: p.sk })),
+  ]);
 
   return item;
 }

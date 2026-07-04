@@ -16,8 +16,10 @@ import "server-only";
  * unit-tested without a database or mail client.
  */
 
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { getResend } from "@/lib/resend";
 import { brand } from "@/brand.config";
+import { APP_ENV } from "@/lib/env";
 import {
   createNotification,
   type NotificationInput,
@@ -96,28 +98,55 @@ function parseHHmm(s: string): number | null {
 // ── one-click unsubscribe tokens ─────────────────────────────────────────────
 
 /**
- * Opaque unsubscribe token. v1 is base64url(`uid:email`) — enough to route a
- * one-click unsubscribe to the right suppression write.
- * TODO(security): sign the token (HMAC over uid+email) so it can't be forged and
- * can carry an expiry; base64 alone is tamper-visible but not tamper-proof.
+ * HMAC key for unsubscribe tokens. REQUIRED in production (an unset secret would sign with
+ * a public dev fallback → forgeable again); a fixed fallback in dev/test keeps them working.
  */
-export function makeUnsubToken(uid: string, email: string): string {
-  return Buffer.from(`${uid}:${email}`, "utf8").toString("base64url");
+function unsubSecret(): string {
+  const s = process.env.UNSUBSCRIBE_SECRET;
+  if (s) return s;
+  if (APP_ENV === "Production") {
+    throw new Error("UNSUBSCRIBE_SECRET is required in production to sign unsubscribe tokens");
+  }
+  return "dev-only-unsubscribe-secret";
 }
 
-/** Parse an unsubscribe token back to `{uid, email}` (null if malformed). */
+/** base64url HMAC-SHA256 of the payload under the unsubscribe secret. */
+function signUnsub(payload: string): string {
+  return createHmac("sha256", unsubSecret()).update(payload).digest("base64url");
+}
+
+/**
+ * Signed unsubscribe token: `base64url(uid:email).hmac`. The HMAC makes it TAMPER-PROOF —
+ * knowing a victim's uid + email is no longer enough to forge a suppression (L1). (No
+ * expiry: an unsubscribe link must keep working for the life of the email, RFC 8058.)
+ */
+export function makeUnsubToken(uid: string, email: string): string {
+  const payload = `${uid}:${email}`;
+  return `${Buffer.from(payload, "utf8").toString("base64url")}.${signUnsub(payload)}`;
+}
+
+/** Parse + VERIFY an unsubscribe token → `{uid, email}`; null if malformed or the HMAC fails. */
 export function parseUnsubToken(token: string): { uid: string; email: string } | null {
+  const dot = token.indexOf(".");
+  if (dot <= 0 || dot === token.length - 1) return null; // require both payload + signature
+  const payloadB64 = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  let payload: string;
   try {
-    const decoded = Buffer.from(token, "base64url").toString("utf8");
-    const i = decoded.indexOf(":");
-    if (i <= 0 || i === decoded.length - 1) return null;
-    const uid = decoded.slice(0, i);
-    const email = decoded.slice(i + 1);
-    if (!uid || !email) return null;
-    return { uid, email };
+    payload = Buffer.from(payloadB64, "base64url").toString("utf8");
   } catch {
     return null;
   }
+  // Constant-time signature check — a forged/tampered token is rejected.
+  const provided = Buffer.from(sig);
+  const expected = Buffer.from(signUnsub(payload));
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+  const i = payload.indexOf(":");
+  if (i <= 0 || i === payload.length - 1) return null;
+  const uid = payload.slice(0, i);
+  const email = payload.slice(i + 1);
+  if (!uid || !email) return null;
+  return { uid, email };
 }
 
 // ── delivery ─────────────────────────────────────────────────────────────────

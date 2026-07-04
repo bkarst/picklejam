@@ -588,6 +588,16 @@ export async function registerForLeague(
   const skill = await resolveSkill(uid);
   assertRatingGate(division!, dupr, skill);
 
+  // Team entries: a supplied `teamId` must be a REAL team IN THIS DIVISION that the caller
+  // belongs to. Otherwise an arbitrary/forged teamId would collapse this registration with
+  // another into ONE scheduling entrant (entrantId = `teamId ?? uid`, §schedule) — hijacking
+  // fixtures / standings (L4).
+  if (opts.teamId) {
+    const team = await getItem<LeagueTeamItem>(leagueKeys.team(lid, opts.teamId));
+    if (!team || team.did !== did) badRequest("Unknown team for this division");
+    if (!team!.memberUids.includes(uid)) forbidden("You are not a member of that team");
+  }
+
   // Claim a spot (no oversell). A full division is rejected (409) — leagues have
   // no deferred-capture waitlist; use the free-agent / sub pool instead.
   const claimed = await claimDivisionSpot(lid, did, division!.capacity);

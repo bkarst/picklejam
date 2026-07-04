@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { safeNextPath } from "@/lib/util/safe-redirect";
 import { AuthForm } from "./AuthForm";
 import { useAuth, type AuthTab } from "./AuthProvider";
 
@@ -19,7 +20,8 @@ export function AuthPage({ initialMode }: { initialMode: Mode }) {
   const params = useSearchParams();
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
-  const next = params.get("next") || "/account";
+  // Same-origin only — an off-site `?next=` would be an open redirect after sign-in (L5).
+  const next = safeNextPath(params.get("next"));
 
   useEffect(() => {
     if (!loading && user) router.replace(next);

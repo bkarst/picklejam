@@ -85,4 +85,18 @@ describe("unsubscribe token round-trip", () => {
     expect(parseUnsubToken("not-a-valid-token!!!")).toBeNull();
     expect(parseUnsubToken("")).toBeNull();
   });
+
+  it("L1: rejects a FORGED unsigned token (base64 of uid:email with no HMAC)", () => {
+    // What an attacker who learns a victim's uid + email would mint (the old v1 format).
+    const forged = Buffer.from("victim-uid:victim@example.com", "utf8").toString("base64url");
+    expect(parseUnsubToken(forged)).toBeNull(); // pre-fix: { uid, email } → suppression forged
+  });
+
+  it("L1: rejects a TAMPERED token (payload swapped under a stale signature)", () => {
+    const good = makeUnsubToken("u1", "a@example.com");
+    const other = makeUnsubToken("u1", "b@example.com");
+    const staleSig = good.slice(good.indexOf(".") + 1);
+    const swappedPayload = other.slice(0, other.indexOf("."));
+    expect(parseUnsubToken(`${swappedPayload}.${staleSig}`)).toBeNull();
+  });
 });

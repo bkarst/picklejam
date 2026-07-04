@@ -66,7 +66,10 @@ export default async function CityGamesPage({
 
   // Default to the CITY's local day (from its centroid longitude), matching how games
   // are keyed and how the /courts city page resolves "today". `-98` ≈ US center.
-  const day = resolveDay(date, courtLocalDay({ lng: cityItem.centroidLng ?? -98 }, nowMs()));
+  const day = resolveDay(
+    date,
+    courtLocalDay({ lat: cityItem.centroidLat, lng: cityItem.centroidLng ?? -98 }, nowMs()),
+  );
   const st = stateAbbr(state);
   const base = brand.siteUrl;
 

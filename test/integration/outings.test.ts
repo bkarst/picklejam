@@ -4,8 +4,11 @@
 process.env.STREAMS_INLINE = "1";
 process.env.DYNAMO_EMULATE_TRANSACTIONS = "1";
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
+import type { NextRequest } from "next/server";
+import { GET as calendarIcsRoute } from "@/app/outings/[id]/calendar.ics/route";
 import { getItem, putItem } from "@/lib/db/client";
+import { getDocClient } from "@/lib/db/table";
 import { courtKeys, geoKeys, outingKeys, parseCityKey } from "@/lib/db/keys";
 import { courtLocalDay } from "@/lib/directory/court-local-day";
 import {
@@ -98,6 +101,66 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
     expect(mine.attending).toEqual([]);
   });
 
+  it("L11: an upcoming game is found even when the first OUTINGREF page is all past-dated", async () => {
+    const COURT_L11 = `court-og-${RUN}-l11`;
+    await makeCourt(COURT_L11);
+
+    // One PAST + one FUTURE public game at the same court. The OUTINGREF SK is
+    // `OUTING#<startTs>#<id>`, so read oldest-first the past ref sorts ahead of the future one.
+    const past = await createOuting({
+      title: "Yesterday's Game",
+      courtId: COURT_L11,
+      organizerId: `og-${RUN}-l11-past`,
+      startTs: "2000-01-01T18:00:00.000Z",
+      visibility: "public",
+    });
+    const future = await createOuting({
+      title: "Future Game",
+      courtId: COURT_L11,
+      organizerId: `og-${RUN}-l11-future`,
+      startTs: START_TS, // 2099
+      visibility: "public",
+    });
+
+    // Force the OUTINGREF partition to return ONE ROW PER PAGE, so the first page a plain
+    // begins_with scan sees is the (past) row alone + a cursor — reproducing the "first 1 MB
+    // page is entirely past-dated" symptom without a million rows. A correct read must key
+    // past the past refs (or follow the cursor) to ever reach the future game.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client);
+    const courtPk = courtKeys.meta(COURT_L11).pk;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isRefQuery = (input: any) =>
+      input?.KeyConditionExpression &&
+      !input.IndexName &&
+      input.ExpressionAttributeValues?.[":pk"] === courtPk;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      if (isRefQuery(input)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res: any = await originalSend(command);
+        const items = res.Items ?? [];
+        if (!input.ExclusiveStartKey && items.length > 1) {
+          return {
+            ...res,
+            Items: [items[0]],
+            LastEvaluatedKey: { pk: items[0].pk, sk: items[0].sk },
+          };
+        }
+        return res;
+      }
+      return originalSend(command);
+    });
+
+    const games = await getCourtGames(COURT_L11);
+    sendSpy.mockRestore();
+
+    const ids = games.map((o) => o.outingId);
+    expect(ids).toContain(future.outingId); // pre-fix: MISSING — first page was all past → []
+    expect(ids).not.toContain(past.outingId); // a past game is never "upcoming"
+  });
+
   it("private meet-up NEVER surfaces on a public court/city query (visibility projection)", async () => {
     const priv = await createOuting({
       title: "Private Squad Game",
@@ -117,6 +180,34 @@ d("outings data + streams wiring (DynamoDB Local)", () => {
 
     // …but it is still directly fetchable by id (token-gated in the UI).
     expect((await getOutingMeta(priv.outingId))?.visibility).toBe("private");
+  });
+
+  it("L2: a PRIVATE outing does not expose a .ics; public + unlisted do", async () => {
+    const mk = (visibility: "public" | "unlisted" | "private") =>
+      createOuting({
+        title: "Cal Game",
+        courtId: COURT_MAIN,
+        organizerId: `og-${RUN}-cal-${visibility}`,
+        startTs: START_TS,
+        visibility,
+        ...(visibility === "private" ? { type: "private" as const } : {}),
+      });
+    const call = (id: string) =>
+      calendarIcsRoute(new Request("http://localhost/x") as unknown as NextRequest, {
+        params: Promise.resolve({ id }),
+      });
+
+    const pub = await mk("public");
+    const pubRes = await call(pub.outingId);
+    expect(pubRes.status).toBe(200);
+    expect(await pubRes.text()).toContain("BEGIN:VCALENDAR");
+
+    const unlisted = await mk("unlisted");
+    expect((await call(unlisted.outingId)).status).toBe(200);
+
+    // Private: gated — pre-fix this returned 200 with the title/venue/description.
+    const priv = await mk("private");
+    expect((await call(priv.outingId)).status).toBe(404);
   });
 
   it("OUTING+OUTINGREF+SERIES TransactWrite is all-or-nothing (no partial on mid-tx failure)", async () => {

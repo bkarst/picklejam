@@ -321,6 +321,40 @@ d("tournaments data + payments (DynamoDB Local)", () => {
     expect(ok.status).toBe("pending");
   });
 
+  it("L6: seedBracket seeds by DUPR (highest = seed 1), not registration time", async () => {
+    const organizer = uid("org-l6");
+    await connectComplete(organizer);
+    const { tid, dids } = await makePublished(organizer, [
+      { name: "Seed Div", price: money(1000), capacity: 8, playMode: "singles" },
+    ]);
+    const did = dids[0];
+    const { putItem } = await import("@/lib/db/client");
+    const seedDupr = async (u: string, value: number) => {
+      const rating: RatingItem = {
+        ...userKeys.rating(u, "DUPR"),
+        entity: "RATING",
+        uid: u,
+        system: "DUPR",
+        value,
+        verified: true,
+      };
+      await putItem(rating as unknown as Record<string, unknown>);
+    };
+
+    // Register in ASCENDING DUPR order, so registration time is the OPPOSITE of seed order.
+    const p30 = uid("l6-30"); await seedDupr(p30, 3.0); await registerAndPay(tid, did, p30);
+    const top = uid("l6-45"); await seedDupr(top, 4.5); await registerAndPay(tid, did, top);
+    const p35 = uid("l6-35"); await seedDupr(p35, 3.5); await registerAndPay(tid, did, p35);
+    const p40 = uid("l6-40"); await seedDupr(p40, 4.0); await registerAndPay(tid, did, p40);
+
+    const bracket = await seedBracket(tid, did, {});
+    // Seed 1 = round-1 M0 sideA = the highest DUPR (4.5), NOT the first-registered (3.0, pre-fix).
+    const m0 = bracket.find((m) => m.round === 1 && m.index === 0)!;
+    expect(m0.sideA).toEqual([top]);
+    // And the bottom seed (round-1 M0 sideB, seed 4) is the LOWEST DUPR (3.0).
+    expect(m0.sideB).toEqual([p30]);
+  });
+
   it("register → Checkout → webhook: idempotent replay ⇒ REG paid ONCE, one Payment, count unchanged", async () => {
     const organizer = uid("org4");
     await connectComplete(organizer);

@@ -24,7 +24,7 @@ import { ChallengeList } from "./ChallengeList";
 const ACTIVE: ChallengeItem["status"][] = ["open", "accepted", "reported"];
 
 export function ChallengeConsole({ lid }: { lid: string }): JSX.Element {
-  const { user, requireAuth } = useAuth();
+  const { user, loading, requireAuth } = useAuth();
   const { data, isLoading } = useLadder(user ? lid : undefined);
   const issueMut = useIssueChallenge(lid);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +73,18 @@ export function ChallengeConsole({ lid }: { lid: string }): JSX.Element {
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Couldn't issue the challenge."))
       .finally(() => setPendingUid(null));
   };
+
+  // Auth resolves asynchronously (real Firebase leaves `user` null for the first few hundred ms).
+  // Show the loading skeleton WHILE it resolves — before the `!user` gate — so a signed-in
+  // member never flashes the clickable "Sign in" gate (L20).
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (

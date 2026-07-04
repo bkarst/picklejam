@@ -26,6 +26,16 @@ export function RosterManager({ groupId, members }: RosterManagerProps): JSX.Ele
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Adopt the server roster whenever it changes underneath us — a new join request, another
+  // admin's approval/decline, a removed member (L21). React Query's structural sharing keeps the
+  // same `members` reference until the content actually changes, so this fires only on a real
+  // update; otherwise this stable instance would show a stale roster forever.
+  const [prevMembers, setPrevMembers] = useState(members);
+  if (members !== prevMembers) {
+    setPrevMembers(members);
+    setRoster(members);
+  }
+
   const pending = roster.filter((m) => m.status === "pending");
   const active = roster.filter((m) => m.status === "active");
 

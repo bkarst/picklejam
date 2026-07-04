@@ -293,6 +293,43 @@ d("content hub + news data layer (DynamoDB Local)", () => {
     expect(events!.count).toBeGreaterThanOrEqual(1);
   });
 
+  it("L13: re-publishing with a SMALLER topic set drops the orphaned topic pointer", async () => {
+    const id = `n-l13-${RUN}`;
+    const slug = `nl13-${RUN}`;
+    const T1 = `l13a${RUN}`;
+    const T2 = `l13b${RUN}`;
+
+    // First publish fans into BOTH topics.
+    await createNews({
+      id,
+      slug,
+      title: "L13 News",
+      excerpt: "x",
+      body: "## B\n\nbody.",
+      topics: [T1, T2],
+      publishedAt: "2026-06-10T00:00:00.000Z",
+    });
+    expect((await getNewsByTopic(T1)).map((n) => n.id)).toContain(id);
+    expect((await getNewsByTopic(T2)).map((n) => n.id)).toContain(id);
+
+    // Re-publish the SAME id, dropping T2.
+    await createNews({
+      id,
+      slug,
+      title: "L13 News (edited)",
+      excerpt: "x",
+      body: "## B\n\nbody.",
+      topics: [T1],
+      publishedAt: "2026-06-10T00:00:00.000Z",
+    });
+
+    // T1 still carries it; T2's pointer must be GONE. Pre-fix the orphaned T2 pointer survived
+    // and — because it resolves to the still-published parent — the item wrongly stayed in T2's
+    // feed (and inflated T2's chip count).
+    expect((await getNewsByTopic(T1)).map((n) => n.id)).toContain(id);
+    expect((await getNewsByTopic(T2)).map((n) => n.id)).not.toContain(id);
+  });
+
   // ── newsletter subscribe (idempotent) ───────────────────────────────────────
 
   it("subscribeNewsletter stores a subscriber and is idempotent", async () => {

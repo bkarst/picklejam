@@ -47,4 +47,30 @@ describe("<ChallengeRow>", () => {
     );
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("L21: resyncs status when the server challenge changes underneath a mounted row", () => {
+    // Same instance survives a refetch (stable cid). Start with the opponent's reported result.
+    const { rerender } = render(
+      <ChallengeRow
+        lid="lad1"
+        challenge={makeChallenge({ status: "reported", reportedBy: "u3", scoreChallenger: 11, scoreChallenged: 7 })}
+        myUid="u1"
+        nameFor={nameFor}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Confirm result" })).toBeInTheDocument();
+
+    // A refetch delivers the confirmed challenge (e.g. confirmed on another device). Pre-fix the
+    // row kept its mount-time "reported" status → the stale "Confirm result" button lingered.
+    rerender(
+      <ChallengeRow
+        lid="lad1"
+        challenge={makeChallenge({ status: "confirmed", reportedBy: "u3", scoreChallenger: 11, scoreChallenged: 7, winnerUid: "u3" })}
+        myUid="u1"
+        nameFor={nameFor}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Confirm result" })).toBeNull();
+    expect(screen.getByText(/board updated/i)).toBeInTheDocument();
+  });
 });

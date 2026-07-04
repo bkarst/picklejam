@@ -79,7 +79,7 @@ describe("seed mappers (§9.8)", () => {
     expect(item.pk).toBe("COURT#abc-123");
     expect(item.gsi3pk).toBe("COURTSLUG#us#kansas#lawrence#riverside-pickleball-courts");
     expect(item.gsi2pk).toBe("CITY#us#kansas#lawrence");
-    expect(item.gsi4pk).toBe(`GEO#${item.geohash.slice(0, 6)}`);
+    expect(item.gsi4pk).toBe(`GEO#${item.geohash.slice(0, 4)}`); // GEO_PARTITION_PRECISION = 4 (L23)
     expect(item.cityKey).toBe("us#kansas#lawrence");
     expect(item.dedicated).toBe(true);
     expect(item.lighted).toBe(true);

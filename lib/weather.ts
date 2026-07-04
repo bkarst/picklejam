@@ -39,6 +39,8 @@ interface OpenMeteoResponse {
 
 const REQUEST_TIMEOUT_MS = 4000;
 const FORECAST_DAYS = 7;
+/** ISR data-cache window for a daily forecast (this Next does NOT cache `fetch` by default). */
+const FORECAST_REVALIDATE_S = 1800;
 
 /** True iff `v` is a finite number. */
 function isFiniteNumber(v: unknown): v is number {
@@ -48,10 +50,21 @@ function isFiniteNumber(v: unknown): v is number {
 /**
  * A 7-day daily forecast for a coordinate, or `null` on ANY failure (timeout /
  * non-2xx / parse error). Never throws — the caller hides the chip on `null`.
+ *
+ * Pass `opts.tz` (an IANA zone) when the caller will pick a specific day out of the
+ * result: Open-Meteo buckets `daily.time[]` in the zone named by the `timezone` param,
+ * so the forecast must be bucketed in the SAME zone the caller uses to compute "the
+ * game's day" — otherwise `date === dayStr` misses and the caller shows the wrong day
+ * (L17). Without a tz we fall back to `auto` (the LOCATION's zone), as before.
  */
-export async function getForecast(lat: number, lng: number): Promise<DailyForecast[] | null> {
+export async function getForecast(
+  lat: number,
+  lng: number,
+  opts?: { tz?: string },
+): Promise<DailyForecast[] | null> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
+  const timezone = opts?.tz ? encodeURIComponent(opts.tz) : "auto";
   const url =
     "https://api.open-meteo.com/v1/forecast" +
     `?latitude=${encodeURIComponent(lat)}` +
@@ -59,12 +72,18 @@ export async function getForecast(lat: number, lng: number): Promise<DailyForeca
     "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
     `&forecast_days=${FORECAST_DAYS}` +
     "&temperature_unit=fahrenheit" +
-    "&timezone=auto";
+    `&timezone=${timezone}`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    // Explicit ISR data-cache: this Next does NOT cache `fetch` by default, so a bare call
+    // re-hits the provider on every regeneration. Cache the forecast for a weather-appropriate
+    // window instead. Still degrades to null on any failure (timeout / non-2xx / parse).
+    const res = await fetch(url, {
+      signal: controller.signal,
+      next: { revalidate: FORECAST_REVALIDATE_S },
+    });
     if (!res.ok) return null;
     const body = (await res.json()) as OpenMeteoResponse;
     return parseForecast(body);

@@ -33,6 +33,13 @@ import type { CheckinItem } from "@/lib/db/types";
 export const dynamic = "force-dynamic";
 
 const MAX_CHECKINS_PER_DAY = 10;
+/**
+ * Per-court, per-day ceiling on ANONYMOUS check-ins. A fresh anon token is a new identity
+ * minted for free, so the per-token cap above is Sybil-able (mint token → check in → discard,
+ * looped) and would let one attacker inflate a court's "players here today" arbitrarily (L3).
+ * This bounds that to a fixed, generous number that real anonymous use never reaches.
+ */
+export const MAX_ANON_CHECKINS_PER_COURT_PER_DAY = 100;
 const MAX_NOTE = 280;
 const MAX_SKILL = 10;
 
@@ -112,6 +119,7 @@ export async function POST(
     const fresh = !anonToken;
     if (!anonToken) anonToken = await issueAnonToken();
 
+    const todaysCheckins = await getCourtCheckinsToday(courtId, day);
     const markers = fresh ? [] : await getAnonCheckinsForDay(anonToken, day);
     const dup = markers.find((m) => m.courtId === courtId);
     if (dup) {
@@ -119,10 +127,16 @@ export async function POST(
         pk: courtKeys.meta(courtId).pk,
         sk: dup.checkinSk,
       });
-      const todayCount = (await getCourtCheckinsToday(courtId, day)).length;
-      return Response.json({ checkin: existing, anonToken, todayCount });
+      return Response.json({ checkin: existing, anonToken, todayCount: todaysCheckins.length });
     }
     if (markers.length >= MAX_CHECKINS_PER_DAY) bad("Daily check-in limit reached", 429);
+    // Court-level anti-Sybil ceiling: a token-anonymous check-in carries no uid, so count
+    // those and stop once a court has taken its daily anonymous allotment (L3). A per-token
+    // cap alone can't stop a mint→check-in→discard loop from inflating the metric.
+    const anonToday = todaysCheckins.filter((c) => !c.uid).length;
+    if (anonToday >= MAX_ANON_CHECKINS_PER_COURT_PER_DAY) {
+      bad("This court has reached today's anonymous check-in limit", 429);
+    }
 
     const checkin = await createCheckin({
       courtId,
@@ -135,7 +149,6 @@ export async function POST(
     });
     await recordAnonCheckin(anonToken, courtId, day, checkin.sk);
     await touchAnonToken(anonToken, courtId);
-    const todayCount = (await getCourtCheckinsToday(courtId, day)).length;
-    return Response.json({ checkin, anonToken, todayCount });
+    return Response.json({ checkin, anonToken, todayCount: todaysCheckins.length + 1 });
   });
 }

@@ -21,9 +21,31 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useGroup, useUpdateGroup } from "@/lib/api/groups";
 import { useCreateOuting, type CreateOutingInput } from "@/lib/api/outings";
 import { browserTimeZone } from "@/components/outings/format";
-import { InvitePanel, RosterManager } from "@/components/groups";
+import {
+  InvitePanel,
+  RosterManager,
+  CourtSearch,
+  cityFromCourtUrl,
+  type PickedCourt,
+} from "@/components/groups";
 import { groupPath, outingPath } from "@/lib/urls";
 import type { GroupItem, GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
+
+/** The home court (courtId → name/url) hydrated onto the group detail response. */
+type CourtRefs = Record<string, { name: string; url: string }>;
+
+/** Rebuild a `PickedCourt` for an already-set home court so the picker shows it selected. */
+function homeCourtToPicked(group: GroupItem, courts: CourtRefs): PickedCourt | null {
+  if (!group.homeCourtId) return null;
+  const ref = courts[group.homeCourtId];
+  const city = ref ? cityFromCourtUrl(ref.url) : null;
+  return {
+    id: group.homeCourtId,
+    name: ref?.name ?? "Home court",
+    cityKey: city?.cityKey ?? group.cityKey,
+    cityLabel: city?.label ?? "",
+  };
+}
 
 const FIELD =
   "h-11 w-full rounded-xl border border-border bg-field px-4 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
@@ -41,12 +63,15 @@ const JOIN: { id: GroupJoinPolicy; label: string }[] = [
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 
-function SettingsForm({ group }: { group: GroupItem }): JSX.Element {
+function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }): JSX.Element {
   const updateMut = useUpdateGroup(group.groupId);
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");
   const [visibility, setVisibility] = useState<GroupVisibility>(group.visibility);
   const [joinPolicy, setJoinPolicy] = useState<GroupJoinPolicy>(group.joinPolicy);
+  const [homeCourt, setHomeCourt] = useState<PickedCourt | null>(() =>
+    homeCourtToPicked(group, courts),
+  );
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +84,10 @@ function SettingsForm({ group }: { group: GroupItem }): JSX.Element {
         description: description.trim(),
         visibility,
         joinPolicy,
+        // Send the home court only when one is picked (clearing isn't a Settings action) — this
+        // is the field that was missing, so a group with no home court can finally schedule
+        // meet-ups (L18).
+        ...(homeCourt ? { homeCourtId: homeCourt.id } : {}),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -85,6 +114,16 @@ function SettingsForm({ group }: { group: GroupItem }): JSX.Element {
             placeholder="Tell people what your group is about…"
             className="w-full resize-none rounded-xl border border-border bg-field px-4 py-2.5 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-foreground">Home court</span>
+          <CourtSearch
+            selected={homeCourt}
+            onSelect={setHomeCourt}
+            onClear={() => setHomeCourt(null)}
+          />
+          <span className="text-xs text-muted">Your group&apos;s main court — meet-ups are scheduled here.</span>
         </label>
 
         <div className="flex flex-col gap-1.5">
@@ -322,7 +361,7 @@ export function ManageGroupClient({ groupId }: { groupId: string }): JSX.Element
         </Link>
       </div>
 
-      <SettingsForm group={group} />
+      <SettingsForm group={group} courts={data.courts} />
       <MeetupScheduler group={group} />
 
       <section className="rounded-2xl border border-border bg-surface p-5">

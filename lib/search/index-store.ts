@@ -147,15 +147,22 @@ export async function loadSearchIndex(country: string): Promise<SearchIndex | nu
   return { courts, cities };
 }
 
-// In-process cache: built once, refreshed after the TTL; concurrent builds deduped.
+// In-process cache: built once per COUNTRY, refreshed after the TTL; concurrent builds deduped.
+// Both maps are keyed by country (L22) — a single shared `inflight` slot would hand a concurrent
+// `getSearchIndex("ca")` the in-flight `us` build (the wrong country's index), and a single
+// `cache` slot would thrash as countries alternate. Keyed per country, each is independent.
 const TTL_MS = 10 * 60 * 1000;
-let cache: { country: string; index: SearchIndex; at: number } | null = null;
-let inflight: Promise<SearchIndex> | null = null;
+const cacheByCountry = new Map<string, { index: SearchIndex; at: number }>();
+const inflightByCountry = new Map<string, Promise<SearchIndex>>();
 
 export async function getSearchIndex(country = "us"): Promise<SearchIndex> {
-  if (cache && cache.country === country && Date.now() - cache.at < TTL_MS) return cache.index;
-  if (inflight) return inflight;
-  inflight = (async () => {
+  const cached = cacheByCountry.get(country);
+  if (cached && Date.now() - cached.at < TTL_MS) return cached.index;
+
+  const existing = inflightByCountry.get(country);
+  if (existing) return existing;
+
+  const build = (async () => {
     try {
       // Prefer the precomputed chunks (a few reads); fall back to a live traversal.
       let index = await loadSearchIndex(country);
@@ -163,11 +170,12 @@ export async function getSearchIndex(country = "us"): Promise<SearchIndex> {
         const { buildSearchIndex } = await import("./build-index");
         index = await buildSearchIndex(country);
       }
-      cache = { country, index, at: Date.now() };
+      cacheByCountry.set(country, { index, at: Date.now() });
       return index;
     } finally {
-      inflight = null;
+      inflightByCountry.delete(country);
     }
   })();
-  return inflight;
+  inflightByCountry.set(country, build);
+  return build;
 }

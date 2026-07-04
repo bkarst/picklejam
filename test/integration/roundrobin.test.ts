@@ -223,6 +223,29 @@ d("round-robin data layer (DynamoDB Local)", () => {
     }
   });
 
+  it("L8: correcting a score in a COMPLETE dynamic event keeps it complete (no regress to running)", async () => {
+    const config = rrConfig({ format: "swiss", rounds: 3, rngSeed: 7 });
+    expect(generateSchedule(config).dynamic).toBe(true); // swiss is dynamic
+
+    const { eventId, creatorToken: token } = await createRrEvent({ title: "Swiss Finished", config });
+
+    // Play it all the way out — a dynamic event finalizes via advanceRound.
+    const done = await driveToComplete(eventId, token);
+    expect(done!.event.status).toBe("complete");
+    expect(done!.event.championId ?? null).not.toBeNull();
+
+    // Correct one already-scored match (organizer fixes a typo). Pre-fix: recordScore
+    // recomputed nextStatus as "running" for every dynamic event, so this flipped META
+    // back to "running" while championId stayed stamped — a finished event stuck "running".
+    const target = done!.rounds[0].matches[0];
+    expect(target.status).toBe("scored");
+    await recordScore(eventId, { matchId: target.id, scoreA: 9, scoreB: 11 }, { token });
+
+    const after = await getRrEvent(eventId);
+    expect(after!.event.status).toBe("complete"); // pre-fix: "running"
+    expect(after!.event.championId ?? null).not.toBeNull();
+  });
+
   it("H14: advancing with an unscored round is REJECTED, not silently completed with no champion", async () => {
     const { eventId, creatorToken } = await createRrEvent({
       title: "Pools Brick",

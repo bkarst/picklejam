@@ -13,7 +13,7 @@
  */
 
 import { ulid } from "ulid";
-import { query, putItem, updateItem } from "@/lib/db/client";
+import { query, queryAll, putItem, updateItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { notifKeys, userKeys } from "@/lib/db/keys";
 import { getUserProfile } from "@/lib/data/users";
@@ -138,7 +138,10 @@ export async function markRead(uid: string, notifId: string, ts: string): Promis
 
 /** Mark every unread notification read. Returns how many were flipped. */
 export async function markAllRead(uid: string): Promise<number> {
-  const { items } = await query<{ pk: string; sk: string }>({
+  // Sweep EVERY unread row, not just the first 1 MB page (L12). The unread filter is applied
+  // AFTER each page, so a single `query` leaves any unread rows on later pages permanently
+  // unread — `queryAll` follows `LastEvaluatedKey` until the whole feed is covered.
+  const items = await queryAll<{ pk: string; sk: string }>({
     index: GSI.byOwner,
     pk: notifKeys.notif(uid, "", "").gsi1pk,
     skBeginsWith: notifKeys.notifPrefix(),

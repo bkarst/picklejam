@@ -163,7 +163,9 @@ export default async function OutingDetailPage({ params }: { params: Params }) {
   // Weather: outdoor courts only. Pick the forecast day matching the game's date
   // and reduce it to the chip's { tempF, condition } shape (null hides the chip).
   const isOutdoor = (court?.outdoorCourts ?? 0) > 0;
-  const forecastDays = isOutdoor && court ? await getForecast(court.lat, court.lng) : null;
+  // Bucket the forecast in the outing's zone (same zone as `dayStr`) so the day match lands (L17).
+  const forecastDays =
+    isOutdoor && court ? await getForecast(court.lat, court.lng, { tz: outing.tz }) : null;
   const dayStr = new Date(outing.startTs).toLocaleDateString(
     "en-CA",
     outing.tz ? { timeZone: outing.tz } : undefined,
@@ -343,17 +345,19 @@ export default async function OutingDetailPage({ params }: { params: Params }) {
             guestPolicy={outing.guestPolicy}
           />
 
-          {/* Add to calendar */}
-          <a
-            href={`${outingPath(id)}/calendar.ics`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            Add to calendar
-          </a>
+          {/* Add to calendar — not for PRIVATE games (their .ics is gated, L2). */}
+          {outing.visibility !== "private" && (
+            <a
+              href={`${outingPath(id)}/calendar.ics`}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              Add to calendar
+            </a>
+          )}
         </aside>
       </div>
     </main>

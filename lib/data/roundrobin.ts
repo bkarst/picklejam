@@ -492,7 +492,14 @@ export async function recordScore(
   const allScored = matchItems.every(
     (m) => m.status === "scored" || (m.scoreA !== undefined && m.scoreB !== undefined),
   );
-  const nextStatus: RrEventStatus = !meta.dynamic && allScored ? "complete" : "running";
+  // A static event that is now fully scored is complete. A DYNAMIC event completes via
+  // advanceRound — but a score CORRECTION on an already-complete dynamic event must NOT
+  // regress it to "running" (that left a finished event `running` with a `championId` still
+  // stamped, L8); keep it complete.
+  const nextStatus: RrEventStatus =
+    (!meta.dynamic && allScored) || (meta.dynamic && meta.status === "complete")
+      ? "complete"
+      : "running";
   await updateItem({
     key: rrKeys.meta(eventId),
     update: "SET #st = :s, updatedAt = :u",

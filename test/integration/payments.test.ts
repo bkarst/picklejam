@@ -124,6 +124,19 @@ d("payments ledger + connect (DynamoDB Local)", () => {
     expect(mine[1].divisionId).toBe("div-1");
   });
 
+  it("L7: two receipts in the SAME millisecond don't overwrite (unique keys)", async () => {
+    const uid = uniq("payer");
+    const now = 1_700_000_000_000; // an identical instant for both fulfilments
+    const a = await writePayment({ uid, kind: "tournament", refId: "t-a", amount: usd(1000), paymentIntentId: "pi_a", now });
+    const b = await writePayment({ uid, kind: "tournament", refId: "t-b", amount: usd(2000), paymentIntentId: "pi_b", now });
+
+    // Same millisecond, but DISTINCT sort keys (pre-fix: both `PAYMENT#<iso>` → b clobbered a).
+    expect(a.sk).not.toBe(b.sk);
+    const mine = await getMyPayments(uid);
+    expect(mine).toHaveLength(2); // pre-fix: 1
+    expect(mine.map((p) => p.paymentIntentId).sort()).toEqual(["pi_a", "pi_b"]);
+  });
+
   it("refundPayment (full) refunds the whole charge + platform fee; ledger → refunded", async () => {
     const uid = uniq("payer");
     const ts = "2026-06-03T00:00:00.000Z";

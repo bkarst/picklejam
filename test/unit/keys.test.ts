@@ -34,9 +34,11 @@ describe("key builders (§9.3 / §9.5)", () => {
     expect(keys.court.cityCourtsPk(cityKey)).toBe(g.gsi2pk);
   });
 
-  it("#3 geohash GSI4 partitions on the 6-char prefix, sorts by full hash", () => {
+  it("#3 geohash GSI4 partitions on the 4-char prefix, sorts by full hash", () => {
     const g = keys.court.geo("court1", "9yujxw7bw");
-    expect(g.gsi4pk).toBe("GEO#9yujxw");
+    // GEO_PARTITION_PRECISION = 4 (deliberate; write + query sides agree). L23: the test used to
+    // assert the old 6-char prefix and was red — the fix is to pin the real precision-4 contract.
+    expect(g.gsi4pk).toBe("GEO#9yuj");
     expect(g.gsi4sk).toBe("9yujxw7bw#court1");
   });
 

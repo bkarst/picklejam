@@ -123,6 +123,9 @@ export interface CourtItem extends BaseItem {
   lng: number;
   geohash: string;
   address?: string;
+  /** Optional IANA timezone override (e.g. `America/New_York`). When absent, the court's
+   *  local day is derived from lat/lng (see {@link courtLocalDay}). */
+  tz?: string;
 
   // courts / play
   indoorCourts: number;

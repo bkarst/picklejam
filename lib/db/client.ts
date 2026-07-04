@@ -204,6 +204,22 @@ export async function putItem<T extends Record<string, unknown>>(item: T): Promi
 }
 
 /**
+ * Upsert an item and return its PRIOR image (`ALL_OLD`) — `undefined` if the key was empty
+ * (a genuine INSERT). DynamoDB computes the prior image ATOMICALLY at write time, so a caller
+ * that emits an inline stream image can decide INSERT-vs-MODIFY from the TRUE committed prior
+ * state rather than a stale pre-read — the only race-safe way to mirror what real DynamoDB
+ * Streams would deliver (two concurrent upserts ⇒ one INSERT + one MODIFY, never two INSERTs).
+ */
+export async function putItemReturningOld<T extends Record<string, unknown>>(
+  item: T,
+): Promise<Record<string, unknown> | undefined> {
+  const res = await getDocClient().send(
+    new PutCommand({ TableName: TABLE_NAME, Item: item, ReturnValues: "ALL_OLD" }),
+  );
+  return res.Attributes;
+}
+
+/**
  * Bulk upsert (seed ingestion). Chunks into 25-item BatchWrite requests and
  * retries UnprocessedItems with backoff. Idempotent by primary key (last write
  * wins), so re-running the import produces no duplicates (§9.8).

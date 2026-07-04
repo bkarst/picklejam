@@ -13,7 +13,7 @@
  * `ratingSum` → `ratingAvg`) reconcile without this layer computing them.
  */
 
-import { getItem, query, queryAll, putItem, deleteItem } from "@/lib/db/client";
+import { getItem, query, queryAll, putItem, putItemReturningOld, deleteItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { courtKeys, userKeys } from "@/lib/db/keys";
 import { emitInsert, emitModify, emitRemove } from "@/lib/streams/inline";
@@ -110,12 +110,14 @@ export async function upsertReview(input: UpsertReviewInput): Promise<ReviewItem
     updatedAt: now,
   };
 
-  await putItem(item as unknown as Record<string, unknown>);
-  if (existing) {
-    await emitModify(
-      existing as unknown as Record<string, unknown>,
-      item as unknown as Record<string, unknown>,
-    );
+  // Emit from the ATOMIC prior image, not the pre-read `existing` (L10). Two concurrent edits
+  // both read rating 3 and both wrote rating 5 would each `emitModify(3→5)` → ratingSum +4 for
+  // a single +2 change; two concurrent first-reviews would each `emitInsert` → reviewCount +2.
+  // `ALL_OLD` returns the true committed prior (or undefined), so the winner emits the real
+  // delta and the loser a no-op MODIFY(5→5) — exactly what real DynamoDB Streams would deliver.
+  const prior = await putItemReturningOld(item as unknown as Record<string, unknown>);
+  if (prior) {
+    await emitModify(prior, item as unknown as Record<string, unknown>);
   } else {
     await emitInsert(item as unknown as Record<string, unknown>);
   }

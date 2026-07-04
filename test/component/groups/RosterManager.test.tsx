@@ -69,4 +69,21 @@ describe("<RosterManager>", () => {
     );
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("L21: adopts an updated members prop (a new pending request appears after a refetch)", () => {
+    const owner = makeMember({ uid: "owner", role: "owner", status: "active", displayName: "Ana O." });
+    const { rerender } = render(<RosterManager groupId="g1" members={[owner]} />);
+    expect(screen.getByText("No requests waiting for approval.")).toBeInTheDocument();
+
+    // A refetch delivers a new members array carrying a fresh pending request. Pre-fix the roster
+    // was seeded once at mount (stable instance) → the new request never showed up.
+    rerender(
+      <RosterManager
+        groupId="g1"
+        members={[owner, makeMember({ uid: "p2", status: "pending", displayName: "Newcomer N." })]}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: /Pending requests \(1\)/ })).toBeInTheDocument();
+    expect(screen.getByText("Newcomer N.")).toBeInTheDocument();
+  });
 });

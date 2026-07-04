@@ -10,4 +10,5 @@ export { MemberStatusList, type MemberStatusListProps } from "./MemberStatusList
 export { MembershipButton, type MembershipButtonProps } from "./MembershipButton";
 export { RosterManager, type RosterManagerProps } from "./RosterManager";
 export { InvitePanel, type InvitePanelProps } from "./InvitePanel";
+export { CourtSearch, cityFromCourtUrl, type PickedCourt } from "./CourtSearch";
 export * from "./format";

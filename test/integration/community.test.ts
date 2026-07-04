@@ -2,14 +2,22 @@
 // the data layer runs any emit* (inline.ts reads this env at call time).
 process.env.STREAMS_INLINE = "1";
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { getItem, putItem } from "@/lib/db/client";
+import { getDocClient } from "@/lib/db/table";
 import { courtKeys, geoKeys } from "@/lib/db/keys";
+import type { NextRequest } from "next/server";
 import {
   createCheckin,
+  buildCheckinItem,
   getCourtCheckinsToday,
   getMyCheckins,
 } from "@/lib/data/checkins";
+import { courtLocalDay } from "@/lib/directory/court-local-day";
+import {
+  POST as checkinRoute,
+  MAX_ANON_CHECKINS_PER_COURT_PER_DAY,
+} from "@/app/api/courts/[courtId]/checkin/route";
 import {
   upsertReview,
   getCourtReviews,
@@ -132,6 +140,59 @@ d("community data + streams wiring (DynamoDB Local)", () => {
     expect((await getMyReviews(uid2)).map((r) => r.courtId)).toContain(COURT_ID);
   });
 
+  it("L10: two concurrent review edits apply the rating delta ONCE (ratingSum not doubled)", async () => {
+    const courtId = `court-l10-${RUN}`;
+    const reviewer = `citest-${RUN}-l10`;
+    await putItem({
+      ...courtKeys.meta(courtId),
+      entity: "COURT",
+      courtId,
+      name: "L10 Court",
+      slug: courtId,
+      cityKey: CITY_KEY,
+      lat: 0,
+      lng: 0,
+      geohash: "000000000",
+      totalCourts: 4,
+      hasPickleball: true,
+    });
+    type CourtAgg = CourtItem & { ratingSum?: number; reviewCount?: number };
+    const meta = () => getItem<CourtAgg>(courtKeys.meta(courtId));
+
+    // Baseline review: rating 3 → ratingSum 3, reviewCount 1.
+    await upsertReview({ courtId, uid: reviewer, rating1to5: 3 });
+    const base = await meta();
+    expect(base?.reviewCount).toBe(1);
+    expect(base?.ratingSum).toBe(3);
+
+    // Deterministically stage two concurrent EDITS to rating 5: intercept the first edit's
+    // REVIEW write and, just before it commits, run the second edit to completion. Pre-fix both
+    // edits `emitModify(3→5)` off their stale pre-read, so ratingSum takes the +2 delta twice.
+    const client = getDocClient();
+    const originalSend = client.send.bind(client);
+    const rev = courtKeys.reviewByUser(courtId, reviewer);
+    let injected = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
+      const input = command?.input ?? {};
+      const isReviewWrite =
+        input.Item && input.Item.pk === rev.pk && input.Item.sk === rev.sk && input.Item.entity === "REVIEW";
+      if (isReviewWrite && !injected) {
+        injected = true;
+        await upsertReview({ courtId, uid: reviewer, rating1to5: 5 }); // concurrent edit B: 3→5
+        return originalSend(command);
+      }
+      return originalSend(command);
+    });
+    await upsertReview({ courtId, uid: reviewer, rating1to5: 5 }); // edit A: 3→5
+    sendSpy.mockRestore();
+
+    const after = await meta();
+    expect(after?.reviewCount).toBe(1); // still one review
+    expect(after?.ratingSum).toBe(5); // pre-fix: 7 (3 + 2 + 2 — the delta applied twice)
+    expect(after?.ratingAvg).toBe(5); // pre-fix: 7 (a corrupt >5 average)
+  });
+
   it("M3: #4 returns the NEWEST reviews even when their uid sorts high (sort BEFORE limit)", async () => {
     const courtId = `court-m3-${RUN}`;
     // Oldest review, LOW-sorting uid → first by the `REVIEW#<uid>` sort key.
@@ -189,5 +250,47 @@ d("community data + streams wiring (DynamoDB Local)", () => {
     for (const forbidden of ["uid", "email", "name", "displayName"]) {
       expect(keys).not.toContain(forbidden);
     }
+  });
+
+  it("L3: anonymous check-ins are capped per court per day (fresh-token Sybil ceiling)", async () => {
+    const COURT = `court-l3-${RUN}`;
+    await putItem({
+      ...courtKeys.meta(COURT),
+      entity: "COURT",
+      courtId: COURT,
+      name: "L3 Court",
+      slug: `l3-${RUN}`,
+      cityKey: CITY_KEY,
+      lat: 0,
+      lng: 0,
+      geohash: "000000000",
+      totalCourts: 1,
+      hasPickleball: true,
+    });
+    const court = (await getItem<CourtItem>(courtKeys.meta(COURT)))!;
+    const day = courtLocalDay(court);
+
+    // Seed the court to its anonymous ceiling with token-anon rows (no uid) for today.
+    await Promise.all(
+      Array.from({ length: MAX_ANON_CHECKINS_PER_COURT_PER_DAY }, (_, i) =>
+        putItem(
+          buildCheckinItem(
+            { courtId: COURT, uid: null, anonymous: true, day, id: `l3-seed-${i}` },
+            CITY_KEY,
+          ) as unknown as Record<string, unknown>,
+        ),
+      ),
+    );
+
+    // A FRESH anonymous check-in (no token → the old bypass) is now rejected once the court
+    // has taken its daily anonymous allotment. Pre-fix: 200 (the fresh token skipped the cap).
+    const req = new Request(`http://localhost/api/courts/${COURT}/checkin`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    const res = await checkinRoute(req as unknown as NextRequest, {
+      params: Promise.resolve({ courtId: COURT }),
+    });
+    expect(res.status).toBe(429);
   });
 });

@@ -29,6 +29,7 @@ import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import {
   getItem,
   query,
+  queryAll,
   putItem,
   putConditional,
   updateItem,
@@ -126,7 +127,7 @@ export async function createOuting(input: CreateOutingInput): Promise<OutingItem
 
   const cityKey = court.cityKey;
   const startTs = input.startTs;
-  const yyyymmdd = courtLocalDay({ lng: court.lng }, Date.parse(startTs));
+  const yyyymmdd = courtLocalDay(court, Date.parse(startTs)); // real tz (lat/lng/tz), lng-approx fallback
   const isPublic = visibility === "public";
   const seriesId = input.rrule ? input.seriesId ?? ulid() : null;
   const inviteToken =
@@ -263,14 +264,26 @@ export async function getCityGames(cityKey: string, yyyymmdd: string): Promise<O
  * partition with a `visibility="public"` FILTER (the projection lets us exclude
  * private meet-ups in a single pass, §9.5 note), then BatchGet-hydrate the OUTINGs.
  * Returns upcoming outings (startTs ≥ now), soonest first.
+ *
+ * The OUTINGREF SK is `OUTING#<startTs>#<outingId>` (chronological). We must NOT read
+ * the partition oldest-first and drop past rows in JS (L11): an active court accumulates
+ * a full 1 MB page of PAST refs, so a single begins_with page would be entirely past-
+ * dated and report ZERO upcoming games though future outings exist deeper in the
+ * partition. Instead the sort-key RANGE (`sk ≥ OUTING#<now>`) starts the read at the
+ * first upcoming game, and `queryAll` follows pagination so none is dropped.
  */
 export async function getCourtGames(
   courtId: string,
   opts?: { now?: number; includePast?: boolean },
 ): Promise<OutingItem[]> {
-  const { items: refs } = await query<OutingRefItem>({
+  const nowIso = new Date(opts?.now ?? Date.now()).toISOString();
+  const prefix = courtKeys.outingRefPrefix();
+  const refs = await queryAll<OutingRefItem>({
     pk: courtKeys.meta(courtId).pk,
-    skBeginsWith: courtKeys.outingRefPrefix(),
+    // \uffff sorts above every ASCII SK byte → an open upper bound within the prefix.
+    ...(opts?.includePast
+      ? { skBeginsWith: prefix }
+      : { skBetween: [`${prefix}${nowIso}`, `${prefix}\uffff`] as [string, string] }),
     ascending: true,
     filter: {
       expression: "visibility = :pub",
@@ -279,11 +292,7 @@ export async function getCourtGames(
   });
   if (refs.length === 0) return [];
 
-  const nowIso = new Date(opts?.now ?? Date.now()).toISOString();
-  const upcoming = opts?.includePast ? refs : refs.filter((r) => r.startTs >= nowIso);
-  if (upcoming.length === 0) return [];
-
-  const metas = await batchGet<OutingItem>(upcoming.map((r) => outingKeys.meta(r.outingId)));
+  const metas = await batchGet<OutingItem>(refs.map((r) => outingKeys.meta(r.outingId)));
   return metas
     .filter((o) => o.visibility === "public")
     .sort((a, b) => a.startTs.localeCompare(b.startTs));

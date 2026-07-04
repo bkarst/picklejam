@@ -55,6 +55,19 @@ export function ChallengeRow({ lid, challenge, myUid, nameFor }: ChallengeRowPro
   const [inCd, setInCd] = useState(challenge.scoreChallenged != null ? String(challenge.scoreChallenged) : "");
   const [error, setError] = useState<string | null>(null);
 
+  // Resync the optimistic local state when the AUTHORITATIVE challenge changes underneath us —
+  // the opponent acted on another device, or a refetch delivered server-truth after our own
+  // optimistic write (L21). The row stays mounted across refetches (stable `cid` key), so
+  // without this it shows a stale status/reporter forever. Only fires when the SERVER snapshot
+  // changes, so an in-flight optimistic update (prop unchanged) is never clobbered.
+  const serverSnapshot = `${challenge.status}|${challenge.reportedBy ?? ""}`;
+  const [syncedSnapshot, setSyncedSnapshot] = useState(serverSnapshot);
+  if (serverSnapshot !== syncedSnapshot) {
+    setSyncedSnapshot(serverSnapshot);
+    setStatus(challenge.status);
+    setReportedBy(challenge.reportedBy);
+  }
+
   const iAmChallenger = challenge.challengerUid === myUid;
   const iAmChallenged = challenge.challengedUid === myUid;
   const iReported = reportedBy === myUid;

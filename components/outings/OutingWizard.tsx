@@ -431,9 +431,13 @@ export function OutingWizard(): JSX.Element {
     if (prefill) setCourt((c) => c ?? { id: prefill, name: "Selected court" });
   }, [searchParams]);
 
+  // End must be strictly after start. Both are same-day zero-padded 24h `HH:MM`, so a string
+  // compare orders them (L19 — independent selects otherwise allow a negative-duration game).
+  const timeOrderValid = endTime > startTime;
+
   const canAdvance = (i: number): boolean => {
     if (i === 0) return !!court;
-    if (i === 1) return !!date;
+    if (i === 1) return !!date && timeOrderValid;
     if (i === 2) return title.trim().length > 0;
     return true;
   };
@@ -449,6 +453,12 @@ export function OutingWizard(): JSX.Element {
     const [eh, em] = endTime.split(":").map(Number);
     const startTs = new Date(date.year, date.month - 1, date.day, sh, sm).toISOString();
     const endTs = new Date(date.year, date.month - 1, date.day, eh, em).toISOString();
+    // Defensive: the When step already gates on this, but never submit a negative-duration game (L19).
+    if (new Date(endTs).getTime() <= new Date(startTs).getTime()) {
+      setError("The end time needs to be after the start time.");
+      setStep(1);
+      return;
+    }
     const untilIso = until
       ? `${until.year}-${String(until.month).padStart(2, "0")}-${String(until.day).padStart(2, "0")}`
       : null;
@@ -538,6 +548,12 @@ export function OutingWizard(): JSX.Element {
                   <PickSelect ariaLabel="End time" value={endTime} onChange={setEndTime} options={TIME_OPTIONS} />
                 </Field>
               </div>
+
+              {!timeOrderValid && (
+                <p role="alert" className="text-sm text-danger">
+                  The end time needs to be after the start time.
+                </p>
+              )}
 
               <Field label="Repeat">
                 <ToggleButtonGroup

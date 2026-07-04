@@ -26,6 +26,37 @@ describe("courtLocalDay (§6.2 court-local day, longitude-approximated)", () => 
   });
 });
 
+describe("courtLocalDay uses the court's REAL IANA timezone (L15 — DST-correct)", () => {
+  // A US-East court. The old approximation is `round(lng/15) = round(-74/15) = -5` → a FIXED
+  // UTC-5 that ignores DST, so near midnight it labels the wrong calendar day.
+  const nyc = { lat: 40.7128, lng: -74.006 };
+
+  it("computes the true local day across the DST offset (not the lng approximation)", () => {
+    // 2099-06-15T04:30Z is 00:30 EDT (summer, America/New_York = UTC-4) → already June 15 there.
+    const instant = Date.parse("2099-06-15T04:30:00.000Z");
+    // Real tz: EDT → June 15. Pre-fix the lng approximation (UTC-5) placed it at 23:30 June 14.
+    expect(courtLocalDay(nyc, instant)).toBe("20990615");
+    // The coarse fallback (no lat → no lookup) still reproduces that WRONG day, documenting the
+    // exact behavior the fix replaces when coordinates ARE present.
+    expect(courtLocalDay({ lng: nyc.lng }, instant)).toBe("20990614");
+  });
+
+  it("honors an explicit tz override ahead of coordinates", () => {
+    // 2099-01-10T02:00Z: America/New_York in winter is EST (UTC-5) → 21:00 on Jan 9.
+    const instant = Date.parse("2099-01-10T02:00:00.000Z");
+    expect(courtLocalDay({ lat: 40.71, lng: -74.006, tz: "America/New_York" }, instant)).toBe(
+      "20990109",
+    );
+  });
+
+  it("falls back to the longitude approximation when no coordinates are available", () => {
+    // A city-centroid call missing its latitude → the documented coarse fallback still applies.
+    expect(courtLocalDay({ lng: -74.006 }, Date.parse("2099-06-15T04:30:00.000Z"))).toBe(
+      "20990614",
+    );
+  });
+});
+
 describe("anon token carries NO uid / PII (§6.2)", () => {
   it("has only token + ttl + stamps — never a uid/email/name", () => {
     const item = buildAnonTokenItem("tok-abc", Date.parse("2026-07-01T00:00:00Z"));

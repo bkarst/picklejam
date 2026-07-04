@@ -23,6 +23,11 @@ export async function GET(
   if (!data?.outing) return new Response("Not found", { status: 404 });
 
   const { outing } = data;
+  // A PRIVATE (invite-only) outing must not expose its title/venue/description as a portable,
+  // shareable .ics to anyone with the URL — the RSVP route gates private games on the invite
+  // token, but a calendar file can't carry that credential, so we simply don't emit one (L2).
+  // Unlisted + public games are open-by-URL (matching the RSVP gate), so they still export.
+  if (outing.visibility === "private") return new Response("Not found", { status: 404 });
   const court = await getCourt(outing.courtId);
   const ics = toIcs({
     title: outing.title,
