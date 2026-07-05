@@ -1,6 +1,6 @@
-# PickleLoko — Gamification Layer PRD
+# Gamification Layer PRD
 
-> **Status:** Draft for review · **Depends on:** the complete Stage 0–10 build ([`prd-roadmap.md`](./prd-roadmap.md)) · **Extends:** [`pickle-loko-prd.md`](./pickle-loko-prd.md) (data model §9, analytics §2.1, notifications §9.3, test strategy §14).
+> **Status:** Draft for review · **Depends on:** the complete Stage 0–10 build ([`prd-roadmap.md`](./prd-roadmap.md)) · **Extends:** the [main platform PRD](./pickle-loko-prd.md) (data model §9, analytics §2.1, notifications §9.3, test strategy §14).
 >
 > **One-line pitch:** a points / levels / badges / streaks / quests / status layer over the features that already exist — check-ins, reviews, outings, round robins, tournaments, leagues, ladders, and groups — designed to convert first-time visitors into weekly-returning players and organizers, and thereby raise D30 retention and WAU/MAU stickiness.
 
@@ -9,6 +9,7 @@
 ## G0. How to read this document
 
 - Sections are numbered `G1…G23` to avoid colliding with the main PRD's §-numbers; cross-references like *(§6.2)* point at the main PRD, *(Stage N)* at the roadmap. Appendices: G21 (phase build plan) · G22 (coverage tables) · G23 (graphic design work).
+- **This spec is brand-neutral.** No brand name appears in any mechanic, schema key, route, copy string, or program name — "Rally Points", "Elite", and the level names are brand-independent working names (final branding = G20 Q5 sign-off). All brand expression (palette, type, asset art) is injected exclusively through `brand.config.ts` (§2.3), so the layer ports to a rebrand — or another platform — without touching this document.
 - **Render legend** matches the main PRD: `SSG` static · `ISR(n)` regenerate every `n`s · `SSR` per-request · `CSR` client-only (noindex) · `RSC` server component fetch.
 - **Access patterns continue the §9.5 numbering** (the build ended at 28; this layer adds **29–38**). Every read must resolve in **one Query/GetItem — no scans** (§9.6), using only the **existing four GSIs** (no new GSI; no migration beyond new item types — new tables/indexes would need on-demand capacity per project rule, but none are required).
 - **⚙** marks a server-emitted confirmed analytics event (§2.1). **💚/🖤** mark Octalysis White-Hat / Black-Hat drives (see G2).
@@ -25,7 +26,7 @@ The platform's SEO moat (Stages 1, 9) wins **first visits**; the community graph
 | # | Target behavior | Existing feature it rides on | Primary mechanics |
 |---|---|---|---|
 | **B1** | **Court check-ins** | §6.2 check-ins, court detail, city rollups | RP earn, weekly Play Streak, Court Crew status, Explorer badges, quests |
-| **B2** | **Court reviews** | §6.4 one-per-user-per-court reviews, helpful votes | RP earn (quality-weighted), Scout badges, Trailblazer (first-to-review), Loko Elite eligibility |
+| **B2** | **Court reviews** | §6.4 one-per-user-per-court reviews, helpful votes | RP earn (quality-weighted), Scout badges, Trailblazer (first-to-review), Elite eligibility |
 | **B3** | **League & tournament participation** | §7.1–7.4 paid events, §6.7 outings, §6.8 RR | Competitor RP + medals, season badges, Climber/Grinder families, city leaderboards, re-registration quests |
 
 A fourth, instrumental behavior — **B4: organizing** (outings, round robins, groups) — is rewarded because organizers create the supply that B1–B3 consume.
@@ -53,8 +54,8 @@ Most gamification fails by using only *Development & Accomplishment* (points-bad
 | 2. Development & Accomplishment 💚 | Rally Points, levels, tiered badges, medals for real competition results (earned, not arbitrary — a podium badge required an actual bracket win). |
 | 3. Empowerment of Creativity & Feedback 💚 | Organizer track: RR formats, outing hosting, group building each have visible outcomes (attendance, standings) and badges. |
 | 4. Ownership & Possession | Trophy case on the public profile (user-curated showcase of 3), level ring, personal stats history ("your year on the courts"). |
-| 5. Social Influence & Relatedness | Court Crew (people *at your court*), group leaderboards (people *you play with*), Loko Elite community. Scoped small on purpose — never a global board of strangers. |
-| 6. Scarcity & Impatience 🖤 | Loko Elite is annual and criteria-gated; seasonal quest badges retire. Used for status only — **never gates core utility**. |
+| 5. Social Influence & Relatedness | Court Crew (people *at your court*), group leaderboards (people *you play with*), Elite community. Scoped small on purpose — never a global board of strangers. |
+| 6. Scarcity & Impatience 🖤 | Elite is annual and criteria-gated; seasonal quest badges retire. Used for status only — **never gates core utility**. |
 | 7. Unpredictability & Curiosity 🖤 | Occasional surprise bonuses (e.g., "Double-RP weekend" city events, hidden badges). No loot boxes, no variable-reward core loop. |
 | 8. Loss & Avoidance 🖤 | Weekly streak can lapse — softened by earned Rain Checks and **no guilt notifications** (streak-risk reminders strictly opt-in). |
 
@@ -63,11 +64,11 @@ Most gamification fails by using only *Development & Accomplishment* (points-bad
 - **Discovery** (SEO visitor): court pages show the Court Crew module and Trailblazer credit — social proof that *real people are here* — with zero mechanics forced on the visitor.
 - **Onboarding** (first session): the existing `/welcome` flow (§13.8) gains a "Starter Quests" step — three achievable actions (complete profile · first check-in · follow a court) each paying RP immediately. **Endowed progress:** new accounts start at 25 RP ("welcome bonus"), 25% into Level 2, because a started bar outperforms an empty one.
 - **Scaffolding** (weeks 1–12): weekly quests + Play Streak + Court Crew give a reason to return each week; Explorer/Scout badge tiers give medium-horizon goals.
-- **Endgame** (months 3+): city leaderboards seasons, league/tournament medals, Loko Elite status, organizer track — identity-level investment that PBL alone can't sustain.
+- **Endgame** (months 3+): city leaderboards seasons, league/tournament medals, Elite status, organizer track — identity-level investment that PBL alone can't sustain.
 
 ### G2.3 Lessons encoded from prior art (what we deliberately copy and avoid)
 
-- **From Yelp Elite:** status with *real-world texture* (badge + review styling + event perks) sustained unpaid contribution for two decades. → Loko Elite (G11) is annual, quality-gated, and re-earned — status you keep only by staying active.
+- **From Yelp Elite:** status with *real-world texture* (badge + review styling + event perks) sustained unpaid contribution for two decades. → Elite (G11) is annual, quality-gated, and re-earned — status you keep only by staying active.
 - **From Foursquare/Swarm:** mayorships were iconic but single-winner competition demotivates everyone else, and pure-status check-ins plateau once novelty fades. → Court Crew (G7) is **threshold-based** (anyone can be Crew) with a rotating monthly **Court Captain** on top; check-ins additionally carry *utility* the game layer doesn't own (who's playing now, court freshness, review verification) so the loop survives badge fatigue.
 - **From Google Local Guides:** a single unified points-and-levels ladder across many contribution types is legible and durable. → One RP economy across all features, levels 1–10.
 - **From Strava:** scoped competition (segments, clubs) beats global boards. → Leaderboards are court-, city-month-, and group-scoped, with a personal "vs. your past self" panel for users who dislike competition.
@@ -94,7 +95,7 @@ Most gamification fails by using only *Development & Accomplishment* (points-bad
 | **Play Streak** | Weekly played-this-week chain with Rain Checks | weekly | G8 |
 | **Quests** | Rotating weekly personal quests + monthly city community quests | weekly/monthly | G9 |
 | **Leaderboards** | Court-month, city-month, group boards + personal stats | monthly seasons | G10 |
-| **Loko Elite** | Annual quality-gated status program (the endgame) | yearly | G11 |
+| **Elite** | Annual quality-gated status program (the endgame) | yearly | G11 |
 
 Everything is driven by **one append-only `XP#` ledger** (G13.2): badges, quests, streaks, and boards are all *derived from or written alongside* ledger entries, so the whole layer is auditable, replayable, and reconcilable — the same architecture discipline as the §9.4 aggregates.
 
@@ -237,7 +238,7 @@ Badges come in **tiered families** (Bronze / Silver / Gold / Platinum — one it
 | **Founder** | active groups created (≥5 members) | 1 / 2 / — / — | B4 |
 | **Streaker** | best Play Streak (weeks) | 4 / 12 / 26 / 52 | habit |
 
-**One-off specials:** `Trailblazer` (first platform check-in at a court — stackable count shown, G7.3) · `First Reviewer` (first review of a court — stackable) · `Rung One` (held #1 on any ladder) · `Champion` (won a bracket) · `Early Adopter` (joined before a launch cutoff) · `Loko Elite '26` (annual, G11) · seasonal quest badges (retire when the season ends; the *evergreen* families above always remain earnable — White-Hat escape hatch).
+**One-off specials:** `Trailblazer` (first platform check-in at a court — stackable count shown, G7.3) · `First Reviewer` (first review of a court — stackable) · `Rung One` (held #1 on any ladder) · `Champion` (won a bracket) · `Early Adopter` (joined before a launch cutoff) · `Elite '26` (annual, G11) · seasonal quest badges (retire when the season ends; the *evergreen* families above always remain earnable — White-Hat escape hatch).
 
 **Hidden badges** (Unpredictability 💚-side, small): 2–3 undocumented specials (e.g., "Night Owl" — check-ins at 5 lighted courts after 8pm). Discoverable, never required for anything.
 
@@ -354,13 +355,13 @@ All boards are **monthly seasons** (reset day 1, previous months browsable), **s
 
 ---
 
-## G11. Loko Elite (the endgame program)
+## G11. Elite (the endgame program)
 
 The Yelp-Elite analog — annual, quality-gated, community-flavored status:
 
 - **Criteria (auto-evaluated monthly, awarded annually):** in the qualifying year — ≥12 reviews with median length ≥80 words · ≥60% of reviews check-in-verified · ≥40 check-ins · ≥1 competition entry (tournament, league, or ladder) *or* ≥6 hosted events · zero moderation strikes. Thresholds are config, not code.
 - **Nomination + human touch:** users self-nominate or are auto-flagged when criteria are met; a lightweight admin review (existing court-admin surface, `spec/court-admin.md`) approves the cohort. Scarcity is real but explainable — the criteria are public.
-- **Perks:** `Loko Elite '26` badge + gold profile ring · Elite styling on their reviews (subtle — a small crest, not louder content) · early access to feature betas · reserved-free entries or merch at partner events (**business decision, G20**) · an annual Elite virtual/local event where density allows.
+- **Perks:** `Elite '26` badge + gold profile ring · Elite styling on their reviews (subtle — a small crest, not louder content) · early access to feature betas · reserved-free entries or merch at partner events (**business decision, G20**) · an annual Elite virtual/local event where density allows.
 - **Status must be re-earned each year** (drives ongoing B1+B2 engagement); lapsed Elites keep the year-stamped badge forever (Ownership; no confiscation).
 
 ---
@@ -517,7 +518,7 @@ Catalog grid grouped by family (B1 → B2 → B3 → B4 → habit → specials),
 
 **As built:** resumable stepper `STEP_IDS = identity → location → rating`; each step persists then records itself in `completedSteps`; a progress `<ol>` + "Step N of M" header.
 
-**Insertion:** a fourth step `quests` (title: *"Earn your first Rally Points"*), appended to `STEP_IDS`/`STEP_TITLES`. Body: the welcome bonus banner (*"+25 RP — welcome to PickleLoko"*, E24 awarded at signup, shown not re-earned) + the three starter-quest `QuestRow`s (E25): **Complete your profile** (auto-completes here — identity+location+rating are the prior steps) · **Check in at a court** (CTA → `/search`) · **Follow a court** (CTA → `/courts`). The step is *informational + skippable* — primary button **"Done for now"** finishes onboarding regardless of quest state (quests remain on the dashboard module, G12.5-I1); no quest is required to proceed. Records `quests` in `completedSteps`. Holdout cohort: the step is skipped entirely (3-step flow as today).
+**Insertion:** a fourth step `quests` (title: *"Earn your first Rally Points"*), appended to `STEP_IDS`/`STEP_TITLES`. Body: the welcome bonus banner (*"+25 RP — welcome aboard"*, E24 awarded at signup, shown not re-earned) + the three starter-quest `QuestRow`s (E25): **Complete your profile** (auto-completes here — identity+location+rating are the prior steps) · **Check in at a court** (CTA → `/search`) · **Follow a court** (CTA → `/courts`). The step is *informational + skippable* — primary button **"Done for now"** finishes onboarding regardless of quest state (quests remain on the dashboard module, G12.5-I1); no quest is required to proceed. Records `quests` in `completedSteps`. Holdout cohort: the step is skipped entirely (3-step flow as today).
 
 ### G12.12 Settings — `/account/settings` (`components/account/AccountSettings.tsx`)
 
@@ -553,9 +554,9 @@ Catalog grid grouped by family (B1 → B2 → B3 → B4 → habit → specials),
 
 **Insertions:** the `ReviewAuthor` hydration extends with `level` and `isCrew` (computed against *this* court's Crew set at render): **(a)** `LevelChip size="sm"` after the author name; **(b)** a small **`Crew`** pill when `isCrew` — the local-credibility marker (G7.1). Crew reviews also get the mild sort boost in the module's default "most helpful" ordering (a fixed tiebreak weight, not a hidden multiplier). No JSON-LD change. Fallback "Player" authors get neither chip.
 
-### G12.17 Loko Elite landing — `/elite` · **NEW** · ISR(86400), indexable
+### G12.17 Elite landing — `/elite` · **NEW** · ISR(86400), indexable
 
-The program's public explainer (every criteria-gated status program needs one — the criteria being public is the fairness guarantee, G11): hero (what Loko Elite is, the crest) → **criteria list rendered from the live config** (G11 thresholds — never hand-written copy that can drift) → perks band → current-year cohort strip (count + avatars of *approved, public-profile* members) → self-nomination CTA (auth-gated `useEliteNominate`; idempotent; success state *"You're on the list — reviewed monthly"*) → FAQ (`FAQPage` JSON-LD). Linked from the footer (Company group), the badge detail sheet for `Loko Elite` badges, and Elite-styled review crests.
+The program's public explainer (every criteria-gated status program needs one — the criteria being public is the fairness guarantee, G11): hero (what Elite is, the crest) → **criteria list rendered from the live config** (G11 thresholds — never hand-written copy that can drift) → perks band → current-year cohort strip (count + avatars of *approved, public-profile* members) → self-nomination CTA (auth-gated `useEliteNominate`; idempotent; success state *"You're on the list — reviewed monthly"*) → FAQ (`FAQPage` JSON-LD). Linked from the footer (Company group), the badge detail sheet for `Elite` badges, and Elite-styled review crests.
 
 ### G12.18 Global award moments (`GamifyToaster` + `LevelUpModal`, mounted in `app/providers.tsx`)
 
@@ -591,7 +592,7 @@ Asset-level design work — badge art, level emblems, the RP mark, icons, motion
 
 ### G12.22 Copy deck & voice
 
-Canonical strings live in `lib/gamify/copy.ts` — one import site, no scattered literals (EN-only at launch). **Voice rules:** playful but not childish (the brand's Fredoka energy); celebrate the *player*, never the app; state facts, never guilt (a lapse is "streak ended", not "you lost your streak 😢"); a number is always accompanied by what earned it.
+Canonical strings live in `lib/gamify/copy.ts` — one import site, no scattered literals (EN-only at launch). **Voice rules:** playful but not childish (match the brand's display-type energy); celebrate the *player*, never the app; state facts, never guilt (a lapse is "streak ended", not "you lost your streak 😢"); a number is always accompanied by what earned it.
 
 | Moment | Canonical string |
 |---|---|
@@ -615,7 +616,7 @@ Canonical strings live in `lib/gamify/copy.ts` — one import site, no scattered
 
 ## G13. Data schema (single-table, §9-conformant)
 
-> All items live in `PickleLokoApp<Env>`; **no new GSIs** — the layer uses base-partition queries plus the existing GSI1 (ByOwner) and GSI2 (ByDate) shapes. Numeric SK components zero-padded (`pad()`), keys via new builders in `lib/db/keys.ts` (`gamifyKeys`, `questKeys`, `boardKeys`, `eliteKeys` — full reference in G13.10), entities in `lib/db/types.ts`. Repository: `lib/data/gamify.ts` (+ `lib/gamify/` pure logic: level math, earn rules, badge catalog, streak calendar, quest rules — all unit/property-testable, no I/O).
+> All items live in the app's existing single table (§9.1 naming); **no new GSIs** — the layer uses base-partition queries plus the existing GSI1 (ByOwner) and GSI2 (ByDate) shapes. Numeric SK components zero-padded (`pad()`), keys via new builders in `lib/db/keys.ts` (`gamifyKeys`, `questKeys`, `boardKeys`, `eliteKeys` — full reference in G13.10), entities in `lib/db/types.ts`. Repository: `lib/data/gamify.ts` (+ `lib/gamify/` pure logic: level math, earn rules, badge catalog, streak calendar, quest rules — all unit/property-testable, no I/O).
 
 ### G13.0 Time & calendars (the timezone decision)
 
@@ -1024,7 +1025,7 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 | **P1 — Economy core** | RP + ledger + levels + `awardXp` at all confirmation points + `/account/progress` + check-in/review toasts + starter quests | economy monitor stable 2 weeks; no farming incidents; `gamification_disabled` < 3% of viewers |
 | **P2 — Habit loop** | Play Streak + weekly quests + badges (evergreen families) + trophy case + digest | B1 check-ins/WAU +10% vs holdout |
 | **P3 — Social & local status** | Court Crew/Captain/Trailblazer + court & city leaderboards + community quests + map-finder frontier filters | B2 review coverage measurably up; board-page CWV green |
-| **P4 — Endgame** | Loko Elite + seasonal quests + hidden badges + partner perks | annual cycle |
+| **P4 — Endgame** | Elite + seasonal quests + hidden badges + partner perks | annual cycle |
 
 - **Holdout:** 10% of new signups see no gamification surfaces (RP accrues silently) for the retention read; feature-flagged via the existing PostHog wiring.
 - **Kill-switches:** per-mechanic flags (quests, boards, streaks) so a misfiring mechanic degrades to hidden, not broken; RP accrual itself has no kill-switch (ledger writes are cheap, and the reconcile sweep can rebuild any projection from them; the UI is what toggles).
@@ -1053,7 +1054,7 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 2. **Geo-verified check-ins:** require device location within ~500m to earn E1 RP? Raises integrity, costs friction + a permission prompt. Deferred behind the G16 anomaly monitoring; revisit if farming appears.
 3. **Elite perks with real-world cost** (event comps, merch, ad-free): business/budget decision; the program works at launch with status-only perks.
 4. **Organizer-side gamification** (venue/organizer badges, "most responsive organizer"): intentionally out of scope — different audience, different economy; revisit post-P4.
-5. **RP naming & level-name sign-off:** "Rally Points" + the G5 level names need brand/design sign-off **before P1 asset production begins** — the complete artifact inventory, delivery standards, and sequencing now live in **G23** (view mockups in G12.21).
+5. **Naming sign-off:** "Rally Points", the G5 level names, and the Elite program's public name (the spec deliberately uses the brand-neutral "Elite" throughout, per G0) need brand/design sign-off **before P1 asset production begins** — the complete artifact inventory, delivery standards, and sequencing live in **G23** (view mockups in G12.21).
 6. ~~**Streak repair mechanics**~~ — **RESOLVED in G8.2:** repair auto-applies on the first play of the week immediately after the break, at most once per rolling 12 weeks; never sold (G2.4 rule 2). A P2 tightening (require two plays in the repair week) remains available as a tuning knob if repairs prove too cheap.
 
 ---
@@ -1082,7 +1083,7 @@ Each phase is built like a roadmap stage: the standing quality gate applies, the
 
 ### P4 — Endgame
 
-**Implement:** Loko Elite (G11) — config-driven criteria evaluator over the ledger/strikes, nomination flow, admin queue (G16.6d), `/elite` landing (G12.17), Elite review styling + profile ring · seasonal + hidden badges (G6.2) · Elite terms copy (G16.8) · partner-perk hooks (open, G20 Q3).
+**Implement:** Elite (G11) — config-driven criteria evaluator over the ledger/strikes, nomination flow, admin queue (G16.6d), `/elite` landing (G12.17), Elite review styling + profile ring · seasonal + hidden badges (G6.2) · Elite terms copy (G16.8) · partner-perk hooks (open, G20 Q3).
 **Test coverage:** patterns 36–37; Elite evaluator properties (threshold config changes need no code change; strike voids eligibility); admin approve/reject audit trail; `/elite` renders live config values (never drifting copy).
 **E2E gate:** first cohort awarded end-to-end (auto-flag → queue → approve → badge + roster + notification); annual-cycle jobs scheduled; full **J10–J12 regression** green.
 
@@ -1102,7 +1103,7 @@ Each phase is built like a roadmap stage: the standing quality gate applies, the
 
 ## G23. Graphic Design Work Needed
 
-Every visual below is **net-new — the system today has no badge, level, point, streak, or status art of any kind** (the profile's "Achievement badges" section is a text placeholder; the spec's 🏆/🌧/🏅 glyphs are stand-ins to be replaced). This is brand work, not component styling: every artifact is designed from the brand identity (Fredoka energy; the §2.3 palette — Forest, Pickle Green, Lime, Bubblegum, Hot Pink, Cream, Charcoal) and **registered in the `brand.config.ts` asset map** like the logo system — a hardcoded asset path or color anywhere else is the same build-fail as a hardcoded hex.
+Every visual below is **net-new — the system today has no badge, level, point, streak, or status art of any kind** (the profile's "Achievement badges" section is a text placeholder; the spec's 🏆/🌧/🏅 glyphs are stand-ins to be replaced). This is brand work, not component styling: every artifact is designed from the brand identity (§2.3 — the palette and display type defined in `brand.config.ts`) and **registered in the `brand.config.ts` asset map** like the logo system — a hardcoded asset path or color anywhere else is the same build-fail as a hardcoded hex.
 
 ### G23.1 Asset inventory
 
@@ -1118,15 +1119,15 @@ Every visual below is **net-new — the system today has no badge, level, point,
 | 8 | **Special badges** | Trailblazer · First Reviewer · Rung One · Champion · Early Adopter · hidden badges (Night Owl + 2 TBD) · the hidden-state `?` silhouette | 8–9 | P2 (Trailblazer/First Reviewer art also fronts the P3 court modules) |
 | 9 | **Seasonal badge template** | A frame + palette template stamped per season/community quest, so each season's badge is a fill-in, never a fresh commission (G6.2 retirement mechanic) | 1 template | P2 |
 | 10 | **Streak visuals** | The flame-free **bouncing-ball chain** (G8): `StreakChip` glyph + the expanded Progress-header variant, plus the **Rain Check** icon (replaces 🌧) rendered as bankable "dots" | 3 | P2 |
-| 11 | **OG share templates** | 1200×630 card layouts for `/og/badge/[familyId]` and `/og/level/[n]` (G12.20): brand background, badge/emblem placement, embedded **Fredoka** — resolving the Stage-0 OG-font TODO for these routes | 2 | P2 |
+| 11 | **OG share templates** | 1200×630 card layouts for `/og/badge/[familyId]` and `/og/level/[n]` (G12.20): brand background, badge/emblem placement, embedded **brand display font** — resolving the Stage-0 OG-font TODO for these routes | 2 | P2 |
 | 12 | **Email digest graphics** | Weekly-digest header banner + email-safe **PNG @2x exports** of every glyph the digest uses (RP mark, streak chain, badge tiles — mail clients don't render SVG reliably) | 1 + export set | P2 |
 | 13 | **Court-status marks** | Captain mark (replaces 🏆 in the court status line + Captain history strip) · Crew pill mark · Trailblazer credit mark — may reuse #8's glyphs **if they survive 16px chip size**; verify before committing | 3 | P3 |
-| 14 | **Elite identity** | Loko Elite crest · profile **gold-ring** treatment · review-crest micro variant (≤14px — must stay subtle per G11: a mark, not a megaphone) · year-stamped badge variant template (`Loko Elite '26`) · `/elite` landing hero art | 5 | P4 |
+| 14 | **Elite identity** | Elite crest · profile **gold-ring** treatment · review-crest micro variant (≤14px — must stay subtle per G11: a mark, not a megaphone) · year-stamped badge variant template (`Elite '26`) · `/elite` landing hero art | 5 | P4 |
 | 15 | **View mockups** | The 10 per-view mockups already enumerated in **G12.21** (`design/views/14.1–14.10`) — the layout counterpart to this asset inventory; produce them **with** each phase's assets embedded so mockups show real art, not stand-ins | 10 | per G12.21 |
 
 **Optional / nice-to-have** (schedule only if capacity remains): Progress-page empty-state spot illustration · a "How RP works" explainer diagram (linked from G12.6/G12.9) · top-3 medal accents for `BoardTable`.
 
-**Rough total: ~60 unique assets** (14 family glyphs + 4 tier frames compose to 56 badge renders on their own), 2 motion pieces, 3 art-direction specs — front-loaded into P1–P2.
+**Rough total: ~60 unique assets** (14 family glyphs + 4 tier frames compose to 56 badge renders on their own), 2 motion pieces, 3 art-direction specs — front-loaded into P1–P2. **Copy-paste text-to-image prompts for every asset** are provided in G23.4.
 
 ### G23.2 Delivery standards (apply to every artifact)
 
@@ -1141,3 +1142,154 @@ Every visual below is **net-new — the system today has no badge, level, point,
 ### G23.3 Sequencing & blockers
 
 The P1 rows (1–5) **gate the P1 build**: the toaster, level-up modal, and check-in sheet rewards cannot ship on placeholder art — a player's first level-up happens exactly once. Badge art (rows 6–9) gates P2's collection and trophy-case views; court-status marks (row 13) gate P3's court-page modules; the Elite set (row 14) gates P4. Naming/level-name sign-off (G20 Q5) should happen **before** row 2 is drawn — emblems encode the names.
+
+### G23.4 Text-to-image generation prompts (per asset)
+
+Each prompt below is a **complete, self-contained instruction you can paste directly into a text-to-image generator** — one prompt, one asset, no assembly. The prompts deliberately carry **no style, color, or illustration-aesthetic direction**; all of that lives in the brand identity guide, which **must be attached to the generation request**, and every prompt ends by pointing to it (`Use the attached brand identity guide for style.`). Each produces a first-draft raster that still runs through the background-remove → vectorize → tune pipeline of G23.2, whose delivery standards gate sign-off. Assets carry no baked-in text — names, numbers, years, and wordmarks are composited in code later.
+
+**Row 1 — Rally Points mark**
+> A single game-currency reward token shaped like a round pickleball coin tilted slightly toward the viewer, its circular perforated holes arranged in a clean arc across the face and one bold motion swoosh wrapping the lower half like an orbit, reading instantly as a points or reward token. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 2 — Level emblems (10)** — the 10 rank medallions; ornamentation grows with rank.
+> **Level 1 · Paddle Rookie:** A single friendly upright pickleball paddle with a small ball bouncing beside it along one simple arc, sparsely decorated to signal a beginner rank. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 2 · Dinker:** A pickleball paddle softly tapping a ball into a gentle high arc that just clears a low net. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 3 · Rally Regular:** Two pickleball paddles facing off with a dotted rally arc bouncing twice between them. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 4 · Kitchen Veteran:** A pickleball paddle planted like a signpost on the bold non-volley kitchen line of a stylized court corner. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 5 · Spin Doctor:** A pickleball wrapped in swirling spin ribbons with two orbit lines crossing around it like an atom. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 6 · Drop-Shot Artist:** A pickleball dropping in a steep elegant arc barely clearing a net, with soft landing rings beneath it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 7 · Smash Specialist:** A pickleball paddle frozen at the top of an overhead smash with a starburst impact and clean speed lines. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 8 · Bracket Boss:** A pickleball paddle at the convergence point of tournament bracket lines flowing in from both sides. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 9 · Titan:** A monumental pickleball paddle standing on a small pedestal flanked by two laurel sprigs, richly ornamented to signal a high rank. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level 10 · Legend:** A radiant pickleball paddle wearing a small crown and wrapped in a full laurel wreath with subtle rays, the most ornate and prestigious medallion of the set. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 3 — Level ring:** no generative asset — this is component art direction only (G23.1).
+
+**Row 4 — Quest & ledger action icons (10)**
+> **Check-in:** A rounded location map pin whose inner dot is a perforated pickleball. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Explore new court:** A compass rose with a pickleball at its hub and a small paddle-shaped needle. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Review:** A fountain pen drawing a five-pointed star onto a small card. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Photo:** A friendly compact camera whose lens is a perforated pickleball. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Helpful:** A thumbs-up hand with one small sparkle star at the tip of the thumb. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **RSVP:** A calendar page carrying a bold check mark with a tiny ball in one corner. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Follow:** A rounded heart patterned with pickleball perforation holes. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Competitive match:** Two crossed pickleball paddles above a taut net band with a small spark between them. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Host:** A coach's whistle on a lanyard curling around a clipboard. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Community:** A waving pennant flag with three overlapping friendly dots beneath it. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 5 — Celebration keyframes (2)**
+> **Level-up terminal frame** — also the reduced-motion still: A symmetrical celebration burst made of small pickleballs, small paddle silhouettes, and scattered confetti chips radiating outward from an empty circular hollow center where a separate emblem will later be placed, with thin energy rays and a balanced joyful feel. Center it in a square 1:1 frame on a plain solid white background and leave the middle circle empty. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Badge-toast pop:** A single empty round badge outline with a clean double pop-ring ripple expanding around it and four tiny sparkles near the corners, caught mid-celebration, with a hollow center. Center it in a square 1:1 frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 6 — Badge family glyphs (14)**
+> **Explorer:** An unfolded map with a dotted trail hopping between three court location-pin markers. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Homebody:** A cozy house whose front door is a pickleball paddle and whose doormat is a ball. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Scout:** A magnifying glass revealing a five-pointed star on a small court card. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Shutterbug:** A vintage camera on a neck strap whose lens is a perforated pickleball. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Helpful:** A raised thumbs-up hand encircled by a ring of small stars. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Competitor:** A pickleball paddle crossed with a lightning bolt over a single bracket line. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Medalist:** A first-place podium with a ribboned medal draped across it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Grinder:** A calendar page meshed with a gear, with a pickleball paddle at the gear's center. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Climber:** A ladder with a pickleball ascending its rungs and one bold upward arrow. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Socialite:** Three overlapping friendly circles gathered around one shared pickleball. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Host:** A megaphone announcing a shower of tiny pickleballs. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Ringmaster:** Four arrows chasing each other in a perfect circle around a pickleball, forming a round-robin loop. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Founder:** A planted flag sprouting two leaves from its base on a small patch of court. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Streaker:** A chain of four pickleballs linked by bounce arcs with the last one glowing. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 7 — Tier frames (4)** — empty-center frames overlaid on any family glyph; they must stay distinguishable from each other even in grayscale, so rank is carried by pip count and geometry rather than color.
+> **Bronze tier:** An empty circular badge frame with a hollow center and a single small rounded notch pip at the bottom edge of the ring, representing the lowest of four collectible tiers. Center it in a square 1:1 frame on a plain solid white background and keep it clearly distinguishable from the other tiers even in grayscale. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Silver tier:** An empty circular badge frame with a hollow center, two small rounded notch pips at the bottom edge of the ring, and one thin inner accent line, representing the second of four collectible tiers. Center it in a square 1:1 frame on a plain solid white background and keep it clearly distinguishable from the other tiers even in grayscale. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Gold tier:** An empty circular badge frame with a hollow center, three small rounded notch pips at the bottom edge of the ring, and tiny rays at the four cardinal points, representing the third of four collectible tiers. Center it in a square 1:1 frame on a plain solid white background and keep it clearly distinguishable from the other tiers even in grayscale. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Platinum tier:** An empty circular badge frame with a hollow center, four small rounded notch pips at the bottom edge of the ring, and subtle geometric faceting around the ring, representing the top of four collectible tiers. Center it in a square 1:1 frame on a plain solid white background and keep it clearly distinguishable from the other tiers even in grayscale. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 8 — Special badges**
+> **Trailblazer:** A pennant flag planted on an untouched court at sunrise with a single line of footprints leading up to it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **First Reviewer:** A quill planting a five-pointed star into a fresh review card the way an explorer plants a flag. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Rung One:** The top rung of a ladder with a small crown resting on it and soft clouds below. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Champion:** A trophy cup with a pickleball rising out of it like a sun. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Early Adopter:** A young sprout growing from a pickleball that is half-planted in soil. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Night Owl:** A round owl perched on a pickleball paddle handle beneath a crescent moon and a single court floodlight beam. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Hidden badge silhouette:** A plain silhouetted round badge with a mysterious hollow feel and a softly embossed curling question-mark symbol at its center, friendly rather than menacing. Compose it as a round badge medallion centered in a square 1:1 frame on a plain solid white background. Aside from that single question-mark symbol, do not include any other text, letters, or numbers. Use the attached brand identity guide for style.
+
+The 2 additional undisclosed hidden badges receive their own prompts when their concepts are finalized.
+
+**Row 9 — Seasonal badge template**
+> An ornamental empty badge frame with a decorative circular ring, a blank ribbon banner across the bottom, and four small circular sockets at the diagonal points where interchangeable seasonal motifs can later be placed, with the center left empty. Center it in a square 1:1 frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 10 — Streak visuals (3)**
+> **Streak chip glyph:** Three pickleballs linked left to right by two clean bounce arcs, with the last ball emphasized as the most recent. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Streak header variant:** A chain of five pickleballs on rising bounce arcs conveying gentle upward momentum, with the final ball softly haloed. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Rain Check:** A soft friendly cloud holding a small umbrella over a pickleball with one raindrop deflecting off the umbrella, feeling protective and reassuring rather than gloomy. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 11 — OG share card backgrounds (2)**
+> **Badge card background:** A calm stylized pickleball court seen from above at a slight diagonal, with faint court lines and a few scattered flat confetti chips near the edges. Keep the left third of the image almost empty where a badge will later be placed, and keep the right two thirds visually quiet and uncluttered where a title will later be placed. Produce a wide 1200 by 630 pixel banner. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Level card background:** A calm stylized pickleball court seen from above at a slight diagonal, with subtle rays radiating from a focal point in the left third where a level emblem will later be placed, and the right two thirds kept visually quiet where a title will later be placed. Produce a wide 1200 by 630 pixel banner. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 12 — Email digest banner**
+> A cheerful morning scene with a low sun rising over a stylized pickleball court and two balls mid-bounce leaving dotted arc trails, an open sky, and generous empty margins along the top and bottom, conveying an optimistic week-in-review mood. Produce a wide banner at roughly a 3:1 ratio. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+The email glyph PNG exports in this row are derived from the Row 1, Row 6, and Row 10 artwork and need no separate prompts.
+
+**Row 13 — Court-status marks (3)**
+> **Captain mark:** A tiny triangular pennant flag bearing a single star, kept extremely simple. Center it in a square 1:1 frame on a plain solid white background as an ultra-simple mark that stays legible when shrunk to about 16 pixels. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Crew mark:** A friendship wristband with one small pickleball charm, kept extremely simple. Center it in a square 1:1 frame on a plain solid white background as an ultra-simple mark that stays legible when shrunk to about 16 pixels. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Trailblazer mark:** A minimal planted flag with two small footprints leading up to it, reduced to the simplest recognizable form. Center it in a square 1:1 frame on a plain solid white background as an ultra-simple mark that stays legible when shrunk to about 16 pixels. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 14 — Elite identity (5)**
+> **Elite crest:** A dignified laurel-wrapped heraldic shield bearing a single upright pickleball paddle with one star at its crown, quiet and refined rather than flashy. Compose it as a round badge medallion centered in a square 1:1 frame on a plain solid white background, keeping the silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Elite profile ring:** An empty circular avatar frame with a hollow center formed by a slim double-line ring with tiny laurel notches at the four quarter points, meant to encircle a profile photo. Center it in a square 1:1 frame on a plain solid white background and leave the middle empty. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Elite review micro crest:** A minimal single-color silhouette of a heraldic shield topped with one star, reduced to its simplest recognizable form so it stays clear at about 14 pixels. Center it in a square 1:1 frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Elite year-stamp:** A dignified laurel-wrapped heraldic shield bearing a single upright pickleball paddle with one star at its crown, and a blank empty ribbon banner beneath the shield where a year will later be placed. Compose it as a round badge medallion centered in a square 1:1 frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+> **Elite landing hero:** A wide celebratory scene showing a stylized pickleball court at golden hour with a small diverse group of players raising their paddles, laurel motifs and drifting confetti, and an elite laurel-and-shield crest rising like a sun on the horizon, warm and aspirational. Produce a wide 16:9 image and keep the center-right area visually quiet where a headline will later be placed. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+
+**Row 15 — View mockups:** not text-to-image work — these are UI layout designs produced against the G12 view specs with the assets above embedded (G12.21).
