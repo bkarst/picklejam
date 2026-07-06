@@ -10,10 +10,15 @@
  * has checked in here (`checkedIn`), an eligibility nudge notes the Verified badge.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { ToggleButtonGroup, ToggleButton } from "@heroui/react";
-import { useSubmitReview } from "@/lib/api/community";
+import {
+  useSubmitReview,
+  useUploadReviewPhoto,
+  REVIEW_PHOTO_TYPES,
+  REVIEW_PHOTO_MAX_BYTES,
+} from "@/lib/api/community";
 import { trackEvent } from "@/lib/analytics/client";
 import type { ReviewItem } from "@/lib/db/types";
 import { StarRatingInput } from "./Stars";
@@ -29,27 +34,69 @@ export function ReviewComposer({
   courtId,
   existing,
   checkedIn = false,
+  bare = false,
   onDone,
   onCancel,
 }: {
   courtId: string;
   existing?: ReviewItem;
   checkedIn?: boolean;
+  /** Drop the card wrapper + heading (the surrounding Modal supplies both). */
+  bare?: boolean;
   /** Called on success with the saved review (for optimistic display). */
   onDone?: (review?: ReviewItem) => void;
   onCancel?: () => void;
 }): JSX.Element {
   const submit = useSubmitReview(courtId);
+  const uploadPhoto = useUploadReviewPhoto();
   const [rating, setRating] = useState(existing?.rating1to5 ?? 0);
   const [title, setTitle] = useState(existing?.title ?? "");
   const [body, setBody] = useState(existing?.body ?? "");
   const [tags, setTags] = useState<Set<string>>(new Set(existing?.tags ?? []));
   const [photoUrl, setPhotoUrl] = useState(existing?.photoUrl ?? "");
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
 
   const ratingInvalid = rating < 1;
+
+  // Revoke the local object URL whenever it changes / on unmount (no memory leak).
+  useEffect(() => {
+    if (!localPreview) return;
+    return () => URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoError(null);
+    if (!(REVIEW_PHOTO_TYPES as readonly string[]).includes(file.type)) {
+      setPhotoError("Please choose a PNG, JPG, WebP, or GIF image.");
+      return;
+    }
+    if (file.size > REVIEW_PHOTO_MAX_BYTES) {
+      setPhotoError("Image must be under 8 MB.");
+      return;
+    }
+    setLocalPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      setPhotoUrl(await uploadPhoto(file));
+    } catch (e) {
+      setPhotoError(e instanceof Error ? e.message : "Upload failed — please try again.");
+      setLocalPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setLocalPreview(null);
+    setPhotoUrl("");
+    setPhotoError(null);
+  };
 
   const onSubmit = async () => {
     if (ratingInvalid) {
@@ -76,10 +123,12 @@ export function ReviewComposer({
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-5">
-      <h3 className="font-display text-lg font-bold text-foreground">
-        {existing ? "Edit your review" : "Write a review"}
-      </h3>
+    <div className={bare ? "flex flex-col gap-4" : "flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-5"}>
+      {!bare && (
+        <h3 className="font-display text-lg font-bold text-foreground">
+          {existing ? "Edit your review" : "Write a review"}
+        </h3>
+      )}
 
       {checkedIn && (
         <p className="rounded-xl bg-success/10 px-3 py-2 text-sm text-success">
@@ -138,17 +187,57 @@ export function ReviewComposer({
         </ToggleButtonGroup>
       </div>
 
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-foreground">Photo URL (optional)</span>
-        <input
-          type="url"
-          inputMode="url"
-          className={INPUT_CLS}
-          value={photoUrl}
-          onChange={(e) => setPhotoUrl(e.target.value)}
-          placeholder="https://…"
-        />
-      </label>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-foreground">Photo (optional)</span>
+        {localPreview || photoUrl ? (
+          <div className="relative w-full max-w-xs overflow-hidden rounded-xl border border-border bg-surface-secondary">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={localPreview ?? photoUrl} alt="Your review photo" className="aspect-video w-full object-cover" />
+            {uploading && (
+              <div className="absolute inset-0 grid place-items-center bg-black/40 text-sm font-medium text-white">
+                Uploading…
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={removePhoto}
+              aria-label="Remove photo"
+              className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
+        ) : (
+          <label
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              void handleFile(e.dataTransfer.files?.[0]);
+            }}
+            className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-field px-4 py-6 text-center transition-colors hover:border-accent hover:bg-surface-secondary has-[:focus-visible]:border-solid has-[:focus-visible]:border-accent has-[:focus-visible]:bg-surface-secondary"
+          >
+            <svg viewBox="0 0 24 24" className="size-6 text-muted" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 15V4m0 0L8 8m4-4l4 4" />
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+            </svg>
+            <span className="text-sm text-foreground">
+              <span className="font-semibold text-accent">Upload a photo</span>{" "}
+              or drag &amp; drop
+            </span>
+            <span className="text-xs text-muted">PNG, JPG, WebP or GIF · up to 8 MB</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="sr-only"
+              onChange={(e) => {
+                void handleFile(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+        {photoError && <p role="alert" className="text-xs text-danger">{photoError}</p>}
+      </div>
 
       {error && (
         <p role="alert" className="text-sm text-danger">
@@ -170,10 +259,10 @@ export function ReviewComposer({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={submitting}
+          disabled={submitting || uploading}
           className="inline-flex h-11 items-center rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-colors hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
-          {submitting ? "Saving…" : existing ? "Save changes" : "Post review"}
+          {submitting ? "Saving…" : uploading ? "Uploading photo…" : existing ? "Save changes" : "Post review"}
         </button>
       </div>
     </div>

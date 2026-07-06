@@ -52,6 +52,7 @@ import {
 import { GSI } from "@/lib/db/table";
 import { groupKeys, outingKeys, courtKeys } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
+import { sanitizeLine, sanitizeMultiline } from "@/lib/util/sanitize";
 import { courtUrl } from "@/lib/urls";
 import { emitInsert, emitModify, emitRemove } from "@/lib/streams/inline";
 import { createNotification } from "@/lib/data/notifications";
@@ -214,9 +215,9 @@ export async function createGroup(input: CreateGroupInput): Promise<GroupItem> {
     ...groupKeys.bySlug(slug),
     entity: "GROUP",
     groupId,
-    name: input.name,
+    name: sanitizeLine(input.name) || "Untitled group",
     slug,
-    ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.description !== undefined ? { description: sanitizeMultiline(input.description) } : {}),
     cityKey: input.cityKey,
     ...(input.homeCourtId !== undefined ? { homeCourtId: input.homeCourtId } : {}),
     ...(courtIds.length > 0 ? { courtIds } : {}),
@@ -793,13 +794,14 @@ export async function updateGroup(
   // stable identity / GSI1 (byCreator) / GSI3 (bySlug) keys untouched. Toggling to private
   // REMOVEs the GSI2 city-finder keys (matching the old full-Put behaviour of dropping stale
   // keys); toggling public re-stamps them.
-  const nextDescription = patch.description ?? current.description;
+  const nextDescription = patch.description !== undefined ? sanitizeMultiline(patch.description) : current.description;
+  const nextName = patch.name !== undefined ? sanitizeLine(patch.name) || "Untitled group" : current.name;
   const nextAvatarUrl = patch.avatarUrl ?? current.avatarUrl;
   const sets = ["#name = :name", "visibility = :vis", "joinPolicy = :jp", "updatedAt = :u"];
   const removes: string[] = [];
   const names: Record<string, string> = { "#name": "name" };
   const values: Record<string, unknown> = {
-    ":name": patch.name ?? current.name,
+    ":name": nextName,
     ":vis": nextVisibility,
     ":jp": patch.joinPolicy ?? current.joinPolicy,
     ":u": iso,

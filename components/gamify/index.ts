@@ -6,6 +6,7 @@ export { LevelRing } from "./LevelRing";
 export { StreakChip } from "./StreakChip";
 export { QuestRow } from "./QuestRow";
 export { BadgeTile } from "./BadgeTile";
+export { BadgeDetailSheet } from "./BadgeDetailSheet";
 export { GamifyAvatar, nameInitials } from "./GamifyAvatar";
 export { CrewChip } from "./CrewChip";
 export { BoardTable, type BoardRow, toBoardRows } from "./BoardTable";

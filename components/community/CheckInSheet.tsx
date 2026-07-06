@@ -29,9 +29,12 @@ const MAX_NOTE = 200;
 export function CheckInSheet({
   courtId,
   courtName,
+  triggerClassName = "",
 }: {
   courtId: string;
   courtName?: string;
+  /** Extra classes appended to the trigger button (e.g. `w-full` inside a panel). */
+  triggerClassName?: string;
 }): JSX.Element {
   const { user, requireAuth } = useAuth();
   const checkIn = useCheckIn(courtId);
@@ -106,7 +109,7 @@ export function CheckInSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className={`inline-flex h-11 items-center justify-center gap-2 rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${triggerClassName}`}
       >
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />

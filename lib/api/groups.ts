@@ -140,10 +140,17 @@ export const groupKeys = {
  */
 export function useGroup(groupId: string) {
   const authed = useAuthedFetch();
+  const { user, loading } = useAuth();
   return useQuery<GroupDetailResponse>({
-    queryKey: groupKeys.group(groupId),
+    // The response is a PER-VIEWER overlay (membership + members-only board/schedule), so it
+    // MUST carry the caller's token. Key it on the viewer AND wait for auth to resolve
+    // (`!loading`): this query is otherwise enabled before `AuthProvider` restores the user, so
+    // it would fetch the roster anonymously, cache the non-member view, and never refetch —
+    // leaving a signed-in member stuck on "Join group" with no board. Keying on `uid` also
+    // refetches if the viewer signs in/out later.
+    queryKey: [...groupKeys.group(groupId), user?.uid ?? "anon"],
     queryFn: () => authed<GroupDetailResponse>(`/api/groups/${groupId}`),
-    enabled: !!groupId,
+    enabled: !!groupId && !loading,
   });
 }
 

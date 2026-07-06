@@ -157,6 +157,84 @@ export function computePopularityRank(input: {
   );
 }
 
+// ── facility-quality score (§9.8, N8) — setup-only, NOT reviews ──────────────
+
+/** Per-field quality points (0–100) feeding the weighted facility score. */
+const NET_QUALITY: Record<NonNullable<CourtNets>, number> = {
+  permanent: 100, portable: 65, byo: 25, tennis: 10,
+};
+const LINE_QUALITY: Record<NonNullable<CourtLines>, number> = {
+  permanent: 100, temporary: 55, tape: 45, chalk: 20,
+};
+const SURFACE_QUALITY: Record<string, number> = {
+  acrylic: 100, wood: 90, hard: 70, concrete: 65, asphalt: 60, carpet: 45, clay: 40, grass: 25,
+};
+/** Amenities that materially improve on-court experience (each worth 25 pts). */
+const KEY_AMENITIES = new Set(["restrooms", "water", "locker rooms", "pro shop", "food"]);
+
+/** Component weights — sum to 1. Nets dominate; `dedicated` gates the tier below. */
+const FACILITY_WEIGHTS = {
+  nets: 0.30, lines: 0.15, surface: 0.15, capacity: 0.15,
+  amenities: 0.10, lighted: 0.08, indoor: 0.07,
+} as const;
+
+/** totalCourts → 0–100 with diminishing returns (1→30, 2→50, 4→75, 8→~95). */
+function capacityQuality(totalCourts: number): number {
+  if (!totalCourts || totalCourts <= 0) return 40; // unknown / bad data → neutral-low
+  return Math.min(100, 30 + 40 * Math.log2(totalCourts));
+}
+
+/** Best listed surface wins (a court may list several); unknown → neutral 55. */
+function surfaceQuality(surface?: string[]): number {
+  if (!surface?.length) return 55;
+  return Math.max(...surface.map((s) => SURFACE_QUALITY[s.toLowerCase()] ?? 55));
+}
+
+function amenityQuality(amenities?: string[]): number {
+  const n = (amenities ?? []).filter((a) => KEY_AMENITIES.has(a.toLowerCase())).length;
+  return Math.min(100, 20 + n * 25);
+}
+
+/** Fields the facility score reads — a `CourtItem` satisfies this structurally. */
+export interface FacilityScoreInput {
+  nets?: CourtNets;
+  lines?: CourtLines;
+  surface?: string[];
+  totalCourts?: number;
+  indoorCourts?: number;
+  amenities?: string[];
+  lighted?: boolean;
+  dedicated?: boolean;
+}
+
+/**
+ * Facility-quality rating from the "courts/play" setup fields ONLY — no reviews
+ * or check-ins. Returns a weighted 0–100 `score` and a 1–5 `tier`.
+ *
+ * `dedicated` (permanent nets ∧ permanent lines) is the dividing line for a real
+ * pickleball court, so it GATES the tier: a non-dedicated (shared / converted)
+ * court can never exceed tier 4, however nice its surface or amenities are.
+ * Missing fields score at a neutral midpoint rather than as zero, so a sparsely
+ * populated court isn't unfairly sunk.
+ */
+export function courtFacilityScore(c: FacilityScoreInput): { score: number; tier: number } {
+  const w = FACILITY_WEIGHTS;
+  const raw =
+    (c.nets ? NET_QUALITY[c.nets] : 50) * w.nets +
+    (c.lines ? LINE_QUALITY[c.lines] : 50) * w.lines +
+    surfaceQuality(c.surface) * w.surface +
+    capacityQuality(c.totalCourts ?? 0) * w.capacity +
+    amenityQuality(c.amenities) * w.amenities +
+    (c.lighted ? 100 : 40) * w.lighted +
+    ((c.indoorCourts ?? 0) > 0 ? 100 : 55) * w.indoor;
+
+  const score = Math.round(raw);
+  const base = score >= 85 ? 5 : score >= 72 ? 4 : score >= 58 ? 3 : score >= 45 ? 2 : 1;
+  // Dedicated-gate: a shared/converted court caps at tier 4 regardless of score.
+  const tier = c.dedicated ? base : Math.min(base, 4);
+  return { score, tier };
+}
+
 function mapPhotos(images?: SeedCourt["images"]): CourtPhoto[] {
   if (!images?.length) return [];
   return images.map((img) => ({
@@ -195,6 +273,9 @@ export function mapSeedCourtToItem(seed: SeedCourt): CourtItem {
   const lines = asOneOf<NonNullable<CourtLines>>(seed.lines, ["permanent", "temporary", "tape", "chalk"]);
   const nets = asOneOf<NonNullable<CourtNets>>(seed.nets, ["permanent", "portable", "byo", "tennis"]);
   const dedicated = deriveDedicated(seed.lines, seed.nets);
+  const facility = courtFacilityScore({
+    nets, lines, surface: seed.surface, totalCourts, indoorCourts, amenities, lighted, dedicated,
+  });
   const photos = mapPhotos(seed.images);
 
   const item: CourtItem = {
@@ -245,6 +326,8 @@ export function mapSeedCourtToItem(seed: SeedCourt): CourtItem {
     playerCount: 0,
     groupCount: 0,
     dedicated,
+    facilityScore: facility.score,
+    facilityTier: facility.tier,
     popularityRank: computePopularityRank({
       totalCourts,
       hasPhotos: photos.length > 0,

@@ -100,7 +100,9 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
                 />
                 {data.board.hiddenCount > 0 && (
                   <p className="mt-2 text-xs text-muted">
-                    {data.board.hiddenCount} member{data.board.hiddenCount === 1 ? "" : "s"} hide leaderboards.
+                    {data.board.hiddenCount === 1
+                      ? "1 member hides their leaderboard placement."
+                      : `${data.board.hiddenCount} members hide their leaderboard placement.`}
                   </p>
                 )}
               </>

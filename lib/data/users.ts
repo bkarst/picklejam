@@ -22,6 +22,7 @@ import {
 import { GSI } from "@/lib/db/table";
 import { userKeys, usernameKey } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
+import { sanitizeLine } from "@/lib/util/sanitize";
 import { emitInsert } from "@/lib/streams/inline";
 import { earnSignup, earnStarterStep } from "@/lib/data/gamify-earn";
 import type { AuthedUser } from "@/lib/auth/verify";
@@ -217,7 +218,9 @@ export function buildProfileItem(input: ProfileInput): UserProfileItem {
     entity: "USER",
     uid: input.uid,
     username: input.username,
-    displayName: input.displayName,
+    // Strip any HTML from the display name so it renders as clean plaintext everywhere it's
+    // surfaced (leaderboards, crew chips, reviews, profiles); fall back if nothing survives.
+    displayName: sanitizeLine(input.displayName) || "Player",
     visibility: input.visibility,
     ...(input.gender !== undefined ? { gender: input.gender } : {}),
     ...(input.homeCityKey !== undefined ? { homeCityKey: input.homeCityKey } : {}),

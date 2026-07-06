@@ -174,6 +174,13 @@ export interface CourtItem extends BaseItem {
   popularityRank?: number;
   /** Derived: nets=permanent ∧ lines=permanent (N8). */
   dedicated?: boolean;
+  /** Facility-quality score 0–100 from the "courts/play" setup fields ONLY
+   *  (nets, lines, surface, capacity, amenities, lighting, indoor) — never reviews
+   *  or check-ins. Computed at ingest via {@link courtFacilityScore}. */
+  facilityScore?: number;
+  /** 1–5 quality tier derived from {@link facilityScore} and GATED by {@link dedicated}:
+   *  a non-dedicated (shared / converted) court is capped at tier 4. Sort/filter key. */
+  facilityTier?: number;
 
   // gamification status (§G7 / §G13.7) — race-safe conditional-set claims + month-close writes
   /** First-ever authed check-in (Trailblazer, §G7.3). */

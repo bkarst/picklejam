@@ -13,11 +13,12 @@
  * `ratingSum` → `ratingAvg`) reconcile without this layer computing them.
  */
 
-import { getItem, query, queryAll, putItem, putItemReturningOld, deleteItem } from "@/lib/db/client";
+import { getItem, query, queryAll, putItemReturningOld, deleteItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { courtKeys, userKeys } from "@/lib/db/keys";
 import { emitInsert, emitModify, emitRemove } from "@/lib/streams/inline";
 import { getMyCheckins } from "@/lib/data/checkins";
+import { sanitizeLine, sanitizeMultiline } from "@/lib/util/sanitize";
 import type { ReviewItem } from "@/lib/db/types";
 
 export type ReviewSort = "recent" | "helpful";
@@ -100,9 +101,10 @@ export async function upsertReview(input: UpsertReviewInput): Promise<ReviewItem
     courtId: input.courtId,
     uid: input.uid,
     rating1to5: input.rating1to5,
-    ...(input.title !== undefined ? { title: input.title } : {}),
-    ...(input.body !== undefined ? { body: input.body } : {}),
-    ...(input.tags !== undefined ? { tags: input.tags } : {}),
+    // Strip HTML so review text stays clean plaintext (matches Review JSON-LD, §14.4).
+    ...(input.title !== undefined ? { title: sanitizeLine(input.title) } : {}),
+    ...(input.body !== undefined ? { body: sanitizeMultiline(input.body) } : {}),
+    ...(input.tags !== undefined ? { tags: input.tags.map((t) => sanitizeLine(t)).filter(Boolean) } : {}),
     ...(input.photoUrl !== undefined ? { photoUrl: input.photoUrl } : {}),
     helpfulCount: existing?.helpfulCount ?? 0,
     checkinVerified,

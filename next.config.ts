@@ -4,12 +4,19 @@ const nextConfig: NextConfig = {
   // A stray lockfile in the parent dir confuses Turbopack's root inference; pin it.
   turbopack: { root: import.meta.dirname },
   images: {
-    // Court photos (seed source) + Google Places + avatars/OG on S3/CloudFront.
+    // Court photos (seed source) + Google Places + avatars/OG + user uploads on S3/CloudFront.
     remotePatterns: [
       { protocol: "https", hostname: "cdn.filestackcontent.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "maps.googleapis.com" },
       { protocol: "https", hostname: "**.googleusercontent.com" },
+      // User-uploaded review photos (default virtual-hosted S3 URLs).
+      { protocol: "https", hostname: "*.s3.amazonaws.com" },
+      { protocol: "https", hostname: "*.s3.*.amazonaws.com" },
+      // Optional CDN / custom domain in front of the bucket (set S3_PUBLIC_HOST).
+      ...(process.env.S3_PUBLIC_HOST
+        ? [{ protocol: "https" as const, hostname: process.env.S3_PUBLIC_HOST }]
+        : []),
     ],
   },
   // First-party reverse proxy for PostHog (survives adblock, §2.1). The client

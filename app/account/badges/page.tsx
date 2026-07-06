@@ -3,15 +3,16 @@
 /**
  * Badge Collection (/account/badges) — the catalog grouped by family (§G12.7). noindex
  * inherited from the /account layout. Every tile shows its earned tier or locked-with-
- * progress (endowed progress). Tapping an EARNED tile pins/unpins it to the public
- * showcase (max 3, optimistic). CSR; loading = Skeleton.
+ * progress (endowed progress). Tapping a tile opens the detail sheet (criteria + progress +
+ * earned date + Pin-to-showcase + Share). CSR; loading = Skeleton.
  */
 
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import Link from "next/link";
 import { Skeleton } from "@heroui/react";
 import { useMyBadges, usePinShowcase } from "@/lib/api/gamify";
 import { BadgeTile } from "@/components/gamify/BadgeTile";
+import { BadgeDetailSheet } from "@/components/gamify/BadgeDetailSheet";
 import type { BadgeCollectionEntry } from "@/lib/gamify/view";
 
 const GROUPS: { key: string; label: string }[] = [
@@ -25,6 +26,7 @@ const GROUPS: { key: string; label: string }[] = [
 export default function BadgesPage(): JSX.Element {
   const { data, isLoading } = useMyBadges();
   const pin = usePinShowcase();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (isLoading || !data) {
     return (
@@ -47,6 +49,7 @@ export default function BadgesPage(): JSX.Element {
   };
 
   const byGroup = (key: string) => data.entries.filter((e) => e.behavior === key);
+  const selected = selectedId ? data.entries.find((e) => e.familyId === selectedId) ?? null : null;
 
   return (
     <div className="space-y-8">
@@ -68,12 +71,22 @@ export default function BadgesPage(): JSX.Element {
             <h2 className="mb-3 font-display text-lg font-bold text-foreground">{label}</h2>
             <div className="flex flex-wrap gap-4">
               {entries.map((e) => (
-                <BadgeButton key={e.familyId} entry={e} pinned={showcase.has(e.familyId)} onToggle={togglePin} />
+                <BadgeButton key={e.familyId} entry={e} pinned={showcase.has(e.familyId)} onOpen={() => setSelectedId(e.familyId)} />
               ))}
             </div>
           </section>
         );
       })}
+
+      {selected && (
+        <BadgeDetailSheet
+          entry={selected}
+          pinned={showcase.has(selected.familyId)}
+          showcaseFull={showcase.size >= 3}
+          onTogglePin={() => togglePin(selected.familyId, selected.tier > 0)}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -81,25 +94,23 @@ export default function BadgesPage(): JSX.Element {
 function BadgeButton({
   entry,
   pinned,
-  onToggle,
+  onOpen,
 }: {
   entry: BadgeCollectionEntry;
   pinned: boolean;
-  onToggle: (familyId: string, earned: boolean) => void;
+  onOpen: () => void;
 }) {
   const earned = entry.tier > 0;
   return (
     <button
       type="button"
-      disabled={!earned}
-      onClick={() => onToggle(entry.familyId, earned)}
-      aria-pressed={pinned}
+      onClick={onOpen}
       aria-label={
         earned
-          ? `${entry.name}, ${entry.tierName}${pinned ? ", pinned to showcase" : ", tap to pin"}`
-          : `${entry.name}, locked`
+          ? `${entry.name}, ${entry.tierName}${pinned ? ", pinned to showcase" : ""}, view details`
+          : `${entry.name}, locked, view details`
       }
-      className={`relative rounded-2xl p-2 transition-colors ${earned ? "cursor-pointer hover:bg-surface-secondary" : "cursor-default"} ${pinned ? "ring-2 ring-accent" : ""}`}
+      className={`relative cursor-pointer rounded-2xl p-2 transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${pinned ? "ring-2 ring-accent" : ""}`}
     >
       <BadgeTile
         name={entry.name}

@@ -8,6 +8,7 @@
  * `localStorage("pl-anon-token")`. Mutations invalidate the relevant query keys.
  */
 
+import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api/authed";
 import { accountListKeys } from "@/lib/api/account-lists";
@@ -131,6 +132,41 @@ export function useSubmitReview(courtId: string) {
       void qc.invalidateQueries({ queryKey: communityKeys.myReviews });
     },
   });
+}
+
+/** Allowed review-photo types + client-side size cap (mirrors the presign route). */
+export const REVIEW_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+export const REVIEW_PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+
+interface PresignResponse {
+  uploadUrl: string;
+  publicUrl: string;
+}
+
+/**
+ * Upload a review photo: ask the server for a short-lived presigned S3 PUT URL,
+ * then PUT the bytes straight to S3 (not through our server) and return the
+ * public URL to store as the review's `photoUrl`. The direct PUT relies on the
+ * bucket's CORS allowing PUT from this origin.
+ */
+export function useUploadReviewPhoto() {
+  const authed = useAuthedFetch();
+  return useCallback(
+    async (file: File): Promise<string> => {
+      const { uploadUrl, publicUrl } = await authed<PresignResponse>("/api/uploads/review-photo", {
+        method: "POST",
+        body: JSON.stringify({ contentType: file.type, size: file.size }),
+      });
+      const put = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error("Upload failed — please try again.");
+      return publicUrl;
+    },
+    [authed],
+  );
 }
 
 /** Delete the caller's review for a court. */

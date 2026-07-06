@@ -14,6 +14,11 @@ import { coverSet, haversineMeters } from "@/lib/geo/geohash";
 import { getStatesInCountry, getCitiesInState } from "@/lib/data/geo";
 import type { CourtItem } from "@/lib/db/types";
 
+// Facility-quality rating (pure, setup-only — not reviews). Implemented alongside
+// the other derived court attrs in the ingest mapper; re-exported here as the
+// court read-layer entry point so callers can score/re-score a CourtItem on read.
+export { courtFacilityScore, type FacilityScoreInput } from "@/lib/ingest/map";
+
 
 export type CourtWithDistance = CourtItem & { distanceMeters: number };
 

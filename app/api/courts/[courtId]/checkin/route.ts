@@ -29,6 +29,7 @@ import {
   touchAnonToken,
 } from "@/lib/data/anon";
 import { guarded, bad, jsonBodyOptional } from "@/app/api/_util";
+import { sanitizeMultiline } from "@/lib/util/sanitize";
 import type { CheckinItem } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -55,8 +56,9 @@ interface CheckinFields {
 function parseFields(body: Record<string, unknown>): CheckinFields {
   let note: string | undefined;
   if (typeof body.note === "string" && body.note.trim()) {
-    note = body.note.trim();
-    if (note.length > MAX_NOTE) bad(`note must be ≤ ${MAX_NOTE} characters`);
+    // Strip HTML so the note renders as clean plaintext in the "checked in today" list.
+    note = sanitizeMultiline(body.note) || undefined;
+    if (note && note.length > MAX_NOTE) bad(`note must be ≤ ${MAX_NOTE} characters`);
   }
   let skill: number | undefined;
   if (body.skill !== undefined && body.skill !== null) {

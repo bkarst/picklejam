@@ -22,8 +22,6 @@ export interface NavColumn {
   /** Search intent (§4) — used as the menu's aria description. */
   intent: string;
   links: NavLink[];
-  /** Optional promo card shown in the desktop mega-menu (UI §3.2). */
-  promo?: { title: string; body: string; href: string; cta: string };
 }
 
 /** The four intent-segmented mega-menus (PRD §4). */
@@ -38,12 +36,6 @@ export const primaryNav: NavColumn[] = [
       { label: "Check In", href: "/courts", description: "Show you're playing today" },
       { label: "Leaderboards", href: "/leaderboards", description: "Most active players near you" },
     ],
-    promo: {
-      title: "Find pickleball near you",
-      body: "16,000+ courts, live games, and players — all in one map.",
-      href: "/search",
-      cta: "Open the map",
-    },
   },
   {
     label: "Compete",
@@ -54,12 +46,6 @@ export const primaryNav: NavColumn[] = [
       { label: "Ladders", href: "/ladders", description: "Challenge play" },
       { label: "Round Robin Tool", href: "/round-robin", description: "Free generator" },
     ],
-    promo: {
-      title: "Free round robin generator",
-      body: "Ditch the spreadsheet. Generate matchups and live standings — free.",
-      href: "/round-robin",
-      cta: "Create one",
-    },
   },
   {
     label: "Learn",
@@ -79,12 +65,6 @@ export const primaryNav: NavColumn[] = [
       { label: "Run a League", href: "/organize/leagues/new", description: "Seasons on autopilot" },
       { label: "Run a Ladder", href: "/organize/leagues/new", description: "Continuous challenges" },
     ],
-    promo: {
-      title: "Run your events with PickleLoko",
-      body: "Registration, brackets, and payouts — powered by Stripe.",
-      href: "/organize",
-      cta: "Start organizing",
-    },
   },
 ];
 

@@ -62,6 +62,27 @@ Board tallies + floor-gated RANK + META (G13.6) · Court Crew/Captain/Trailblaze
 - **Verified in Chrome:** `/elite` (hero, config criteria, perks, cohort strip), profile gold ring + Elite chip, subtle review crest — no console errors, no 390px overflow. Demo data cleaned out.
 - **Deferred (small):** the admin approve/reject **UI** (blocked on the unbuilt admin app — `decideElite`/`getEliteRoster` are ready) · the monthly auto-eval **cron driver** (`autoFlagElite` built + tested; scheduled discovery is an ops hook) · partner-perk hooks (G20 business decision) · Elite badge in the trophy-case grid (specials aren't yet enumerated there — a small badges-UI follow-up; Elite is surfaced via the profile ring/chip + review crest).
 
+### Post-build hardening & QA (all four phases live + verified end-to-end on real Dev DynamoDB)
+
+Adversarial code review + a full Chrome run-through against the seeded Dev table surfaced and fixed the following; each has a regression test.
+
+**Correctness fixes:**
+- **Board rebuild CAS** (`gamify-boards.ts`) — a board frozen *before* its first rebuild created a version-less `LBMETA`; the next rebuild's `version = :expected` CAS then broke (`:expected` undefined → dropped by `removeUndefinedValues` → `ValidationException`), so the board never rebuilt again. Now the CAS guards on `attribute_not_exists(version)` when there's no established version.
+- **`closeCommunityQuest` recoverability** — it flipped status → `closed` *before* paying E27, so a crash mid-payout stranded contributors (a re-run early-returned on `closed`). Reordered to **pay first (idempotent), flip last**.
+- **Honest revocation totals** — `computeEliteStats` (Elite eligibility) and `getMyMonthStats` (the personal panel) counted the *original* positive row of a clawed-back earn. Both now exclude revoked originals (via `originalOfRevocation`), so a revoked check-in/match/review doesn't inflate counts (§G4.5).
+
+**Completed missing surfaces:**
+- **G12.6 personal stats panel** — `getMyMonthStats` + `GET /api/gamify/stats` + `useMyMonthStats` + `MonthStatsPanel` (RP · check-in days · matches · courts visited, this-vs-last with ▲/▼). Wired into `/account/progress` and the city leaderboard "Your stats" tab.
+- **G12.7 badge detail sheet** — `BadgeDetailSheet` (criteria + progress + earned date + Pin-to-showcase + Share-copies-OG-URL); the badges page now opens it on tile press instead of pinning directly.
+
+**Reliability fixes:**
+- **Check-in → gamify invalidation** — `useCheckIn` now invalidates the court-gamify + `me` queries so the crew-progress island (and dashboard) reflect a check-in without a reload.
+- **`useGroup` auth-timing** — it fetched the per-viewer group overlay before auth resolved (ancestor `AuthProvider` effect runs after this descendant query), cached the anonymous response, and never refetched — so members saw "Join group" and no members-only content (incl. the §G12.13 board). Now keyed on the viewer + gated on `!loading`.
+
+**Input sanitization (cross-cutting, `lib/util/sanitize.ts`):** display names, group names/descriptions, review titles/bodies, and check-in notes are stripped of HTML/markup + control chars at the data-layer boundary (`buildProfileItem`, `createGroup`/`updateGroup`, `upsertReview`, the check-in route). React already escapes on render (verified: no XSS via injected `<img onerror>`/`<script>`), so this is display hygiene — a name like `<img src=x onerror=…>Bob` no longer renders as raw markup across leaderboards/crew/reviews.
+
+**Chrome QA (no bugs beyond the above):** verified XSS-safe, clean 404s on all bad routes, out-of-range OG cards clamp, private profiles leak no gamify data, over-goal quest bars cap at 100%, movement arrows compute vs prior month, and check-in idempotency (same-day dedup = no double RP; new-day = correct E1+E2). All demo/fixture data was cleaned back out of the Dev table afterward.
+
 ---
 
 ## G0. How to read this document

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getCourtBySlug, getNearbyCourts } from "@/lib/data/courts";
-import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
+import { getCourtBySlug, getNearbyCourts, courtFacilityScore } from "@/lib/data/courts";
+import { getCity, getState } from "@/lib/data/geo";
 import { getCourtCheckinsToday } from "@/lib/data/checkins";
 import { getCourtReviews } from "@/lib/data/reviews";
 import { getCourtGames } from "@/lib/data/outings";
@@ -19,14 +18,16 @@ import { GroupsRail } from "@/components/groups";
 import { buildMetadata, courtTitle } from "@/lib/seo/metadata";
 import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd, reviewJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
-import { Breadcrumbs, CourtCard } from "@/components/directory";
+import { Breadcrumbs, CourtCard, FacilityRating } from "@/components/directory";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CheckInSheet } from "@/components/community/CheckInSheet";
 import { CheckedInTodayList } from "@/components/community/CheckedInTodayList";
 import { ReviewsModule } from "@/components/community/ReviewsModule";
+import { WriteReviewButton } from "@/components/community/WriteReviewButton";
+import { StarsDisplay } from "@/components/community/Stars";
 import { FollowButton } from "@/components/community/FollowButton";
-import { cityUrlFromKey, courtUrl, metersToMiles, groupsCityPath } from "@/lib/urls";
+import { courtUrl, metersToMiles, groupsCityPath } from "@/lib/urls";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
 import { brand } from "@/brand.config";
@@ -94,7 +95,6 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
   const cityName = cityItem?.name ?? court;
   const st = stateAbbr(state);
   const base = brand.siteUrl;
-  const nearbyCities = await getCitiesByKeys((cityItem?.nearbyCityKeys ?? []).slice(0, 5));
   const faq = courtFaq(courtItem);
   const features = surfaceFeatures(courtItem);
   const reviews = reviewsPage.items;
@@ -109,6 +109,12 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
     courtItem.lighted ? "Lighted" : null,
     courtItem.dedicated ? "Dedicated" : null,
   ].filter(Boolean) as string[];
+  // Facility-quality score (setup-only, §9.8). Prefer the value denormalized at
+  // ingest; fall back to computing live for any court not yet backfilled.
+  const facility =
+    courtItem.facilityScore != null && courtItem.facilityTier != null
+      ? { score: courtItem.facilityScore, tier: courtItem.facilityTier }
+      : courtFacilityScore(courtItem);
 
   return (
     <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
@@ -142,42 +148,66 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
         ]}
       />
 
-      {/* Header */}
-      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-surface-secondary">
-          {hero ? (
-            <Image src={hero.url} alt={courtItem.name} fill className="object-cover" sizes="(max-width:1024px) 100vw, 50vw" />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-accent/15 to-brand-lime/25 text-muted">
-              No photo yet
+      {/* Hero (design 4.5) — identity + review CTA + Location & Contact, compact photo */}
+      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-5 lg:col-span-2">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            {/* Compact photo — deliberately small so the identity + review CTA lead */}
+            <div className="relative aspect-[4/3] w-full max-w-64 shrink-0 overflow-hidden rounded-2xl bg-surface-secondary sm:w-64">
+              {hero ? (
+                <Image src={hero.url} alt={courtItem.name} fill className="object-cover" sizes="256px" />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-gradient-to-br from-accent/15 to-brand-lime/25 p-2 text-center text-sm text-muted">
+                  No photo yet
+                </div>
+              )}
+              {hero?.attribution?.name && (
+                <span className="absolute bottom-1 right-2 rounded bg-black/50 px-1.5 text-[10px] text-white">
+                  © {hero.attribution.name}
+                </span>
+              )}
             </div>
-          )}
-          {hero?.attribution?.name && (
-            <span className="absolute bottom-1 right-2 rounded bg-black/50 px-1.5 text-[10px] text-white">
-              © {hero.attribution.name}
-            </span>
-          )}
-        </div>
 
-        <div className="flex flex-col">
-          <h1 className="font-display text-3xl font-bold text-accent sm:text-4xl">{courtItem.name}</h1>
-          <p className="mt-1 text-muted">
-            {courtItem.totalCourts} court{courtItem.totalCourts === 1 ? "" : "s"} · {cityName}, {st}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {tags.map((t) => (
-              <span key={t} className="rounded-full bg-surface-secondary px-3 py-1 text-sm text-foreground">
-                {t}
-              </span>
-            ))}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <h1 className="font-display text-3xl font-bold text-accent sm:text-4xl">{courtItem.name}</h1>
+              <p className="mt-1 text-muted">
+                {courtItem.totalCourts} court{courtItem.totalCourts === 1 ? "" : "s"} · {cityName}, {st}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {tags.map((t) => (
+                  <span key={t} className="rounded-full bg-surface-secondary px-3 py-1 text-sm text-foreground">
+                    {t}
+                  </span>
+                ))}
+              </div>
+
+              {/* Location & Contact — under the title (§4.5) */}
+              {(courtItem.address || courtItem.phone || courtItem.website || (courtItem.hasReservations && courtItem.reservationUrl)) && (
+                <div className="mt-4 flex flex-col gap-1.5 text-sm">
+                  {courtItem.address && (
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${courtItem.lat},${courtItem.lng}`} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                      {courtItem.address}
+                    </a>
+                  )}
+                  {courtItem.phone && <a href={`tel:${courtItem.phone}`} className="text-foreground hover:underline">{courtItem.phone}</a>}
+                  {courtItem.website && (
+                    <a href={courtItem.website} target="_blank" rel="noopener noreferrer" className="truncate text-accent hover:underline">
+                      {courtItem.website.replace(/^https?:\/\//, "")}
+                    </a>
+                  )}
+                  {courtItem.hasReservations && courtItem.reservationUrl && (
+                    <a href={courtItem.reservationUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-10 items-center justify-center self-start rounded-full bg-accent px-4 font-semibold text-accent-foreground hover:bg-accent-hover">
+                      Reserve a court
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          {/* Follow + Check In (auth-gated; check-in also allows anonymous) */}
-          <div className="mt-4 flex flex-wrap gap-3">
-            <FollowButton courtId={courtItem.courtId} />
-            <CheckInSheet courtId={courtItem.courtId} />
-          </div>
+
           {/* Community band */}
-          <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <div><dt className="inline text-muted">Players </dt><dd className="inline font-semibold text-foreground">{courtItem.playerCount ?? 0}</dd></div>
             <div><dt className="inline text-muted">Games </dt><dd className="inline font-semibold text-foreground">{courtItem.gamesCount ?? 0}</dd></div>
             <div><dt className="inline text-muted">Reviews </dt><dd className="inline font-semibold text-foreground">{courtItem.reviewCount ?? 0}</dd></div>
@@ -187,16 +217,35 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
           <CourtStatusLine status={courtStatus} />
           {/* Checked in today (day-fresh, no live polling) */}
           {checkinsToday.length > 0 && (
-            <div className="mt-4">
-              <CheckedInTodayList checkins={checkinsToday} count={checkinsToday.length} />
-            </div>
+            <CheckedInTodayList checkins={checkinsToday} count={checkinsToday.length} />
           )}
         </div>
+
+        {/* Action panel (no title) — facility rating + reviews + Check In / Write a review / Follow (§4.5) */}
+        <section className="flex flex-col gap-3 self-start rounded-2xl border border-border bg-surface p-4 lg:col-span-1">
+          {/* Objective facility-quality score (setup, not reviews) */}
+          <FacilityRating score={facility.score} tier={facility.tier} />
+          <div className="h-px bg-border" />
+          {(courtItem.reviewCount ?? 0) > 0 ? (
+            <a href="#reviews" className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              <span className="font-display text-2xl font-bold text-foreground">{(courtItem.ratingAvg ?? 0).toFixed(1)}</span>
+              <StarsDisplay rating={courtItem.ratingAvg ?? 0} size="md" />
+              <span className="text-sm text-muted underline-offset-2 hover:underline">
+                {courtItem.reviewCount} review{courtItem.reviewCount === 1 ? "" : "s"}
+              </span>
+            </a>
+          ) : (
+            <p className="text-center text-sm text-muted">Be the first to review this court</p>
+          )}
+          <CheckInSheet courtId={courtItem.courtId} courtName={courtItem.name} triggerClassName="w-full" />
+          <WriteReviewButton className="w-full" />
+          <FollowButton courtId={courtItem.courtId} className="flex w-full flex-col gap-1" triggerClassName="w-full" />
+        </section>
       </div>
 
       {/* Body */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="flex flex-col gap-8 lg:col-span-2">
+      <div className="mt-8">
+        <div className="flex flex-col gap-8">
           {courtItem.description?.trim() && (
             <section>
               <h2 className="font-display text-xl font-bold text-foreground">About</h2>
@@ -267,7 +316,7 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
 
           {/* Reviews — crawlable server-rendered list + client composer (§6.4).
               Review + AggregateRating JSON-LD emitted above. */}
-          <section>
+          <section id="reviews" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold text-foreground">Reviews</h2>
             <div className="mt-3">
               <ReviewsModule
@@ -289,62 +338,21 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             </section>
           )}
         </div>
-
-        {/* Right sidebar */}
-        <aside className="flex flex-col gap-6">
-          <section className="rounded-2xl border border-border bg-surface p-4">
-            <h2 className="font-display text-lg font-bold text-foreground">Location &amp; Contact</h2>
-            {courtItem.address && <p className="mt-2 text-sm text-muted">{courtItem.address}</p>}
-            <div className="mt-3 flex flex-col gap-2 text-sm">
-              {courtItem.address && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${courtItem.lat},${courtItem.lng}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-accent hover:underline">
-                  Directions
-                </a>
-              )}
-              {courtItem.phone && <a href={`tel:${courtItem.phone}`} className="text-foreground hover:underline">{courtItem.phone}</a>}
-              {courtItem.website && (
-                <a href={courtItem.website} target="_blank" rel="noopener noreferrer" className="truncate text-accent hover:underline">
-                  {courtItem.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-              {courtItem.hasReservations && courtItem.reservationUrl && (
-                <a href={courtItem.reservationUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-10 items-center justify-center rounded-full bg-accent px-4 font-semibold text-accent-foreground hover:bg-accent-hover">
-                  Reserve a court
-                </a>
-              )}
-            </div>
-          </section>
-
-          {nearbyCourts.length > 0 && (
-            <section className="rounded-2xl border border-border bg-surface p-4">
-              <h2 className="font-display text-lg font-bold text-foreground">Nearby courts</h2>
-              <ul className="mt-3 flex flex-col gap-4">
-                {nearbyCourts.map((n) => (
-                  <li key={n.courtId}>
-                    <CourtCard court={n} distanceMi={metersToMiles(n.distanceMeters)} variant="grid" />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {nearbyCities.length > 0 && (
-            <section className="rounded-2xl border border-border bg-surface p-4">
-              <h2 className="font-display text-lg font-bold text-foreground">Nearby cities</h2>
-              <ul className="mt-3 flex flex-col gap-2 text-sm">
-                {nearbyCities.map((n) => (
-                  <li key={n.cityKey}>
-                    <Link href={cityUrlFromKey(n.cityKey)} className="flex items-baseline justify-between gap-2 hover:underline">
-                      <span className="font-medium text-foreground">{n.name}, {stateAbbr(n.state)}</span>
-                      <span className="text-muted">{n.counts?.locations ?? 0} locations</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </aside>
       </div>
+
+      {/* Nearby courts — a horizontal, scrollable row at the foot of the page */}
+      {nearbyCourts.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-display text-xl font-bold text-foreground">Nearby courts</h2>
+          <ul className="mt-4 flex snap-x gap-4 overflow-x-auto pb-2 [scrollbar-width:thin]">
+            {nearbyCourts.map((n) => (
+              <li key={n.courtId} className="w-64 shrink-0 snap-start">
+                <CourtCard court={n} distanceMi={metersToMiles(n.distanceMeters)} variant="grid" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

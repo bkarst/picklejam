@@ -133,28 +133,17 @@ export function Header() {
                   <Icon path={ICONS.chevron} className={`size-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                 </button>
                 {isOpen && (
-                  <div className="absolute left-0 top-full z-50 w-[34rem] pt-2">
-                    <div className="grid grid-cols-5 gap-4 rounded-2xl border border-border bg-overlay p-4 shadow-overlay">
-                      <ul className="col-span-3 flex flex-col gap-1">
-                        {col.links.map((l) => (
-                          <li key={l.href + l.label}>
-                            <Link href={l.href} className="block rounded-lg px-3 py-2 hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                              <span className="block text-sm font-medium text-foreground">{l.label}</span>
-                              {l.description && <span className="block text-xs text-muted">{l.description}</span>}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                      {col.promo && (
-                        <Link href={col.promo.href} className="col-span-2 flex flex-col justify-between rounded-xl bg-accent p-4 text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                          <div>
-                            <p className="font-display text-sm font-bold">{col.promo.title}</p>
-                            <p className="mt-1 text-xs opacity-90">{col.promo.body}</p>
-                          </div>
-                          <span className="mt-3 text-xs font-semibold underline">{col.promo.cta} →</span>
-                        </Link>
-                      )}
-                    </div>
+                  <div className="absolute left-0 top-full z-50 w-72 pt-2">
+                    <ul className="flex flex-col gap-1 rounded-2xl border border-border bg-overlay p-3 shadow-overlay">
+                      {col.links.map((l) => (
+                        <li key={l.href + l.label}>
+                          <Link href={l.href} className="block rounded-lg px-3 py-2 hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                            <span className="block text-sm font-medium text-foreground">{l.label}</span>
+                            {l.description && <span className="block text-xs text-muted">{l.description}</span>}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </li>

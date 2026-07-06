@@ -11,14 +11,16 @@
  * users and resumes into the composer.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
+import { Modal, useOverlayState } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { ReviewItem } from "@/lib/db/types";
 import { RatingHistogram, distributionOf } from "./RatingHistogram";
 import { ReviewCard, type ReviewAuthor } from "./ReviewCard";
 import { ReviewComposer } from "./ReviewComposer";
 import { StarsDisplay } from "./Stars";
+import { WRITE_REVIEW_EVENT } from "./WriteReviewButton";
 
 type Sort = "recent" | "helpful";
 type Authors = Record<string, ReviewAuthor>;
@@ -55,7 +57,7 @@ export function ReviewsModule({
 }): JSX.Element {
   const { requireAuth } = useAuth();
   const [sort, setSort] = useState<Sort>("recent");
-  const [composerOpen, setComposerOpen] = useState(false);
+  const composer = useOverlayState();
   // Show the just-submitted review immediately (the SSR list won't refetch here).
   const [justSubmitted, setJustSubmitted] = useState<ReviewItem | null>(null);
   const effectiveMine = justSubmitted ?? mine;
@@ -71,7 +73,18 @@ export function ReviewsModule({
     [initialReviews, effectiveMine, sort, authors],
   );
 
-  const openComposer = () => requireAuth(() => setComposerOpen(true));
+  const openComposer = () => requireAuth(() => composer.open());
+
+  // The hero "Write a review" CTA lives outside this component; it asks us to open
+  // the composer via a window event so auth-gating and composer state stay owned
+  // here. The composer is a modal now, so it pops over in place — no scrolling.
+  useEffect(() => {
+    const handler = () => openComposer();
+    window.addEventListener(WRITE_REVIEW_EVENT, handler);
+    return () => window.removeEventListener(WRITE_REVIEW_EVENT, handler);
+    // requireAuth is stable from context; openComposer closes over it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section aria-labelledby="reviews-heading" className="flex flex-col gap-5">
@@ -110,18 +123,39 @@ export function ReviewsModule({
         </button>
       </div>
 
-      {composerOpen && (
-        <ReviewComposer
-          courtId={courtId}
-          existing={effectiveMine ?? undefined}
-          checkedIn={Boolean(effectiveMine?.checkinVerified)}
-          onDone={(saved) => {
-            if (saved) setJustSubmitted(saved);
-            setComposerOpen(false);
-          }}
-          onCancel={() => setComposerOpen(false)}
-        />
-      )}
+      {/* Composer as a modal (design 4.5) — pops over in place, one click, no page space. */}
+      <Modal state={composer}>
+        <Modal.Backdrop>
+          <Modal.Container placement="center" size="lg" scroll="inside">
+            <Modal.Dialog>
+              <Modal.Header className="flex items-start justify-between gap-3">
+                <Modal.Heading className="font-display text-lg font-bold text-foreground">
+                  {effectiveMine ? "Edit your review" : "Write a review"}
+                </Modal.Heading>
+                <Modal.CloseTrigger
+                  aria-label="Close"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                </Modal.CloseTrigger>
+              </Modal.Header>
+              <Modal.Body>
+                <ReviewComposer
+                  bare
+                  courtId={courtId}
+                  existing={effectiveMine ?? undefined}
+                  checkedIn={Boolean(effectiveMine?.checkinVerified)}
+                  onDone={(saved) => {
+                    if (saved) setJustSubmitted(saved);
+                    composer.close();
+                  }}
+                  onCancel={() => composer.close()}
+                />
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       {/* Sort */}
       {(others.length > 0 || effectiveMine) && (
