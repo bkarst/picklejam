@@ -9,4 +9,5 @@ export { BadgeTile } from "./BadgeTile";
 export { GamifyAvatar, nameInitials } from "./GamifyAvatar";
 export { CrewChip } from "./CrewChip";
 export { BoardTable, type BoardRow, toBoardRows } from "./BoardTable";
+export { MonthStatsPanel } from "./MonthStatsPanel";
 export { GamifyToaster } from "./GamifyToaster";

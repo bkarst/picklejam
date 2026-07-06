@@ -21,6 +21,7 @@ export const gamifyQueryKeys = {
   court: (courtId: string) => ["gamify", "court", courtId] as const,
   quest: (questId: string) => ["gamify", "quest", questId] as const,
   elite: ["gamify", "elite", "me"] as const,
+  stats: ["gamify", "stats"] as const,
 };
 
 function browserTz(): string | undefined {
@@ -86,6 +87,30 @@ export function useCommunityQuest(questId: string, opts?: { enabled?: boolean; i
     enabled: (opts?.enabled ?? true) && !!questId,
     staleTime: 60_000,
     ...(opts?.initialData ? { initialData: opts.initialData } : {}),
+  });
+}
+
+export interface MonthStat {
+  rp: number;
+  checkinDays: number;
+  matches: number;
+  courtsVisited: number;
+}
+export interface MonthStatsView {
+  thisMonth: MonthStat;
+  lastMonth: MonthStat;
+  labels: { this: string; last: string };
+}
+
+/** The caller's this-month vs last-month personal stats (§G12.6 item 3). */
+export function useMyMonthStats(opts?: { enabled?: boolean }) {
+  const authed = useAuthedFetch();
+  const { user } = useAuth();
+  return useQuery<MonthStatsView>({
+    queryKey: gamifyQueryKeys.stats,
+    queryFn: () => authed<MonthStatsView>("/api/gamify/stats"),
+    enabled: (opts?.enabled ?? true) && !!user,
+    staleTime: 60_000,
   });
 }
 

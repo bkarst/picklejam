@@ -24,7 +24,7 @@ import { GSI } from "@/lib/db/table";
 import { gamifyKeys, SEP } from "@/lib/db/keys";
 import type { GamifyProfileItem, XpLedgerItem, GamifyPrefs } from "@/lib/db/types";
 import { planAward } from "@/lib/gamify/award";
-import { sourceKey, revocationKey, isRevocation, type SourceKeyInput } from "@/lib/gamify/source-keys";
+import { sourceKey, revocationKey, isRevocation, originalOfRevocation, type SourceKeyInput } from "@/lib/gamify/source-keys";
 import { CAP_FAMILIES, type EarnRule, type EarnContext, type CapFamily } from "@/lib/gamify/earn-rules";
 import { RULE_COUNTER, emptyCounters, type CounterKey } from "@/lib/gamify/badges";
 import { levelForWatermark, levelName } from "@/lib/gamify/levels";
@@ -430,6 +430,82 @@ export async function getMyLedger(
     startKey: opts?.cursor,
   });
   return { items, cursor: lastKey };
+}
+
+// ── Personal "vs. your past self" stats (§G12.6 item 3 / §G12.9 "Your stats") ──
+
+export interface MonthStat {
+  rp: number;
+  checkinDays: number;
+  matches: number;
+  courtsVisited: number;
+}
+export interface MonthStatsView {
+  thisMonth: MonthStat;
+  lastMonth: MonthStat;
+  labels: { this: string; last: string };
+}
+
+const MATCH_RULES = new Set<EarnRule>(["E11", "E14", "E16"]);
+
+function prevMonthStr(yyyymm: string): string {
+  const y = Number(yyyymm.slice(0, 4));
+  const m = Number(yyyymm.slice(4, 6));
+  const d = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+  return `${d.y}${String(d.m).padStart(2, "0")}`;
+}
+
+/**
+ * This-month vs last-month personal stats (§G12.6). Reads the ledger bounded to the last two
+ * user-local months via a GSI1 sort-key range (from a day before last-month-start, to cover
+ * any tz), then buckets each row by the user's local month and aggregates by rule: RP = Σ
+ * points (net, so revocations honestly reduce it), check-in days = distinct E1 days, matches =
+ * count of E11/E14/E16, courts visited = distinct E1 courtIds. `monthEarn` alone can't power
+ * this — it holds only RP.
+ */
+export async function getMyMonthStats(uid: string, now: number = Date.now()): Promise<MonthStatsView> {
+  const profile = await getGamifyProfile(uid);
+  const tz = resolveUserTz(profile?.tz, undefined);
+  const thisMonth = userLocalMonth(tz, now);
+  const lastMonth = prevMonthStr(thisMonth);
+
+  const ly = Number(lastMonth.slice(0, 4));
+  const lm = Number(lastMonth.slice(4, 6));
+  const lowerIso = new Date(Date.UTC(ly, lm - 1, 1) - 86_400_000).toISOString(); // last-month start − 1 day (tz slack)
+  const prefix = gamifyKeys.ledgerTsPrefix();
+  const rows = await queryAll<XpLedgerItem>({
+    index: GSI.byOwner,
+    pk: gamifyKeys.profile(uid).pk,
+    skBetween: [`${prefix}${lowerIso}`, `${prefix}~`],
+  });
+
+  // Honest totals: a clawed-back earn is a negative `<sourceKey>#REV` row. RP nets naturally
+  // (Σ points), but the COUNT metrics must exclude both the `#REV` row and the original it
+  // revokes — so a revoked match/check-in doesn't still inflate the counts.
+  const revokedOriginals = new Set(
+    rows.filter((r) => isRevocation(r.sourceKey)).map((r) => originalOfRevocation(r.sourceKey)),
+  );
+  const counts = (r: XpLedgerItem) => !isRevocation(r.sourceKey) && !revokedOriginals.has(r.sourceKey);
+
+  type Bucket = { rp: number; days: Set<string>; matches: number; courts: Set<string> };
+  const blank = (): Bucket => ({ rp: 0, days: new Set(), matches: 0, courts: new Set() });
+  const acc: Record<string, Bucket> = { [thisMonth]: blank(), [lastMonth]: blank() };
+
+  for (const r of rows) {
+    const bucket = acc[userLocalMonth(tz, Date.parse(r.ts))];
+    if (!bucket) continue; // outside the two months of interest
+    bucket.rp += r.points; // net (revocations subtract)
+    if (!counts(r)) continue;
+    if (r.rule === "E1") {
+      const parts = r.sourceKey.split(SEP); // E1#<courtId>#<yyyymmdd>
+      if (parts[1]) bucket.courts.add(parts[1]);
+      if (parts[2]) bucket.days.add(parts[2]);
+    }
+    if (MATCH_RULES.has(r.rule)) bucket.matches++;
+  }
+
+  const toStat = (b: Bucket): MonthStat => ({ rp: b.rp, checkinDays: b.days.size, matches: b.matches, courtsVisited: b.courts.size });
+  return { thisMonth: toStat(acc[thisMonth]), lastMonth: toStat(acc[lastMonth]), labels: { this: thisMonth, last: lastMonth } };
 }
 
 /**

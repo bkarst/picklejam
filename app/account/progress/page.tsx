@@ -2,9 +2,9 @@
 
 /**
  * My Progress (/account/progress) — the gamification hub (§G12.6). noindex inherited
- * from the /account layout. P1 ships the level header band + the recent-activity ledger
- * (the economy's public audit trail — every entry, including revocations). Weekly
- * quests, the personal-stats panel, and the badge shelf arrive in P2.
+ * from the /account layout. The level header band + weekly quests + the "vs. your past
+ * self" personal-stats panel + the recent-activity ledger (the economy's public audit
+ * trail — every entry, including revocations) + the badge shelf.
  */
 
 import { useEffect, type JSX } from "react";
@@ -16,6 +16,7 @@ import { LevelRing } from "@/components/gamify/LevelRing";
 import { StreakChip } from "@/components/gamify/StreakChip";
 import { RpDelta } from "@/components/gamify/RpDelta";
 import { BadgeTile } from "@/components/gamify/BadgeTile";
+import { MonthStatsPanel } from "@/components/gamify/MonthStatsPanel";
 import { QuestRow } from "@/components/gamify/QuestRow";
 import { QUEST_ICON } from "@/components/account/GamifyQuestsModule";
 import { gamifyCopy } from "@/lib/gamify/copy";
@@ -127,6 +128,12 @@ export default function ProgressPage(): JSX.Element {
               <p className="mt-2 text-xs text-muted">New quests every Monday.</p>
             </section>
           )}
+
+          {/* Personal stats — "vs. your past self" (§G12.6 item 3). */}
+          <section>
+            <h2 className="mb-3 font-display text-lg font-bold text-foreground">This month vs last</h2>
+            <MonthStatsPanel />
+          </section>
 
           {/* Badge shelf — earned first, nearest-to-next after (§G12.6 item 5). */}
           {badges.data && badges.data.entries.length > 0 && (

@@ -13,15 +13,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useMyGamify } from "@/lib/api/gamify";
 import { BoardTable, type BoardRow } from "./BoardTable";
 import { CityYourRow } from "./LeaderboardYourRow";
+import { MonthStatsPanel } from "./MonthStatsPanel";
 
 type Tab = "this" | "last" | "you";
 
 function YourStats() {
   const { user } = useAuth();
-  const { data } = useMyGamify({ enabled: !!user });
   if (!user) {
     return (
       <div className="rounded-2xl border border-border bg-surface p-6 text-center">
@@ -34,10 +33,8 @@ function YourStats() {
   }
   return (
     <div className="rounded-2xl border border-border bg-surface p-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-muted">Rally Points this month</span>
-        <span className="text-2xl font-bold tabular-nums text-foreground">{(data?.profile?.monthRp ?? 0).toLocaleString()}</span>
-      </div>
+      {/* Same "vs. your past self" panel as My Progress (§G12.9 → G12.6 item 3). */}
+      <MonthStatsPanel />
       <Link href="/account/progress" className="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
         Your full progress →
       </Link>

@@ -11,6 +11,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api/authed";
 import { accountListKeys } from "@/lib/api/account-lists";
+import { gamifyQueryKeys } from "@/lib/api/gamify";
 import { publishGamify } from "@/lib/gamify/bus";
 import type { GamifyBlock } from "@/lib/gamify/block";
 import type { CheckinItem, ReviewItem } from "@/lib/db/types";
@@ -76,6 +77,10 @@ export function useCheckIn(courtId: string) {
       publishGamify(result.gamify);
       void qc.invalidateQueries({ queryKey: communityKeys.checkins(courtId) });
       void qc.invalidateQueries({ queryKey: communityKeys.myCheckins });
+      // Refresh the viewer's gamify surfaces so a check-in reflects immediately: the court
+      // crew-progress island (§G12.1-I2b) and the shared profile view (dashboard/progress).
+      void qc.invalidateQueries({ queryKey: gamifyQueryKeys.court(courtId) });
+      void qc.invalidateQueries({ queryKey: gamifyQueryKeys.me });
     },
   });
 }
