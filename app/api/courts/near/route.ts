@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
       facilityType: c.facilityType ?? null,
       amenities: c.amenities ?? [],
       surface: c.surface ?? [],
+      // Community frontier facets (§G12.10) — the G7.3 exploration frontier.
+      reviewCount: c.reviewCount ?? 0,
+      hasTrailblazer: Boolean(c.trailblazerUid),
       distanceMeters: c.distanceMeters,
     })),
   });

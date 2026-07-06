@@ -36,6 +36,7 @@ export const primaryNav: NavColumn[] = [
       { label: "Find Games", href: "/search", description: "Open play & outings" },
       { label: "Find Groups", href: "/groups", description: "Clubs & crews" },
       { label: "Check In", href: "/courts", description: "Show you're playing today" },
+      { label: "Leaderboards", href: "/leaderboards", description: "Most active players near you" },
     ],
     promo: {
       title: "Find pickleball near you",
@@ -96,6 +97,7 @@ export const footerColumns: NavColumn[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Pricing", href: "/pricing" },
+      { label: "Elite", href: "/elite" },
       { label: "Contact", href: "/contact" },
     ],
   },
@@ -114,6 +116,7 @@ export const legalLinks: NavLink[] = LEGAL_DOC_SLUGS.map((slug) => ({
 /** Account dropdown links (authed) (UI §3.2). */
 export const accountNav: NavLink[] = [
   { label: "Dashboard", href: "/account" },
+  { label: "Progress", href: "/account/progress" },
   { label: "Profile & Ratings", href: "/account/profile" },
   { label: "My Check-ins", href: "/account/checkins" },
   { label: "My Reviews", href: "/account/reviews" },

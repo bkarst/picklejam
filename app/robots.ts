@@ -33,6 +33,7 @@ export default function robots(): MetadataRoute.Robots {
       disallow: [
         "/api/",
         "/account/",
+        "/og/", // gamification share-card images (§G12.20)
         "/search?*",
         "/round-robin/*/live",
         "/tournaments/*/register",

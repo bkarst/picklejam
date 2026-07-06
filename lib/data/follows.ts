@@ -14,6 +14,8 @@ import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { getItem, query, putNew, deleteItem } from "@/lib/db/client";
 import { GSI } from "@/lib/db/table";
 import { SEP, userKeys } from "@/lib/db/keys";
+import { earnStarterStep } from "@/lib/data/gamify-earn";
+import { tickQuests } from "@/lib/data/gamify-quests";
 import type { FollowItem } from "@/lib/db/types";
 
 /** Follow a court (idempotent: a repeat follow succeeds without duplicating). */
@@ -25,11 +27,19 @@ export async function followCourt(uid: string, courtId: string): Promise<FollowI
     courtId,
     createdAt: new Date().toISOString(),
   };
+  let isNew = true;
   try {
     await putNew(item as unknown as Record<string, unknown>);
   } catch (err) {
     // Already following — treat as success (idempotent).
     if (!(err instanceof ConditionalCheckFailedException)) throw err;
+    isNew = false;
+  }
+  // Starter step (E25 "follow a court") + the follow1 quest tick (non-ledger, §G9.1) —
+  // once ever / progress. Failure-isolated; repeat follows are a clean no-op.
+  if (isNew) {
+    await earnStarterStep(uid, "follow");
+    await tickQuests(uid, [{ tick: "court-follow" }]);
   }
   return item;
 }

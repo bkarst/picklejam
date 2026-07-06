@@ -60,6 +60,17 @@ export interface GroupMembership {
   status: GroupMemberStatus;
 }
 
+/** A row in the group's "This month" RP board (§G12.13). */
+export interface GroupBoardRow {
+  rank: number;
+  uid: string;
+  displayName: string;
+  username?: string;
+  avatarUrl?: string;
+  level: number;
+  value: number;
+}
+
 /** GET /api/groups/[id] — the per-viewer membership + roster (CSR overlay). */
 export interface GroupDetailResponse {
   group: GroupItem;
@@ -70,6 +81,8 @@ export interface GroupDetailResponse {
    *  schedule reaches members only, never the shared ISR shell. */
   meetups: OutingItem[];
   courts: Record<string, { name: string; url: string }>;
+  /** The members-only "This month" RP board — present only for members (§G12.13). */
+  board?: { rows: GroupBoardRow[]; hiddenCount: number };
 }
 
 /** A row in "My groups" (the group + the caller's role/status) — the route's wire shape. */

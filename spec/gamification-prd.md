@@ -6,6 +6,64 @@
 
 ---
 
+## Build status (implementation log)
+
+> **Updated 2026-07-05.** Tracks implementation against the G21 phase plan. **File pointers are the source of truth for what exists.** Tests: ~660 unit/component/integration green; P1 Chrome-verified end-to-end against the Dev DynamoDB table. Run gamify integration locally via dynalite (see the `gamification-build` memory / repo notes).
+
+### P1 — Economy core · ✅ **COMPLETE + verified**
+
+- **Pure logic** `lib/gamify/`: `levels.ts` (G5) · `earn-rules.ts` (E1–E28, cap families, `pointsFor`) · `source-keys.ts` (G13.2 registry) · `time.ts` (G13.0 tz + ISO-week) · `streak.ts` (G8.2 — built, wired in P2) · `badges.ts` (G6 catalog + tier fn + `RULE_COUNTER`) · `quests.ts` (G9.1 selection — built, wired in P2) · `award.ts` (`planAward`) · `copy.ts` (G12.22) · `block.ts`/`bus.ts`/`view.ts`/`prefs.ts`.
+- **Schema** `lib/db/types.ts` + `keys.ts`: all G13.10 entities (GAMIFY, XP, BADGE, QUEST, QUESTPROG, LBTALLY, LBRANK, LBMETA, ELITEAWARD, STRIKE) + `gamifyKeys`/`questKeys`/`boardKeys`/`eliteKeys`; NotificationType extended (G14).
+- **Data layer** `lib/data/gamify.ts`: `awardXp` (one idempotent, cap-conditioned `TransactWriteItems` — G13.2 exactly-once + **failure isolation**) · `awardXpSafe` · `revokeXp` · `reconcileGamifyProfile` · `getGamifyMe` (tz self-heal) · `updateGamifyPrefs` · `getMyLedger` · `pruneStaleDailyEarn`. Post-commit effects `lib/data/gamify-notify.ts` (⚙ `xp_awarded`/`level_up` + gated `level_up` notification).
+- **Call-site wiring** `lib/data/gamify-earn.ts` (all failure-isolated, response `gamify` piggyback → toaster bus): check-in **E1–E3 + E25** first-checkin · review **E5–E7** · signup **E24** · starter steps **E25** (profile/checkin/follow) · tournament reg **E10** · league reg **E13** · league match **E14** (both parties) · ladder **E16** (both parties) · outing-completion earn logic **E19/E20/E23**.
+- **API** `app/api/gamify/{me,ledger,prefs}` + `lib/api/gamify.ts`.
+- **UI** `components/gamify/*` kit + `GamifyToaster`/`LevelUpModal` (mounted in `app/providers.tsx`) · views: check-in-sheet rewards (G12.2), dashboard progress module (G12.5-I1), `/account/progress` (G12.6), welcome starter-quests step (G12.11), settings group (G12.12), account-menu row (G12.15).
+- **Cross-cutting**: analytics taxonomy (`lib/analytics/events.ts`) · env-gated 10% holdout (`GAMIFY_HOLDOUT_ENABLED`, `lib/gamify/prefs.ts`) · guidelines fair-play clause (`lib/legal/docs.ts`). Also fixed a pre-existing `ThemeToggle` hydration mismatch (`components/layout/Header.tsx`).
+
+**P1 tail — deferred:** **E8** helpful-vote + **E9** photo have **no endpoint in the build yet** (features unbuilt — nothing to wire) · **E11/E12** tournament bracket, **E17** ladder rung-climb, **E18** consecutive-season bonus — follow-ups (need bracket score-record wiring / net-rungs / prior-season lookup) · completion-sweep **cron driver** (discover completed outings) + Sunday close (weekly quests/streak lapse/digest) — ops/P2 · **E4** Trailblazer — P3.
+
+### P2 — Habit loop · ✅ **COMPLETE + verified**
+- ✅ **Badges** (G6) — `awardBadges` (`lib/data/gamify-badges.ts`: BADGE# rows, race-safe monotonic tier upgrades) in `awardXp` post-commit + piggyback + `badge_awarded` analytics/notification · `getMyBadges` (pattern 31) + `/api/gamify/{badges,showcase}` + `useMyBadges`/`usePinShowcase` · UI: `/account/badges` collection, progress-page badge shelf, public-profile trophy case + level chip + showcase (server-rendered).
+- ✅ **Play Streak** (G8) — `creditPlayedWeek` (`lib/data/gamify-streak.ts`: race-safe conditional write on `lastPlayedWeek`, resolve+applyPlay, streak analytics, E28 milestone → Streaker badge) at play-confirmation points (check-in, match E14/E16, outing E19) · check-in-sheet streak tick (G12.2-I2) · StreakChip on progress/dashboard.
+- ✅ **Weekly quests** (G9) — `ensureWeeklyQuests` (lazy in `getGamifyMe`, race-safe) + `tickQuests` (count + distinct + non-ledger ticks, completion → E26) (`lib/data/gamify-quests.ts`) · wired at check-in/review/match/host/follow/RSVP · UI: dashboard quests module (G12.5-I2), progress quests, check-in-sheet quest ticks (G12.2-I3), toaster quest-complete + `quest_viewed`.
+- ✅ **Digest / OG / reminders** — `buildWeeklyDigest` (`lib/data/gamify-digest.ts`) · `isStreakAtRisk`/`notifyStreakAtRisk` (G14, opt-in) · OG cards `/og/badge/[familyId]` + `/og/level/[n]` (`renderOgImage`, robots-disallowed) + level-up share button. Chrome/curl-verified (OG PNG render, dashboard quests module, badge E2E). **Deferred (ops crons, like the P1 sweep driver):** the Sunday digest-send + Thursday reminder schedulers, and the streak-lapse Sunday sweep (lazy resolution covers correctness).
+
+### P3 — Social & local status · ✅ **COMPLETE** (admin UI deferred to the unbuilt admin app)
+Board tallies + floor-gated RANK + META (G13.6) · Court Crew/Captain/Trailblazer (G7, G12.1) · court + city leaderboard pages (G12.3/G12.9) + `/leaderboards` geo-redirect + sitemap segment · city-directory modules (G12.8) · group boards (G12.13) · review-card Crew/level chips (G12.16) · map-finder frontier filters (G12.10) · community quests (G9.3) · `court_captain` notification · admin Gamify tab (G16.6). (Board/tally/Crew/Elite entities + keys already exist from the P1 schema.)
+
+**P3 done so far:**
+- **G13.6 board tallies + floor-gated RANK/META** (`lib/data/gamify-boards.ts`) — `tallyCourtCheckin`/`tallyCityRp` ADD + version-conditioned rebuild; RANK projects only public `leaderboards≠hidden` profiles; `username` denormalized for profile links; movement vs prior month; captain recorded onto the month META for history.
+- **G7 Court Crew / Captain / Trailblazer** (`lib/data/gamify-crew.ts`) — `claimTrailblazer`/`claimFirstReviewer` (race-safe conditional court-meta claim + tier-0 special badge), `getCourtCrew` (≥4 check-in-day rolling window, privacy-filtered), `getCrewProgress`/`getCrewUids`, `crownCaptain` (most days, min 6, privacy-respecting; writes court-meta + board-meta + `court_captain` notification), `getCourtStatus` (privacy-suppressing status-line hydrator), `getCaptainHistory`. **E4** Trailblazer wired into `earnCheckin`; **First Reviewer** into `earnReview` (badge-only). Integration-tested (12 crew tests: claim race, idempotency, roster/window/privacy, captain crowning, status line, captain history).
+- **G12.1 court-detail insertions** — I1 `CourtStatusLine` (Captain + Trailblazer, server, JS-off) · I2 `CourtCrewSection` (`CrewChip`s + `CrewProgressIsland` client island + top-5 `BoardTable` teaser) · I4 review-card chips.
+- **G12.3 court leaderboard** (`/courts/…/[court]/leaderboard`, ISR 900) + **G12.9 city leaderboard** (`/leaderboards/[c]/[st]/[city]`, ISR 900, `CityLeaderboardTabs`: this/last month + your-stats) + **`/leaderboards` geo-redirect** (mirrors `/near`) + Play-menu link · `BoardTable` (native `<table>`), `LeaderboardMonthPicker` (HeroUI `Select`), `LeaderboardYourRow` islands, `CaptainHistoryStrip` · noindex thresholds (≥5 court / ≥10 city) + `BreadcrumbList`/`ItemList` JSON-LD.
+- **G12.16 review-card chips** (`ReviewCard`/`ReviewsModule` + `lib/data/gamify-reviews.ts` `hydrateReviewAuthors`) — public reviewers get name · `LevelChip` · `Crew` pill (privacy-aware: non-public → "Player"; `checkinVisibility=private` never outed as Crew); fixed Crew tiebreak in "most helpful".
+- **API/hooks:** `GET /api/gamify/court/[courtId]/me` + `useMyCourtGamify`. **Verified in Chrome** (populated + empty states, light + dark, no console errors, no 390px overflow, Crew chips = 44px tap targets).
+
+**P3 wrap-up (Task #19) done:**
+- **G9.3 monthly community quests** (`lib/data/gamify-community.ts`) — deterministic per city+month id (`communityQuestId`, one GetItem, no GSI); `createCommunityQuest` (ops/admin), `getCityCommunityQuest`, `tickCommunityQuest` (atomic `progress` ADD + per-user contribution count + ≥3 `CONTRIB#` marker), `closeCommunityQuest` (pays **E27** + seasonal badge to ≥3-action contributors, idempotent). Wired the tick into `earnCheckin`. `GET /api/gamify/quest/[questId]` + `useCommunityQuest`. Integration-tested (progress/contribution/marker, close+E27 idempotency, check-in wiring).
+- **G12.8 city-directory modules** — I1 `CommunityQuestBar` (server frame + client-hydrated live progress + "Your contributions") at the top of the aside · I2 `CityActiveTeaser` (top-3 city RP board) after Tournaments & leagues (hidden < 3 ranked).
+- **G12.13 group boards** — the members-only "This month" RP `BoardTable` on group detail; `getGroupBoard` BatchGets `GAMIFY#META` (no fan-out), month-guards `monthEarn.rp`, omits `leaderboards=hidden` (footnote) except the viewer. Delivered on the per-viewer group GET (never the shared ISR shell). Integration-tested (ranking, privacy, month-guard, viewer-sees-own-row).
+- **G12.10 map frontier filters** — a "Community" `CheckboxGroup` ("Unreviewed courts" / "No Trailblazer yet"); the near API projects `reviewCount` + `hasTrailblazer` (GSI4 is `ALL`), the predicate evaluates client-side. Unit-tested.
+- **G16.6 admin moderation ops (a–c) — data layer** (`lib/data/gamify-moderation.ts`): `issueStrike`/`expireStrike`/`getStrikes` (pattern 38, audited by `issuedBy`), `freezeBoard`/`unfreezeBoard`/`isBoardFrozen` (META `frozen` + `frozenBy`/`frozenAt`); revoke already exists (`revokeXp`). Integration-tested (strike lifecycle, a frozen board stops rebuilding + resumes on unfreeze). **The admin UI is deferred** — the admin surface (`spec/court-admin.md`) is an unbuilt post-launch app; these ops are ready for its Gamify tab when it lands.
+- **Verified in Chrome:** community-quest bar (live 160/500), most-active teaser (level chips + RP), and the map "Community" filter (interactive) — no console errors. Group board is integration-verified (needs member auth for a Chrome visual).
+
+**P3 remaining / deferred (small):** the admin Gamify **UI** tab (blocked on the unbuilt admin app) · `leaderboards` **sitemap segment** (most cities have no board pre-launch — emit only indexable ≥10-ranked cities) · the "How Rally Points work" explainer article (Stage-9 content) + its footer links · the month-close **cron drivers** for `crownCaptain` and `closeCommunityQuest` (both built + tested as units; scheduled discovery is an ops hook like the P1 sweeps).
+
+**P3 status: ✅ complete** (data + UI for G7/G9.3/G10/G12.1/G12.3/G12.8/G12.9/G12.10/G12.13/G12.16/G13.6; admin ops data-layer, UI deferred).
+
+### P4 — Endgame (Elite) · ✅ **COMPLETE** (admin approve/reject queue is data-layer; UI deferred to the unbuilt admin app)
+
+- **G11 config-driven evaluator** (`lib/gamify/elite.ts`) — `ELITE_CRITERIA` (thresholds are config, not code), `evaluateElite` (all checks pass; a single strike vetoes), `eliteCriteriaCopy` (the `/elite` criteria list renders the SAME config so it can't drift), `medianOf`, `eliteBadgeId`, `currentEliteYear`. Unit-tested (config-swap needs no code change, strike veto, per-threshold shortfalls).
+- **Elite data layer** (`lib/data/gamify-elite.ts`) — `computeEliteStats` (reviews via GSI1 + year-windowed ledger + active strikes), `evaluateEliteEligibility`, idempotent `nominateElite` (create-only roster row), `autoFlagElite` (the monthly sweep unit), `getEliteRoster` (pattern 36; `status` filter = queue pattern 37), `decideElite` (approve → `elite-<year>` badge + `eliteYears` + `elite_status` notification + `decidedBy`/`decidedAt` audit; reject; idempotent), `getEliteCohort` (approved public), `getMyEliteStatus`. Integration-tested end-to-end (stats → eligible, strike voids, prior-year excluded, nominate idempotent, auto-flag, approve/reject + audit, cohort privacy).
+- **API + hooks:** `POST /api/gamify/elite/nominate` (idempotent) · `GET /api/gamify/elite/me` · `useEliteNominate`/`useMyElite`.
+- **`/elite` landing** (ISR 86400, indexable): hero + crest → criteria from live config → perks band → cohort strip (approved public, gold-ring avatars) → `EliteNominateCTA` island → program terms → FAQ (`FAQPage` JSON-LD). Footer **Company → Elite** link.
+- **Elite styling:** gold profile ring + `🏆 Elite <year>` chip on `players/[username]` (prefs-gated) · a subtle ≤14px review crest in `ReviewCard` when the author is Elite (`hydrateReviewAuthors` sets `isElite` from `eliteYears`).
+- **Seasonal + hidden badges (G6.2):** already supported by the P2 badge infrastructure (`SPECIAL_BADGES` `hidden`/`seasonal` flags; `BadgeTile` renders hidden as a `?` silhouette; community-quest seasonal badges award via `awardSpecialBadge`). **Terms:** `/elite` carries the program terms (annual expiry, revocation, no-purchase); the guidelines integrity clause already exists (P2 fair-play).
+- **Verified in Chrome:** `/elite` (hero, config criteria, perks, cohort strip), profile gold ring + Elite chip, subtle review crest — no console errors, no 390px overflow. Demo data cleaned out.
+- **Deferred (small):** the admin approve/reject **UI** (blocked on the unbuilt admin app — `decideElite`/`getEliteRoster` are ready) · the monthly auto-eval **cron driver** (`autoFlagElite` built + tested; scheduled discovery is an ops hook) · partner-perk hooks (G20 business decision) · Elite badge in the trophy-case grid (specials aren't yet enumerated there — a small badges-UI follow-up; Elite is surfaced via the profile ring/chip + review crest).
+
+---
+
 ## G0. How to read this document
 
 - Sections are numbered `G1…G23` to avoid colliding with the main PRD's §-numbers; cross-references like *(§6.2)* point at the main PRD, *(Stage N)* at the roadmap. Appendices: G21 (phase build plan) · G22 (coverage tables) · G23 (graphic design work).
@@ -186,6 +244,12 @@ Enforcement: `awardXp` conditions the profile update on the family's day counter
 
 RP floors at 0 for display; the ledger itself may sum negative transiently. Level is **never revoked** once reached (levels are prestige, not balance) — but Elite eligibility (G11) uses honest rolling totals.
 
+**Verification (P1).**
+- **Unit / property:** every `EARN_RULES` entry E1–E28 asserts its points **and** cap-family membership; the five family day-budgets (presence 150 · contribution 200 · organizing 150 · competition/system uncapped) and the E8/E17 sub-caps; **the six G4.2 worked-example totals reproduced exactly** (10 · 30 · 55 · 85 · 330 · 550/625) — the arithmetic oracle for toasts and the check-in sheet; cap-window rollover at **user-tz** midnight (G13.0); `sourceKey` derivation **bijective** (distinct actions ⇒ distinct keys, replays ⇒ identical keys — the full G13.2 registry is the table oracle); a revocation `#REV` nets to the expected signed delta.
+- **Integration (DDB Local):** `awardXp` = **one `TransactWriteItems`**; replaying the same action ⇒ **single ledger row + single ADD** (exactly-once, §14.6); a capped presence earn ⇒ the family condition rejects, **nothing is written**, response `capped:true`; competition/system rules carry no cap condition; a revocation appends `#REV` and `rp` floors at 0 for display while the ledger sums honestly; **forced-throw failure isolation** — `awardXp` throws ⇒ the core check-in/review/webhook write still commits and the route returns success without a `gamify` block; **reconcile** heals an injected profile/ledger divergence; patterns **29** (profile GetItem) + **30** (ledger GSI1 Query) each resolve in one call, no scans.
+- **E2E:** **J10** check-in → `+RP` toast carrying the exact total; **J5** refund appends the negative E10/E13 entry (claw-back); J1/J7/J9 confirmation points also assert their expected ledger rows.
+- **Manual:** the check-in-sheet success band (G12.2) shows the exact worked-example totals + bonus labels + the cap-honesty line; `RpDelta` conveys sign via ▲/▼ **and** color; 390px + desktop, console clean.
+
 ---
 
 ## G5. Levels
@@ -210,6 +274,12 @@ Levels derive from `rpLevelWatermark` — the high-water mark of lifetime RP ear
 - **Level ring** (progress toward next level) is the primary progress visual everywhere (profile, dashboard, check-in sheet).
 - **Level-up moment:** toast + celebration modal (reduced-motion-aware), `level_up` ⚙ event, optional share card (OG image route). Never blocks; dismissible instantly.
 - Level chip (e.g., `Lv 5 · Spin Doctor`) renders beside the display name on public profiles, review cards, Crew lists, and leaderboards — social proof that feeds back into B2 credibility.
+
+**Verification (P1).**
+- **Unit / property:** threshold lookup (Level N iff `watermark ∈ [thr(N), thr(N+1))`) against the exact G5 table; **monotonic**, and the **watermark never regresses** under any revocation sequence; a single award crossing **multiple** thresholds lands on the correct final level and fires **exactly one** `level_up` (higher wins); the endowed-progress start (25 RP ⇒ 25% into Level 2) holds.
+- **Integration:** an `awardXp` commit that pushes the watermark past a threshold sets `level` + emits `level_up` ⚙; a later revocation lowers `rp`/`rpLifetime` but leaves `rpLevelWatermark`/`level` untouched.
+- **E2E:** **J10** — the review crosses Level 2 → level-up modal → the **public profile renders the level chip server-side** (JS-off).
+- **Manual:** `LevelChip`/`LevelRing` at 24/48/96px; the level-up modal honors `prefers-reduced-motion` (static frame); account-menu row; profile chip present with JS disabled.
 
 ---
 
@@ -248,6 +318,12 @@ Badges come in **tiered families** (Bronze / Silver / Gold / Platinum — one it
 - **Endowed progress everywhere:** locked badges always render with a progress bar ("7/10 courts") — the catalog view is a to-do list, not a wall of grey.
 - Profile **showcase**: the user pins up to 3 badges rendered beside their level chip on the public profile (Ownership drive).
 
+**Verification (P2 · data P1).**
+- **Unit / property:** the badge tier function is **monotonic**; a counter jump crossing **multiple** thresholds lands on the **highest** tier; one-offs are tier 0; seasonal retirement dates resolve; hidden badges never expose criteria.
+- **Integration:** `BADGE#<family>` is **one item per family, tier upgraded in place** under a `tier < :new` condition (race-safe monotonic); a **tier-upgrade race stays monotonic**; a revocation-driven counter decrement lowers *progress* but never confiscates an earned tier; pattern **31** = one Query.
+- **E2E:** **J10's P2 badge extension** — the review that levels the user also earns Scout Bronze, which renders in the profile trophy case (the P1 J10 run asserts **no** badge UI exists yet).
+- **Manual:** `BadgeTile` locked-with-progress / earned states, endowed-progress bars ("7/10 courts"), hidden `?` silhouettes, detail-sheet **pin-to-showcase** optimistic + revert-on-error + disabled-at-3, **share** copies the `/og/badge` URL; collection grid + trophy case vs mockups 14.5/14.6.
+
 ---
 
 ## G7. Court Crew & Trailblazer (court-scoped status)
@@ -270,6 +346,12 @@ The mayor-mechanic, redesigned to avoid Foursquare's single-winner demotivation 
 
 - **First authed check-in ever at a court** permanently credits the user on the court page ("Trailblazer: @sam, Mar 2026") and pays E4. The claim is a **conditional write on the court meta** (`trailblazerUid` absent ⇒ set) — race-safe by construction.
 - **First review of a court** similarly credits `First Reviewer` and is the single strongest B2 lever for long-tail SEO coverage: the platform has ~16k seeded courts with zero reviews — an explorable frontier of firsts. The Map Finder gains an optional "unreviewed courts" filter to make the frontier visible (G12.10).
+
+**Verification (P3).**
+- **Unit / property:** Crew threshold (≥ 4 check-in **days** across current + previous month); Captain selection (most check-in days in the calendar month, min 6, ties → earliest to reach the count).
+- **Integration:** the **Trailblazer conditional court-meta claim race ⇒ exactly one winner**; `CRTLB` tally ADDs one per check-in day; the month-close sweep crowns the Captain into court meta (`captainUid`/`captainMonth`); **privacy** — only public, `leaderboards≠hidden` users are crowned/listed, and a private Trailblazer stores the uid but suppresses the name ("A player").
+- **E2E:** **J12** — three seeded users' check-ins, Captain crowned at a simulated month close.
+- **Manual:** the court status line (Captain + Trailblazer) is **JS-off complete**; Crew chips (server) + crew-progress island (client); the review-card `Crew` pill; empty states; vs mockup 14.1.
 
 ---
 
@@ -299,6 +381,12 @@ The mayor-mechanic, redesigned to avoid Foursquare's single-winner demotivation 
 4. Else → fresh start: `streakWeeks = 1`.
 
 **Required properties (G19):** `resolve` is idempotent (`resolve∘resolve = resolve`); **sweep lag is immaterial** — lazy resolution at play time yields the identical state to timely Sunday sweeps; any action sequence yields a valid state (no negative counters, `rainChecks ≤ 2`, `streakBest` monotonic); a timezone change shifts at most one *future* week boundary — stored weeks are never re-bucketed.
+
+**Verification (P2) — heaviest property target.**
+- **Unit / property (the G8.2 contract):** `resolveStreak` **idempotent** (`resolve∘resolve = resolve`); **sweep-lag immaterial** (lazy resolution at play time ≡ timely Sunday sweeps); `applyPlay` idempotent within a week; a Rain Check **earned every 4th played week** (bank ≤ 2), a missed week **auto-spends one** and preserves the chain **without incrementing**; **repair** only when `brokenAtWeek == prevWeek(w)` and ≤ once per rolling 12 weeks; E28 milestones pay **once ever per rung** (sourceKey blocks re-earn after break-and-regrow); **any action sequence ⇒ a valid state** (no negative counters, `rainChecks ≤ 2`, `streakBest` monotonic); ISO-week edges + **DST**; a tz change shifts **at most one future** boundary and re-buckets nothing stored.
+- **Integration:** streak state persists across a play credit and the Sunday sweep, and the two paths agree; **sweep run twice ⇒ no drift**; the E28 milestone ledger row is idempotent.
+- **E2E:** **J11** — a check-in surfaces the "Week n of your play streak ✓" tick first-of-week; fixture `gamify-streaker`.
+- **Manual:** `StreakChip` tooltip (longest + Rain Check dots), check-in-sheet tick, the flame-free bouncing-ball chain in light/dark, reduced-motion.
 
 ---
 
@@ -337,6 +425,12 @@ The `/welcome` flow (§13.8, resumable) appends a Starter Quests step wired to E
 - Everyone who contributed ≥3 qualifying actions earns E27 + the seasonal badge when the goal lands. Epic-Meaning framing: the copy is about *your courts getting on the map*, not about the platform.
 - Community quest totals also feed city-page freshness (SEO §3.7-adjacent: the progress module renders server-side).
 
+**Verification (starter P1 · weekly P2 · community P3).**
+- **Unit / property:** **deterministic selection** seeded by `hash(uid, isoWeek)` through the RR mulberry32 PRNG (**no `Math.random`**) — same seed ⇒ same trio; slot rules (dominant / least-used / general) and the new-account fallback trio (`checkin3 · twocourts · lookingtoplay`); quest predicate matching (which E-rules count, `distinctBy`, target); the week-stamped id ⇒ current-week is an id-prefix filter.
+- **Integration:** **lazy instantiation** — the first authed `GET /api/gamify/me` in a week creates exactly **3** QUESTPROG create-only puts and a **concurrent race instantiates exactly once**; `awardXp` bumps matching in-window rows under `count < target`; the two **non-ledger ticks** (RSVP-going, court-follow) bump via the same helper; completion routes **E26** + `quest_completed` ⚙; a community quest's `progress` is an atomic ADD and its close pays **E27** to all ≥ 3-action contributors; patterns **34** (active) + **35** (progress).
+- **E2E:** **J11** — starter quests complete through real actions → a weekly quest ticks off a check-in → digest content assembles.
+- **Manual:** `QuestRow` states, dashboard quests-module all-done state, welcome starter step, city-directory community bar (hydrated value + JS-off frame); vs mockups 14.4/14.9.
+
 ---
 
 ## G10. Leaderboards
@@ -353,6 +447,12 @@ All boards are **monthly seasons** (reset day 1, previous months browsable), **s
 - **Anti-demotivation:** every board view anchors on *your* row (never just the top), shows movement arrows + numbers, and the personal panel is the first tab for users below top-25. No global all-time board at launch (it ossifies into an unwinnable wall).
 - Read-only boards render as **native semantic `<table>`** (Stage-5 lesson) with `Skeleton` loading states.
 
+**Verification (P3).**
+- **Unit / property:** rank ordering + tie rules; `movement` diff (▲/▼ + number) vs the prior month's frozen `RANK#`; **city attribution** (E1–E4 → the court's `cityKey`, every other earn → `homeCityKey`).
+- **Integration:** **floor-gated RANK rebuild** — a below-floor tally write triggers **no** rebuild; a rebuild is **idempotent** under concurrent tallies and **version-conditioned** (a concurrent rebuild retries once); only `leaderboards≠hidden` public profiles project into RANK while **tallies exist for everyone** (a private user reads their own TALLY for self-rank); **month-close freeze** yields an immutable partition; patterns **32**/**33**; **group boards** rank members by BatchGet `monthEarn.rp` with **no fan-out writes** (pattern 26), hidden members omitted with the footnote.
+- **E2E:** **J12** — the board materializes from seeded check-ins; the `leaderboards=hidden` user is **absent from RANK but still sees their own tally**.
+- **Manual:** `BoardTable` as a native semantic `<table>` (`<th scope>`) with Skeletons, the month-picker `Select`, the your-row anchor strip, **no horizontal overflow at 390px**, server RANK render JS-off; board-page **CWV green** (a P3 gate); vs mockups 14.7/14.8.
+
 ---
 
 ## G11. Elite (the endgame program)
@@ -363,6 +463,12 @@ The Yelp-Elite analog — annual, quality-gated, community-flavored status:
 - **Nomination + human touch:** users self-nominate or are auto-flagged when criteria are met; a lightweight admin review (existing court-admin surface, `spec/court-admin.md`) approves the cohort. Scarcity is real but explainable — the criteria are public.
 - **Perks:** `Elite '26` badge + gold profile ring · Elite styling on their reviews (subtle — a small crest, not louder content) · early access to feature betas · reserved-free entries or merch at partner events (**business decision, G20**) · an annual Elite virtual/local event where density allows.
 - **Status must be re-earned each year** (drives ongoing B1+B2 engagement); lapsed Elites keep the year-stamped badge forever (Ownership; no confiscation).
+
+**Verification (P4).**
+- **Unit / property:** the criteria evaluator is **config-driven** — a threshold config change needs **no code change**; a moderation strike **voids eligibility**; annual expiry keeps the year-stamped badge.
+- **Integration:** monthly auto-eval flags eligible users; **self-nomination is idempotent**; admin approve/reject writes `ELITEAWARD` status + `decidedBy`/`decidedAt` audit fields; roster pattern **36**, nomination queue pattern **37**, strikes pattern **38** read by the evaluator.
+- **E2E:** the first cohort **end-to-end** — auto-flag → queue → approve → badge + roster row + `elite_status` notification.
+- **Manual:** `/elite` renders **live config values** (no hand-written criteria that can drift); the cohort strip shows approved public profiles only; the self-nom CTA idempotent success state; the Elite review crest ≤ 14px + profile gold ring stay subtle; vs mockup 14.10.
 
 ---
 
@@ -407,6 +513,11 @@ The Yelp-Elite analog — annual, quality-gated, community-flavored status:
 Everything in this kit is suppressed by `prefs.enabled=false` (surfaces hidden, toaster silent) and for the G18 holdout cohort — both checked via `useMyGamify` client-side and the profile read server-side.
 
 **The "How Rally Points work" explainer** (linked from G12.3, G12.6, and G12.9) is a Stage-9 **content-hub article** (e.g. `/learn/guides/how-rally-points-work`) — reusing existing infra (crawlable, `Article` JSON-LD, zero new routes). Its user-facing earn values must be reviewed against `EARN_RULES` whenever the config changes; the article states values plainly and links court/city boards back in.
+
+**Verification (P1) — component kit + global award moments (G12.18).**
+- **Component (all states + axe clean):** `LevelChip`/`LevelRing`, `StreakChip`, `RpDelta` (**sign via ▲/▼ icon *and* color — never color alone**), `QuestRow`, `BadgeTile` (locked/progress/earned), `BoardTable`, `CrewChip`; `GamifyToaster` **coalescing** (all awards from one mutation ⇒ one toast, `+k more` overflow, queue depth 3); `LevelUpModal` **reduced-motion asserted** + focus-trap + fires **after** any open dialog closes and **at most once per session**.
+- **Integration:** the **mutation piggyback** — check-in/review/score-confirm/registration-status responses carry the `gamify` block, **absent for anon / prefs-off / holdout**, and the hook forwards it to the toaster bus with **no second request**.
+- **Manual:** mounted once in `app/providers.tsx`; a toast **never steals focus**; the modal never stacks over the check-in sheet.
 
 ### G12.1 Court Detail — `/courts/[c]/[st]/[city]/[court]` · ISR(3600) · extends `4.5-court-detail.png`
 
@@ -530,6 +641,11 @@ Catalog grid grouped by family (B1 → B2 → B3 → B4 → habit → specials),
 3. **Streak reminders** (`prefs.streakReminders`, default **off** — G8).
 4. **Weekly digest email** (`prefs.digest`) — mirrors into the existing notification-prefs email gating.
 
+**Verification (P1) — prefs, suppression & holdout (G18).**
+- **Unit / integration:** `prefs.enabled=false` **hides every surface, silences the toaster, and gates all gamify notifications** while RP still accrues silently (nothing lost on re-enable); the leaderboards toggle is disabled-with-explanation when the profile is private; the **10% holdout** sees no surfaces but accrues; per-mechanic **kill-switches** degrade a mechanic to hidden, not broken (RP accrual itself has no kill-switch).
+- **Component / E2E:** a **suppression assertion** — with gamification off the Member Dashboard reflows to its as-built 4-module grid and the check-in success state renders exactly as today.
+- **Manual:** toggle each of the four `Switch` rows and confirm the optimistic + revert-on-error behavior and that surfaces appear/disappear immediately (390px + desktop).
+
 ### G12.13 Group Detail — `/groups/[id]` (`app/groups/[id]/GroupDetailClient.tsx`)
 
 **As built:** ISR shell + CSR membership; client sections — **Membership** (join per policy) → **Members** (`MemberStatusList`: checked-in-today / looking-to-play chips) → meet-ups.
@@ -572,6 +688,10 @@ Opt-in (G12.12 row 4, ANDed with the existing notification-email master toggle):
 ### G12.20 OG share cards — `/og/badge/[familyId]` (`?tier=`) and `/og/level/[n]` · **NEW**
 
 `ImageResponse` routes following the existing OG conventions (brand tokens, PNG): badge card = icon + name + tier + wordmark; level card = level art + name + `LevelRing` visual. Referenced by the share actions (G12.7, G12.18); no PII beyond what the sharer chooses to post. Disallowed in `robots.txt` alongside the existing OG paths.
+
+**Verification (P2) — weekly digest (G12.19) + OG share cards.**
+- **Integration:** digest send is opt-in **ANDed** with the email master toggle, batched per-tz evening by the Sunday sweep, one-click unsubscribe → the existing suppression list; **digest assembly is tested against the fixture** (part of J11); the OG `ImageResponse` routes render brand tokens with **no PII** beyond the sharer's choice and are **disallowed in `robots.txt`**.
+- **Manual:** render the digest against the fixture and the OG cards for a sample badge/level; confirm brand-font embedding (resolving the Stage-0 OG-font TODO).
 
 ### G12.21 Mockup checklist (`design/views/`, produce before each phase's UI build)
 
@@ -626,6 +746,11 @@ The platform stores **no user timezone** today (check-ins bucket by *court*-loca
 3. Else UTC.
 
 **Scope rule:** *user-scoped* windows (streak weeks G8, `dailyEarn`, `monthEarn`, quest weeks G9.1, digest send time) use the user's resolved tz. *Place-scoped* calendars use the place: court boards open/close on the **court's** local month, city boards on the **city's** (centroid tz) — the hourly sweep (G13.3) makes month-close naturally per-zone. A tz change shifts at most one *future* boundary; stored days/weeks/months are never re-bucketed (G8.2 property).
+
+**Verification (P1) — timezone & calendars.**
+- **Unit / property:** resolution order (`tz` field → home-city centroid → UTC); user-scoped windows (streak, `dailyEarn`, `monthEarn`, quest week, digest) use the **user** tz while place-scoped boards use the **place** tz; a tz change shifts **≤ 1 future** boundary and re-buckets nothing stored.
+- **Integration:** an authed `GET /api/gamify/me` carrying a changed browser tz **self-heals** the field with no prompt; the hourly sweep closes each scope's month in its own zone.
+- **Manual:** no dedicated view — asserted indirectly through the streak/quest/board manual passes under a **pinned clock**.
 
 ### G13.1 `GamifyProfileItem` — the per-user aggregate
 
@@ -708,6 +833,10 @@ All keys live in the earner's partition (`PK USER#<uid>`), so two players earnin
 ### G13.3 Completion sweeps (new scheduled job)
 
 E15/E19/E20/E23 and quest/season/Captain closes need an *"it happened"* tick after the fact. A scheduled sweep (Lambda cron; locally a script like the reconcile pattern) runs hourly: outings past `endTs ?? startTs+2h` and not cancelled → award attendance/host RP; Sundays → close weekly quests + streak lapses (spend Rain Checks) + **send the weekly digest** (G12.19, per-tz evening batches) + **prune stale `dailyEarn` day keys** (G13.1); month close (per scope tz, G13.0) → crown Captains, freeze boards, open the new month; season close → E15. Sweeps are idempotent because every award flows through `awardXp` sourceKeys.
+
+**Verification (P1 · extended P3) — sweeps + reconcile (G13.8).**
+- **Integration:** the hourly sweep pays E19/E20/E23 for outings past `endTs ?? startTs+2h` and not cancelled; Sunday closes weekly quests + streak lapses (spends Rain Checks) + sends the per-tz digest + prunes stale `dailyEarn` keys; month-close crowns Captains + freezes boards + opens the new month; season-close pays E15; **every sweep is idempotent** (run twice ⇒ no drift, because all awards flow through `awardXp` sourceKeys); the **reconcile sweep recomputes `rp`/counters/tallies from the ledger and heals an injected divergence**.
+- **Manual:** run the local sweep script (the reconcile pattern) and diff aggregates before/after — no drift.
 
 ### G13.4 `BadgeAwardItem`
 
@@ -983,6 +1112,11 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 
 *Not in the union:* the **weekly digest** (G12.19) is deliberately not a `NotificationType` — it's a Resend campaign gated by `prefs.digest` + the existing email master toggle, with no `NOTIF#` row and no bell entry.
 
+**Verification (P1–P4).**
+- **Integration:** each new `NotificationType` creates a `NOTIF#` row + bell entry + Resend mirror and respects quiet hours; `streak_at_risk` is **off by default**; `prefs.enabled=false` **silences the whole gamify family** regardless of per-type prefs; the **weekly digest is deliberately not a `NotificationType`** (no `NOTIF#` row, no bell entry).
+- **E2E:** J10/J11 assert `level_up`/`badge_awarded`/`quest_completed` reach the bell; J12 asserts `court_captain`.
+- **Manual:** bell rendering + the prefs toggles in Chrome.
+
 ---
 
 ## G15. Analytics (extends §2.1)
@@ -992,6 +1126,10 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 **New client events:** `progress_viewed` · `leaderboard_viewed` (scope) · `badge_shared` · `quest_viewed` · `gamification_disabled` / `_enabled` (the health metric for G2.4 rule 1).
 
 **Dashboards:** the G1.2 metric set, cut by cohort (gamification-on vs holdout, G18), plus an economy monitor (RP/day distribution, cap-hit rate, revocation rate) to catch inflation or farming early.
+
+**Verification (P1).**
+- **Integration:** the server ⚙ events (`xp_awarded`, `level_up`, `badge_awarded`, `quest_completed`, `streak_extended/broken/repaired`, `elite_nominated/awarded`) fire **fire-and-forget** at the `awardXp`/sweep confirmation points and **never block or fail the core write**; the client events (`progress_viewed`, `leaderboard_viewed`, `badge_shared`, `quest_viewed`, `gamification_disabled/_enabled`) emit on their surfaces.
+- **Ops:** the economy monitor (RP/day distribution, cap-hit rate, revocation rate) is live and read for the **P1 two-week stability gate** and to catch inflation/farming; `gamification_disabled` is tracked against the **< 3% of viewers** gate.
 
 ---
 
@@ -1006,6 +1144,11 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 7. **No client-trusted writes:** every award originates in the data layer at server-confirmed moments; routes never accept an RP payload.
 8. **Terms & guidelines:** `/legal/community-guidelines` gains a gamification-integrity clause (fabricated check-ins and review farming are strikeable; strikes can void RP and Elite eligibility), and the `/elite` page carries the program's terms (criteria, annual expiry, revocation). Counsel review per the Stage-10 legal caveat.
 
+**Verification (P1–P3).**
+- **Unit / integration:** deterministic sourceKeys make double-awards **structurally impossible**; **anon check-ins earn nothing** and are never identity-linked; the 2-courts/day earn cap and per-court-per-day dedupe hold; helpful-vote RP requires **voter Level ≥ 2**, caps at 10 RP/review/week, and self-votes are impossible; the E17 weekly sub-cap binds; E16 pays **both** players equally (no farm-the-loser incentive); a moderation delete/removal **claws back RP** (negative entries) and may add a `STRIKE#`; **routes reject any client RP payload** (awards originate only in the data layer); the anomaly monitor flags > 20 distinct-court check-in days/week.
+- **E2E:** **J5** refund claw-back; a farming-attempt integration test asserts caps bind and no double-award occurs.
+- **Manual:** exercise the admin Gamify tab — revoke a ledger entry (appends `#REV`), issue/expire a strike, freeze/unfreeze a board — and confirm each action is audit-trailed.
+
 ---
 
 ## G17. SEO & indexability
@@ -1015,6 +1158,10 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 - **Public profiles** (already indexable when public) gain level + trophies server-side — richer `Person` pages.
 - **IA & sitemap:** the **Play** mega-menu (§4) gains a "City Leaderboard" link → `/leaderboards` — a geo-IP redirect to the visitor's nearest city board (the `/near` pattern; the bare path is `noindex`). New URL-tree entries (§5): `/leaderboards` (redirect) · `/leaderboards/[c]/[st]/[city]` · `/courts/[c]/[st]/[city]/[court]/leaderboard` · `/elite` · `/account/progress` · `/account/badges` · `/og/badge/[familyId]` · `/og/level/[n]`. A new **`leaderboards` sitemap segment** lists boards that clear their thresholds (`lastmod` = last month-close — stable between closes); `/elite` joins the `marketing` segment; account/OG routes are disallowed per the existing §3.7 rules.
 - Never gate crawlable content behind gamification state; JS-off renders of decorated pages must remain complete (existing render-moat tests extend to the new modules).
+
+**Verification (P3).**
+- **Integration / E2E:** the court leaderboard is indexable at **≥ 5** ranked players else `noindex`, the city leaderboard at **≥ 10** else `noindex`; JSON-LD emitted per surface (`BreadcrumbList` + `ItemList` on boards, `Person.award[]` on profiles, `FAQPage` on `/elite`); **JS-off renders of every decorated page stay complete** (the existing render-moat tests extend to the new modules); `lastmod` moves on Captain/Trailblazer changes but **not** on badge/RP changes; the `leaderboards` sitemap segment lists only boards clearing threshold; `robots.txt` disallows the OG + account routes.
+- **Manual:** load each decorated/board page with **JS disabled** in Chrome and confirm the server content is intact; Lighthouse/CWV green on board pages.
 
 ---
 
@@ -1033,7 +1180,11 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
 
 ---
 
-## G19. Test strategy (per the §14 pyramid)
+## G19. Test & verification strategy (per the §14 pyramid)
+
+Every feature in this layer ships with a **four-tier verification contract** — **unit / property** (pure `lib/gamify/`, no I/O), **integration** (DynamoDB Local — every access pattern resolves in one Query/GetItem, no scans, §9.6), **E2E** (Playwright journeys J10–J12 plus extended J1/J5/J7/J9), and **manual verification** (drive the real flow in Chrome per CLAUDE.md: mobile 390px + desktop, `read_console_messages` clean, **axe** zero-serious, design-fidelity against `design/views/14.x`, and JS-off completeness for every server-rendered surface — the repo's `verify` skill discipline of *observing behavior end-to-end*, not just green tests). **G19.1** states the foundations shared across features; **each feature section (G4–G17) then carries its own inline `Verification` block** giving that feature's four-tier strategy, and **G19.2** indexes them. The phase gates (G21) sequence these tiers into ship criteria and G22 rolls up coverage.
+
+### G19.1 Cross-cutting foundations
 
 - **Unit / property (heaviest — pure `lib/gamify/`):** level thresholds (monotonic, watermark never regresses); earn-rule table (every E-rule: points, cap-family assignment, cap-window rollover at user-tz midnight, G13.0); streak calendar (ISO-week edges, DST, Rain Check spend/earn/repair — property: any action sequence yields a valid streak state); badge tier function (monotonic; a counter jump crossing multiple thresholds lands on the highest tier); quest predicate matching; leaderboard rank ordering + tie rules; sourceKey derivation (bijective per action — property: distinct actions ⇒ distinct keys, replays ⇒ identical keys).
 - **Component:** level ring, quest rows, badge tiles (locked/progress/earned), toasts (coalescing), leaderboard tables, streak chip, settings group — all states + **axe** clean, reduced-motion asserted on the level-up modal.
@@ -1045,6 +1196,30 @@ All gamify notifications are additionally gated by `prefs.enabled` (G12.12) — 
   - Existing J1/J9/J5/J7 extend assertions: their confirmation points now also produce the expected ledger rows (and J5's refund claws back).
 - **Determinism:** fixed clock (streaks/months are time-math-heavy); quest selection is seeded per `(uid, isoWeek)` (G9.1); no randomness anywhere in the economy.
 - **Seed-fixture additions (§14.8):** `gamify-streaker` (6-week streak, 1 Rain Check banked, tallies at the fixture court) · `gamify-nearlevel` (10 RP below Level 3 — a single check-in levels them, powering J10) · `gamify-crew` (4 check-ins this month at the fixture court, 3 pinned showcase badges) · three ranked users materializing the fixture court + city boards, one of them `leaderboards=hidden` (J12's privacy assertion) · a mid-progress weekly quest set (2/3 on `checkin3`) · an Elite-eligible user with `status="nominated"` (P4).
+
+### G19.2 Per-feature verification index
+
+The tier-by-tier detail lives **inline** at the end of each feature's own section as a `Verification` block; this table indexes them, their primary emphasis, and their ship phase. Journeys **J10–J12**, the seed fixtures, and the determinism rules are defined once in G19.1 — the inline blocks reference them rather than restating; **Manual** in each block is the CLAUDE.md Chrome pass (mobile 390px + desktop · console clean · axe · design-fidelity · JS-off) against that feature's views (mockups per G12.21).
+
+| Feature (spec) | Primary verification emphasis | E2E | Phase |
+|---|---|---|---|
+| RP economy & `awardXp` (G4, G13.2) | integration — exactly-once + failure isolation | J10 · J5 | P1 |
+| Levels (G5) | property — monotonic watermark | J10 | P1 |
+| Play Streak (G8) | property — the G8.2 state machine | J11 | P2 |
+| Badges (G6) | property (tier fn) + integration (upgrade race) | J10 ext. | P2 |
+| Quests (G9) | integration (instantiation race) + determinism | J11 | P1/P2/P3 |
+| Court Crew / Captain / Trailblazer (G7) | integration — claim race + privacy | J12 | P3 |
+| Leaderboards (G10) | integration — floor-gate + privacy projection | J12 | P3 |
+| Elite (G11) | integration — config evaluator + audit trail | P4 cohort | P4 |
+| Timezone & calendars (G13.0) | property — boundary/DST/self-heal | in J11 | P1 |
+| Sweeps & reconcile (G13.3/G13.8) | integration — idempotence + heal | J12 close | P1/P3 |
+| Notifications (G14) | integration — rail + master gate | J10–J12 | P1–P4 |
+| Analytics & economy monitor (G15) | integration — fire-and-forget | dashboards | P1 |
+| Anti-abuse & integrity (G16) | integration — caps, claw-back, no client writes | J5 | P1–P3 |
+| SEO & indexability (G17) | integration/e2e — thresholds, JSON-LD, JS-off | render-moat | P3 |
+| Component kit & award moments (G12.0/G12.18) | component — all states, axe, reduced-motion | J10 | P1 |
+| Prefs, suppression & holdout (G12.12/G18) | integration + component — surfaces hidden | suppression assert | P1 |
+| Digest & OG cards (G12.19/G12.20) | integration — assembly + robots | J11 digest | P2 |
 
 ---
 
@@ -1110,7 +1285,7 @@ Every visual below is **net-new — the system today has no badge, level, point,
 | # | System | Artifacts | Count | Phase |
 |---|---|---|---|---|
 | 1 | **Rally Points mark** | The RP currency glyph (e.g. a branded pickleball-coin) used by `RpDelta` in toasts, chips, the ledger, and the check-in sheet — the single most-seen new asset on the platform | 1 | P1 |
-| 2 | **Level emblems** | One emblem per level 1–10 (`Paddle Rookie` → `Legend`) for the level-up modal hero, the `/og/level` card, and the Progress header — a visual crescendo: Rookie reads friendly, Legend reads *earned* | 10 | P1 |
+| 2 | **Level emblems** | One rank-insignia medallion per level 1–10 (`Paddle Rookie` → `Legend`) for the level-up modal hero, the `/og/level` card, and the Progress header — an ascending **status ladder** (chevrons → stars → pedestal-and-rays → crown), each reading unmistakably as a higher rank than the last, not as a picture of pickleball gear | 10 | P1 |
 | 3 | **Level ring** | Art direction for the `LevelRing` component (not a static asset): track/fill stroke treatment at 24/48/96px, token colors, dark-mode behavior, the fill-tick motion | spec | P1 |
 | 4 | **Quest & ledger action icons** | One glyph per action type — check-in, new-court/explore, review, photo, helpful, RSVP, follow, competitive match, host, community — shared by `QuestRow`s, ledger rows, and gamify notification types | 10 | P1 (the starter trio) / P2 (rest) |
 | 5 | **Celebration motion** | The level-up celebration (brand-flavored — bouncing pickleballs, not stock confetti; ≤2s, CSS or Lottie) **plus its mandatory static reduced-motion frame**, and the badge-toast micro-bounce | 2 pieces + fallback frame | P1 |
@@ -1150,49 +1325,49 @@ Each prompt below is a **complete, self-contained instruction you can paste dire
 **Row 1 — Rally Points mark**
 > A single game-currency reward token shaped like a round pickleball coin tilted slightly toward the viewer, its circular perforated holes arranged in a clean arc across the face and one bold motion swoosh wrapping the lower half like an orbit, reading instantly as a points or reward token. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-**Row 2 — Level emblems (10)** — the 10 rank medallions; ornamentation grows with rank.
-> **Level 1 · Paddle Rookie:** A single friendly upright pickleball paddle with a small ball bouncing beside it along one simple arc, sparsely decorated to signal a beginner rank. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+**Row 2 — Level emblems (10)** — the 10 rank medallions. These must read as an ascending **status ladder**, not as pictures of pickleball gear: a rank-insignia vocabulary that climbs chevrons → stars → pedestal-and-rays → crown, with one small consistent perforated-pickleball emblem at the center of every medallion as the unifying signature. Laurel is deliberately avoided here — it is the Elite program's signature (Row 14) — so the two status systems stay visually distinct.
+> **Level 1 · Paddle Rookie:** A rank-insignia medallion for the lowest newcomer tier: a small perforated pickleball at the center with a single upward chevron stripe beneath it, sparse and humble. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 2 · Dinker:** A pickleball paddle softly tapping a ball into a gentle high arc that just clears a low net. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 2 · Dinker:** A rank-insignia medallion one step above the lowest tier: a small perforated pickleball at the center with two stacked upward chevron stripes beneath it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 3 · Rally Regular:** Two pickleball paddles facing off with a dotted rally arc bouncing twice between them. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 3 · Rally Regular:** A rank-insignia medallion for an established lower tier: a small perforated pickleball at the center with three stacked upward chevron stripes beneath it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 4 · Kitchen Veteran:** A pickleball paddle planted like a signpost on the bold non-volley kitchen line of a stylized court corner. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 4 · Kitchen Veteran:** A rank-insignia medallion where the first star of seniority appears: a small perforated pickleball at the center with three chevron stripes beneath it and a single five-pointed star above it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 5 · Spin Doctor:** A pickleball wrapped in swirling spin ribbons with two orbit lines crossing around it like an atom. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 5 · Spin Doctor:** A mid-tier rank-insignia medallion: a small perforated pickleball at the center flanked by two five-pointed stars, with chevron stripes beneath. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 6 · Drop-Shot Artist:** A pickleball dropping in a steep elegant arc barely clearing a net, with soft landing rings beneath it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 6 · Drop-Shot Artist:** A senior mid-tier rank-insignia medallion: a small perforated pickleball at the center crowned by an arc of three five-pointed stars, with chevron stripes beneath. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 7 · Smash Specialist:** A pickleball paddle frozen at the top of an overhead smash with a starburst impact and clean speed lines. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 7 · Smash Specialist:** An upper-tier rank-insignia medallion where the emblem becomes elevated: a small perforated pickleball and its arc of stars raised on a short pedestal plinth with a low fan of short rays spreading behind it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 8 · Bracket Boss:** A pickleball paddle at the convergence point of tournament bracket lines flowing in from both sides. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 8 · Bracket Boss:** A commanding upper-tier rank-insignia medallion: a small perforated pickleball and its stars raised on a taller pedestal with a fuller sunburst of rays spreading behind it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 9 · Titan:** A monumental pickleball paddle standing on a small pedestal flanked by two laurel sprigs, richly ornamented to signal a high rank. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 9 · Titan:** A monumental high-rank insignia medallion: a small perforated pickleball and its stars topped by a small crown with strong radiant rays bursting behind, imposing and prestigious. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Level 10 · Legend:** A radiant pickleball paddle wearing a small crown and wrapped in a full laurel wreath with subtle rays, the most ornate and prestigious medallion of the set. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Level 10 · Legend:** The top rank-insignia medallion, the most ornate of the set: a small perforated pickleball topped by a large ornate crown and set within a full radiant sunburst halo of rays, unmistakably the highest status. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central design readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 **Row 3 — Level ring:** no generative asset — this is component art direction only (G23.1).
 
 **Row 4 — Quest & ledger action icons (10)**
 > **Check-in:** A rounded location map pin whose inner dot is a perforated pickleball. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Explore new court:** A compass rose with a pickleball at its hub and a small paddle-shaped needle. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Explore new court:** A compass rose with a pickleball at its hub. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Review:** A fountain pen drawing a five-pointed star onto a small card. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Review:** A fountain pen drawing a star onto a small card. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 > **Photo:** A friendly compact camera whose lens is a perforated pickleball. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Helpful:** A thumbs-up hand with one small sparkle star at the tip of the thumb. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Helpful:** A thumbs-up hand. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 > **RSVP:** A calendar page carrying a bold check mark with a tiny ball in one corner. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 > **Follow:** A rounded heart patterned with pickleball perforation holes. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Competitive match:** Two crossed pickleball paddles above a taut net band with a small spark between them. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Competitive match:** Two crossed pickleball paddles above a taut net. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 > **Host:** A coach's whistle on a lanyard curling around a clipboard. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Community:** A waving pennant flag with three overlapping friendly dots beneath it. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Community:** A waving pennant flag. Center it in a square 1:1 frame filling about 70 percent of the frame on a plain solid white background, keeping it ultra-legible at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 **Row 5 — Celebration keyframes (2)**
 > **Level-up terminal frame** — also the reduced-motion still: A symmetrical celebration burst made of small pickleballs, small paddle silhouettes, and scattered confetti chips radiating outward from an empty circular hollow center where a separate emblem will later be placed, with thin energy rays and a balanced joyful feel. Center it in a square 1:1 frame on a plain solid white background and leave the middle circle empty. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
@@ -1238,17 +1413,17 @@ Each prompt below is a **complete, self-contained instruction you can paste dire
 > **Platinum tier:** An empty circular badge frame with a hollow center, four small rounded notch pips at the bottom edge of the ring, and subtle geometric faceting around the ring, representing the top of four collectible tiers. Center it in a square 1:1 frame on a plain solid white background and keep it clearly distinguishable from the other tiers even in grayscale. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 **Row 8 — Special badges**
-> **Trailblazer:** A pennant flag planted on an untouched court at sunrise with a single line of footprints leading up to it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Trailblazer:** A single pennant flag planted in the ground. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **First Reviewer:** A quill planting a five-pointed star into a fresh review card the way an explorer plants a flag. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **First Reviewer:** A single quill pen with one five-pointed star beside its tip. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Rung One:** The top rung of a ladder with a small crown resting on it and soft clouds below. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Rung One:** A short ladder with a small crown resting on its top rung. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Champion:** A trophy cup with a pickleball rising out of it like a sun. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Champion:** A simple trophy cup with a small star above it. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Early Adopter:** A young sprout growing from a pickleball that is half-planted in soil. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Early Adopter:** A small two-leaf sprout rising from a little mound of soil. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
-> **Night Owl:** A round owl perched on a pickleball paddle handle beneath a crescent moon and a single court floodlight beam. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
+> **Night Owl:** A simple round owl beside a crescent moon. Compose it as a round badge medallion with a thin circular border ring, centered in a square 1:1 frame on a plain solid white background, keeping the central silhouette readable at small sizes. Do not include any text, letters, or numbers. Use the attached brand identity guide for style.
 
 > **Hidden badge silhouette:** A plain silhouetted round badge with a mysterious hollow feel and a softly embossed curling question-mark symbol at its center, friendly rather than menacing. Compose it as a round badge medallion centered in a square 1:1 frame on a plain solid white background. Aside from that single question-mark symbol, do not include any other text, letters, or numbers. Use the attached brand identity guide for style.
 

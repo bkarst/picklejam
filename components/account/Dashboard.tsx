@@ -12,6 +12,8 @@ import Link from "next/link";
 import { Skeleton } from "@heroui/react";
 import { useMyProfile, useMyRatings } from "@/lib/api/profile";
 import { RATING_LABELS, primaryRating, skillBand } from "./ratings";
+import { GamifyProgressModule } from "./GamifyProgressModule";
+import { GamifyQuestsModule } from "./GamifyQuestsModule";
 
 function Module({
   title,
@@ -107,6 +109,9 @@ export function Dashboard(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <GamifyProgressModule />
+        <GamifyQuestsModule />
+
         <Module title="Next outings">
           <EmptyState
             text="You have no upcoming outings."

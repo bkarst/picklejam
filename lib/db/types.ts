@@ -7,6 +7,11 @@
  * their features. Every item extends `BaseItem` (keys + discriminator + stamps).
  */
 
+// Type-only imports — the gamification pure-logic layer owns the earn-rule + counter
+// vocabularies; these are the single source of truth (no runtime dependency: erased).
+import type { EarnRule, CapFamily } from "@/lib/gamify/earn-rules";
+import type { Counters } from "@/lib/gamify/badges";
+
 // ── shared unions (mirror the seed vocab, §9.8) ─────────────────────────────
 
 export type CourtAccess = "free" | "membership" | "one-time" | "reservation" | null;
@@ -170,6 +175,16 @@ export interface CourtItem extends BaseItem {
   /** Derived: nets=permanent ∧ lines=permanent (N8). */
   dedicated?: boolean;
 
+  // gamification status (§G7 / §G13.7) — race-safe conditional-set claims + month-close writes
+  /** First-ever authed check-in (Trailblazer, §G7.3). */
+  trailblazerUid?: string;
+  trailblazerAt?: string;
+  /** First-ever review (First Reviewer, §G7.3). */
+  firstReviewerUid?: string;
+  /** This month's Court Captain, crowned at the previous month's close (§G7.2). */
+  captainUid?: string;
+  captainMonth?: string; // yyyymm the captaincy is FOR
+
   // provenance / lifecycle (§9.8)
   sourceId?: string;
   source?: string;
@@ -245,12 +260,19 @@ export interface FollowItem extends BaseItem {
   courtId: string;
 }
 
-/** Notification types (§9.3). */
+/** Notification types (§9.3; gamification adds the G14 rail). */
 export type NotificationType =
   | "new_game_at_followed_court"
   | "outing_rsvp"
   | "review_helpful"
-  | "system";
+  | "system"
+  // — gamification (§G14) —
+  | "badge_awarded"
+  | "level_up"
+  | "quest_completed"
+  | "court_captain"
+  | "streak_at_risk"
+  | "elite_status";
 
 export interface NotificationItem extends BaseItem {
   entity: "NOTIF";
@@ -1009,4 +1031,178 @@ export interface SubscriberItem extends BaseItem {
   source?: string; // which page/CTA captured them
   confirmedAt?: string;
   createdAt: string;
+}
+
+// ── gamification layer (Gamification PRD §G13) ──────────────────────────────
+
+/** Badge-driving tallies on the gamify profile (single source: lib/gamify/badges). */
+export type GamifyCounters = Counters;
+
+/** User gamification preferences (§G12.12). */
+export interface GamifyPrefs {
+  /** Master switch — hides every surface & silences the toaster (RP still accrues). */
+  enabled: boolean;
+  /** Streak-at-risk reminders (default OFF, §G8). */
+  streakReminders: boolean;
+  /** Weekly digest email. */
+  digest: boolean;
+  /** Appear on leaderboards (forced hidden for private profiles). */
+  leaderboards: "public" | "hidden";
+}
+
+/** The per-user gamify aggregate (§G13.1) — created lazily on first earn (E24). */
+export interface GamifyProfileItem extends BaseItem {
+  entity: "GAMIFY";
+  uid: string;
+  /** Resolved IANA timezone (§G13.0) — self-heals from the browser. */
+  tz?: string;
+  /** Current balance (≥ 0 display floor). */
+  rp: number;
+  /** Lifetime RP (revocations subtract). */
+  rpLifetime: number;
+  /** max(rpLifetime) ever — levels never regress (§G5). */
+  rpLevelWatermark: number;
+  /** Derived level, denormalized for cards. */
+  level: number;
+  // — streak state machine (§G8.1/§G8.2) —
+  streakWeeks: number;
+  streakBest: number;
+  streakPrev?: number;
+  lastPlayedWeek?: string; // ISO week, user tz
+  coveredWeek?: string;
+  brokenAtWeek?: string;
+  lastRepairWeek?: string;
+  rainChecks: number; // 0–2
+  counters: GamifyCounters;
+  /** ≤ 3 pinned badge ids for the public showcase. */
+  showcase?: string[];
+  prefs: GamifyPrefs;
+  /** Per-family daily cap windows, day-keyed (user tz); stale keys pruned by the sweep. */
+  dailyEarn?: Record<string, Partial<Record<CapFamily, number>>>;
+  /** Rolling month window (user tz) — dashboard, personal panel, group boards. */
+  monthEarn?: { month: string; rp: number };
+  eliteYears?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** An append-only, idempotent XP ledger row (§G13.2) — SK IS the deterministic sourceKey. */
+export interface XpLedgerItem extends BaseItem {
+  entity: "XP";
+  uid: string;
+  rule: EarnRule;
+  points: number; // negative for revocations (#REV rows)
+  sourceKey: string;
+  refType?: "court" | "outing" | "tournament" | "league" | "ladder" | "group" | "rr" | "quest";
+  refId?: string;
+  label: string;
+  ts: string;
+  createdAt: string;
+}
+
+/** A tiered badge award (§G13.4) — one row per family, tier upgraded in place. */
+export interface BadgeAwardItem extends BaseItem {
+  entity: "BADGE";
+  uid: string;
+  familyId: string;
+  tier: number; // 1–4; 0 = one-off special
+  awardedAt: string;
+  tierHistory: { tier: number; at: string }[];
+}
+
+/** A quest definition (§G13.5) — weekly / starter / community. */
+export interface QuestItem extends BaseItem {
+  entity: "QUEST";
+  questId: string; // week-stamped for weeklies (§G9.1)
+  kind: "weekly" | "starter" | "community";
+  scope: "user" | string; // cityKey for community quests
+  title: string;
+  /** Typed predicate — which ledger rules / non-ledger ticks count, optional distinct dimension. */
+  rule: { counts: string[]; distinctBy?: "courtId"; target: number };
+  rewardRp: number;
+  startTs: string;
+  endTs: string;
+  badgeId?: string;
+  goal?: number; // community
+  progress?: number; // community (atomic ADD)
+  status: "active" | "closed";
+}
+
+/** Per-user quest progress (§G13.5). */
+export interface QuestProgItem extends BaseItem {
+  entity: "QUESTPROG";
+  uid: string;
+  questId: string;
+  target: number;
+  count: number;
+  /** For `distinctBy` quests: the distinct dimension values seen (e.g. courtIds). */
+  seen?: string[];
+  completedAt?: string;
+}
+
+/** A leaderboard tally — atomic ADD per qualifying earn (§G13.6). */
+export interface LbTallyItem extends BaseItem {
+  entity: "LBTALLY";
+  scope: "court" | "city";
+  scopeId: string; // courtId | cityKey
+  month: string; // yyyymm, scope-local (§G13.0)
+  uid: string;
+  value: number; // check-in days (court) | RP (city)
+}
+
+/** A materialized leaderboard rank row (§G13.6). */
+export interface LbRankItem extends BaseItem {
+  entity: "LBRANK";
+  scope: "court" | "city";
+  scopeId: string;
+  month: string;
+  rank: number;
+  uid: string;
+  value: number;
+  movement?: number; // vs prior month, ± positions
+  displayName: string; // denormalized (public profiles only)
+  username?: string; // denormalized for the profile link (public profiles only)
+  avatarUrl?: string;
+  level?: number;
+}
+
+/** A board partition's rebuild-gate META (§G13.6). */
+export interface LbBoardMetaItem extends BaseItem {
+  entity: "LBMETA";
+  scopeId: string;
+  month: string;
+  floor: number; // lowest ranked value — the rebuild gate
+  rankCount: number;
+  version: number; // optimistic concurrency for rebuilds
+  frozen?: boolean; // admin freeze (§G16)
+  frozenBy?: string; // admin uid — audit trail (§G16.6c)
+  frozenAt?: string;
+  /** The month's Court Captain, recorded at month-close (§G7.2) — powers captain history. */
+  captainUid?: string;
+  captainName?: string; // denormalized (public captains only)
+  captainUsername?: string;
+  captainAvatarUrl?: string;
+}
+
+/** An Elite roster / nomination row (§G13.7). */
+export interface EliteAwardItem extends BaseItem {
+  entity: "ELITEAWARD";
+  year: string;
+  uid: string;
+  status: "nominated" | "approved" | "rejected";
+  nominatedAt: string;
+  decidedAt?: string;
+  decidedBy?: string;
+}
+
+/** A moderation strike (§G13.7) — behind the Elite "zero strikes" criterion. */
+export interface StrikeItem extends BaseItem {
+  entity: "STRIKE";
+  uid: string;
+  reason: string;
+  refType?: string;
+  refId?: string;
+  issuedBy: string;
+  ts: string;
+  expiresAt?: string;
 }

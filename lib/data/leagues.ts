@@ -28,6 +28,7 @@ import { computeFees, money, type Money, type FeeConfig, type FeeMode } from "@/
 import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, refundPayment, getMyPayments } from "@/lib/data/payments";
+import { earnLeagueRegistration, earnLeagueMatch } from "@/lib/data/gamify-earn";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { createNotification } from "@/lib/data/notifications";
 import { buildWeeklySchedule, computeLeagueStandings } from "@/lib/leagues/schedule";
@@ -843,6 +844,11 @@ export async function confirmLeaguePayment(
   trackServerEvent(uid, "payment_succeeded", analyticsProps);
   trackServerEvent(uid, "registration_confirmed", analyticsProps);
 
+  // E13 — a confirmed league registration earns Rally Points (§G4.2). Failure-isolated;
+  // the E13#lid sourceKey dedupes concurrent Stripe sibling events. (E18 consecutive-season
+  // bonus is deferred — it needs a prior-season lookup.)
+  await earnLeagueRegistration(uid, lid);
+
   return { ok: true, registration: updated, payment };
 }
 
@@ -1167,6 +1173,12 @@ export async function confirmScore(
     // ⚙ match_played (§2.1) — a league fixture is a confirmed match only once the
     // OTHER party confirms the reported score (disputes never count).
     trackServerEvent(uid, "match_played", { kind: "league", lid, week, mid });
+    // E14 — both parties of the two-party handshake earn (§G4.2). Failure-isolated;
+    // each keys its own ledger row (E14#lid#mid in its partition).
+    await Promise.all([
+      earnLeagueMatch(uid, lid, mid),
+      match!.reportedBy && match!.reportedBy !== uid ? earnLeagueMatch(match!.reportedBy, lid, mid) : undefined,
+    ]);
   }
   return updated;
 }

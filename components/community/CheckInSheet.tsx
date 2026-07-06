@@ -17,6 +17,11 @@ import type { JSX } from "react";
 import { ToggleButtonGroup, ToggleButton, Switch } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCheckIn } from "@/lib/api/community";
+import { RpDelta } from "@/components/gamify/RpDelta";
+import { StreakChip } from "@/components/gamify/StreakChip";
+import { QuestRow } from "@/components/gamify/QuestRow";
+import { gamifyCopy } from "@/lib/gamify/copy";
+import type { GamifyBlock } from "@/lib/gamify/block";
 
 const SKILL_OPTIONS = ["2.5", "3.0", "3.5", "4.0", "4.5", "5.0"] as const;
 const MAX_NOTE = 200;
@@ -38,7 +43,9 @@ export function CheckInSheet({
   const [lookingToPlay, setLookingToPlay] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const [result, setResult] = useState<{ count: number; anonymous: boolean } | null>(null);
+  const [result, setResult] = useState<{ count: number; anonymous: boolean; gamify?: GamifyBlock } | null>(
+    null,
+  );
 
   const signedIn = !!user;
 
@@ -81,7 +88,7 @@ export function CheckInSheet({
         lookingToPlay,
         anonymous: !signedIn,
       });
-      setResult({ count: res.todayCount, anonymous: !signedIn });
+      setResult({ count: res.todayCount, anonymous: !signedIn, gamify: res.gamify });
     } catch {
       setError(true);
     } finally {
@@ -141,18 +148,66 @@ export function CheckInSheet({
 
             {result ? (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 rounded-xl bg-success/10 p-4 text-success">
-                  <svg viewBox="0 0 24 24" className="size-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
-                  <p className="text-sm font-medium" role="status">
-                    <span className="font-bold">{result.count}</span> checked in today.
-                  </p>
+                <div role="status" className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-success/10 p-4 text-success">
+                    <svg viewBox="0 0 24 24" className="size-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7" /></svg>
+                    <p className="text-sm font-medium">
+                      <span className="font-bold">{result.count}</span> checked in today.
+                    </p>
+                  </div>
+
+                  {/* Rally Points earned (§G12.2 I1). Level-up + badges are deferred to the
+                      toaster and fire AFTER this sheet closes (I6). */}
+                  {result.gamify && !result.gamify.capped && result.gamify.awards.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+                      <RpDelta points={result.gamify.total} />
+                      {result.gamify.awards.map((a) => (
+                        <span key={a.rule} className="text-xs text-muted">
+                          {a.label} +{a.points}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Streak tick (§G12.2 I2) — first play of the week. */}
+                  {result.gamify?.streak?.firstOfWeek && (
+                    <div className="flex items-center gap-2 px-1">
+                      <StreakChip weeks={result.gamify.streak.weeks} />
+                      <span className="text-sm text-foreground">
+                        {gamifyCopy.streakTick(result.gamify.streak.weeks)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Quest progress bumped by this check-in (§G12.2 I3). */}
+                  {result.gamify?.quests && result.gamify.quests.length > 0 && (
+                    <div className="flex flex-col gap-0.5 rounded-xl bg-surface-secondary px-3 py-1.5">
+                      {result.gamify.quests.map((q) => (
+                        <QuestRow
+                          key={q.questId}
+                          title={q.title}
+                          count={q.count}
+                          target={q.target}
+                          rewardRp={q.rewardRp}
+                          done={q.completed}
+                          compact
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Cap honesty (§G12.2 I4) — caps are surfaced, never silent. */}
+                  {result.gamify?.capped && (
+                    <p className="px-1 text-xs text-muted">{gamifyCopy.capReached}</p>
+                  )}
                 </div>
 
                 {result.anonymous && (
                   <div className="rounded-xl border border-border p-4">
                     <p className="font-semibold text-foreground">Create a profile</p>
                     <p className="mt-1 text-sm text-muted">
-                      Be visible to other players and get invited to games.
+                      Be visible to other players, get invited to games, and earn Rally Points for
+                      every check-in.
                     </p>
                     <button
                       type="button"

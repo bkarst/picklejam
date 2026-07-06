@@ -21,6 +21,13 @@ export const CLIENT_EVENTS = [
   "round_robin_scored",
   "upgrade_clicked", // carries source + rrCreatorToken
   "checkout_started",
+  // — gamification (§G15) —
+  "progress_viewed",
+  "leaderboard_viewed", // carries scope
+  "badge_shared",
+  "quest_viewed",
+  "gamification_disabled", // the health metric for the G2.4 opt-in guarantee
+  "gamification_enabled",
 ] as const;
 
 /** Server-emitted (⚙) confirmed revenue/play events. */
@@ -33,6 +40,16 @@ export const SERVER_EVENTS = [
   "registration_confirmed",
   "connect_onboarding_completed",
   "refund_issued",
+  // — gamification (§G15), emitted fire-and-forget at awardXp / sweep confirmation points —
+  "xp_awarded", // rule, points, refType
+  "level_up", // level
+  "badge_awarded", // familyId, tier
+  "quest_completed", // questId, kind
+  "streak_extended", // weeks
+  "streak_broken",
+  "streak_repaired",
+  "elite_nominated",
+  "elite_awarded", // year
 ] as const;
 
 export type ClientEvent = (typeof CLIENT_EVENTS)[number];

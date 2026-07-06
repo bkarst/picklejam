@@ -92,8 +92,17 @@ describe("court-filters", () => {
     expect(courtMatchesFilters(court({ surface: ["wood"] }), f({ surfaces: ["clay"] }))).toBe(false);
   });
 
+  it("Community frontier facets match unreviewed / no-Trailblazer courts (§G12.10)", () => {
+    expect(courtMatchesFilters(court({ reviewCount: 0 }), f({ community: ["unreviewed"] }))).toBe(true);
+    expect(courtMatchesFilters(court({ reviewCount: 3 }), f({ community: ["unreviewed"] }))).toBe(false);
+    expect(courtMatchesFilters(court({ hasTrailblazer: false }), f({ community: ["no-trailblazer"] }))).toBe(true);
+    expect(courtMatchesFilters(court({ hasTrailblazer: true }), f({ community: ["no-trailblazer"] }))).toBe(false);
+    // OR within the facet: either condition qualifies.
+    expect(courtMatchesFilters(court({ reviewCount: 5, hasTrailblazer: false }), f({ community: ["unreviewed", "no-trailblazer"] }))).toBe(true);
+  });
+
   it("activeFilterCount sums active facets", () => {
-    expect(activeFilterCount(f({ minCourts: 4, types: ["indoor", "lighted"], surfaces: ["clay"] }))).toBe(4);
+    expect(activeFilterCount(f({ minCourts: 4, types: ["indoor", "lighted"], surfaces: ["clay"], community: ["unreviewed"] }))).toBe(5);
   });
 
   it("filterCourts returns only matching courts", () => {

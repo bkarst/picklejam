@@ -32,6 +32,9 @@ export interface NearCourt {
   facilityType: string | null;
   amenities: string[];
   surface: string[];
+  // Community frontier facets (§G12.10)
+  reviewCount: number;
+  hasTrailblazer: boolean;
   distanceMeters: number;
 }
 

@@ -11,6 +11,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api/authed";
 import { accountListKeys } from "@/lib/api/account-lists";
+import { publishGamify } from "@/lib/gamify/bus";
+import type { GamifyBlock } from "@/lib/gamify/block";
 import type { CheckinItem, ReviewItem } from "@/lib/db/types";
 
 /** Where the anonymous browser token is persisted between visits. */
@@ -38,6 +40,8 @@ export interface CheckInResult {
   checkin: CheckinItem;
   anonToken?: string;
   todayCount: number;
+  /** Rally-Points piggyback (§G12.0) — absent for anon / prefs-off / holdout / replay. */
+  gamify?: GamifyBlock;
 }
 
 export interface CheckInVars {
@@ -66,7 +70,10 @@ export function useCheckIn(courtId: string) {
       if (result.anonToken) writeAnonToken(result.anonToken);
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Surface earned RP instantly via the toaster bus (§G12.0). The CheckInSheet also
+      // renders the block inline in its success band; the toaster owns level-up/badges.
+      publishGamify(result.gamify);
       void qc.invalidateQueries({ queryKey: communityKeys.checkins(courtId) });
       void qc.invalidateQueries({ queryKey: communityKeys.myCheckins });
     },
@@ -100,17 +107,21 @@ export interface ReviewVars {
   photoUrl?: string;
 }
 
+/** A review upsert response carries the earned-RP piggyback (§G12.0). */
+export type SubmitReviewResult = ReviewItem & { gamify?: GamifyBlock };
+
 /** Create or edit the caller's review for a court (one-per-user upsert). */
 export function useSubmitReview(courtId: string) {
   const authed = useAuthedFetch();
   const qc = useQueryClient();
-  return useMutation<ReviewItem, Error, ReviewVars>({
+  return useMutation<SubmitReviewResult, Error, ReviewVars>({
     mutationFn: (vars) =>
-      authed<ReviewItem>(`/api/courts/${courtId}/review`, {
+      authed<SubmitReviewResult>(`/api/courts/${courtId}/review`, {
         method: "POST",
         body: JSON.stringify(vars),
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      publishGamify(result.gamify);
       void qc.invalidateQueries({ queryKey: communityKeys.reviews(courtId) });
       void qc.invalidateQueries({ queryKey: communityKeys.myReviews });
     },

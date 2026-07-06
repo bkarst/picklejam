@@ -44,6 +44,7 @@ import { outingKeys, courtKeys, groupKeys, userKeys } from "@/lib/db/keys";
 import { courtLocalDay } from "@/lib/directory/court-local-day";
 import { emitInsert, emitRemove } from "@/lib/streams/inline";
 import { trackServerEvent } from "@/lib/analytics/server";
+import { tickQuests } from "@/lib/data/gamify-quests";
 import { getCourt } from "@/lib/data/courts";
 import type {
   OutingItem,
@@ -505,6 +506,9 @@ export async function rsvp(
     ...(waitlistPos !== undefined ? { waitlistPos } : {}),
     goingCount: fresh?.goingCount ?? 0,
   });
+
+  // rsvp1 quest tick (non-ledger, §G9.1) — E19 itself pays at the post-event sweep.
+  if (finalStatus === "going") await tickQuests(uid, [{ tick: "rsvp-going" }]);
 
   return {
     rsvp: item,

@@ -16,16 +16,23 @@ import type { JSX } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { ReviewItem } from "@/lib/db/types";
 import { RatingHistogram, distributionOf } from "./RatingHistogram";
-import { ReviewCard } from "./ReviewCard";
+import { ReviewCard, type ReviewAuthor } from "./ReviewCard";
 import { ReviewComposer } from "./ReviewComposer";
 import { StarsDisplay } from "./Stars";
 
 type Sort = "recent" | "helpful";
+type Authors = Record<string, ReviewAuthor>;
 
-function sortReviews(reviews: ReviewItem[], sort: Sort): ReviewItem[] {
+function sortReviews(reviews: ReviewItem[], sort: Sort, authors: Authors): ReviewItem[] {
   const copy = [...reviews];
   if (sort === "helpful") {
-    return copy.sort((a, b) => (b.helpfulCount ?? 0) - (a.helpfulCount ?? 0));
+    // Most-helpful, with a fixed Crew tiebreak (§G12.16) — a mild local-credibility nudge,
+    // never a hidden multiplier: equal helpful counts break toward Crew reviewers.
+    return copy.sort((a, b) => {
+      const byHelpful = (b.helpfulCount ?? 0) - (a.helpfulCount ?? 0);
+      if (byHelpful !== 0) return byHelpful;
+      return Number(authors[b.uid]?.isCrew ?? false) - Number(authors[a.uid]?.isCrew ?? false);
+    });
   }
   return copy.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 }
@@ -36,12 +43,15 @@ export function ReviewsModule({
   ratingAvg,
   reviewCount,
   mine,
+  authors = {},
 }: {
   courtId: string;
   initialReviews: ReviewItem[];
   ratingAvg: number;
   reviewCount: number;
   mine?: ReviewItem;
+  /** Author-chip data by uid (§G12.16) — public reviewers only; absent ⇒ "Player", no chips. */
+  authors?: Authors;
 }): JSX.Element {
   const { requireAuth } = useAuth();
   const [sort, setSort] = useState<Sort>("recent");
@@ -57,8 +67,8 @@ export function ReviewsModule({
 
   // Others' reviews (exclude "mine"/just-submitted so it isn't shown twice).
   const others = useMemo(
-    () => sortReviews(initialReviews.filter((r) => !effectiveMine || r.sk !== effectiveMine.sk), sort),
-    [initialReviews, effectiveMine, sort],
+    () => sortReviews(initialReviews.filter((r) => !effectiveMine || r.sk !== effectiveMine.sk), sort, authors),
+    [initialReviews, effectiveMine, sort, authors],
   );
 
   const openComposer = () => requireAuth(() => setComposerOpen(true));
@@ -148,7 +158,7 @@ export function ReviewsModule({
         <div className="flex flex-col">
           {effectiveMine && <ReviewCard review={effectiveMine} mine actions={<span className="text-xs font-medium text-accent">Your review</span>} />}
           {others.map((r) => (
-            <ReviewCard key={r.sk || `${r.uid}-${r.createdAt}`} review={r} />
+            <ReviewCard key={r.sk || `${r.uid}-${r.createdAt}`} review={r} author={authors[r.uid]} />
           ))}
         </div>
       ) : (

@@ -33,6 +33,15 @@ export function cityUrlFromKey(cityKey: string): string {
   return cityPath(country, state, city);
 }
 
+/** City leaderboard path (§G12.9) — reuses the geo trail under `/leaderboards`. */
+export const cityLeaderboardPath = (country: string, state: string, city: string): string =>
+  `/leaderboards/${country}/${state}/${city}`;
+
+/** Build a city's leaderboard URL from its item. */
+export function cityLeaderboardUrl(city: Pick<CityItem, "country" | "state" | "slug">): string {
+  return cityLeaderboardPath(city.country, city.state, city.slug);
+}
+
 export function stateUrl(state: Pick<StateItem, "country" | "code">): string {
   return statePath(state.country, state.code);
 }

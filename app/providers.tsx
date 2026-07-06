@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { GamifyToaster } from "@/components/gamify/GamifyToaster";
 
 function makeQueryClient(): QueryClient {
   return new QueryClient({
@@ -48,7 +49,10 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <I18nProvider locale="en-US">
         <RouterProvider navigate={(href: string) => router.push(href)}>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <GamifyToaster />
+          </AuthProvider>
         </RouterProvider>
       </I18nProvider>
     </QueryClientProvider>

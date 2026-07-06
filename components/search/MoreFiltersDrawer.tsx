@@ -26,6 +26,7 @@ import {
   ACCESS_OPTIONS,
   activeFilterCount,
   AMENITY_OPTIONS,
+  COMMUNITY_OPTIONS,
   type CourtFilters,
   EMPTY_FILTERS,
   NUMBER_OPTIONS,
@@ -171,6 +172,19 @@ export function MoreFiltersDrawer({
                 className="flex flex-col gap-1"
               >
                 {SURFACE_OPTIONS.map((o) => (
+                  <FilterCheckbox key={o.value} value={o.value} label={o.label} />
+                ))}
+              </CheckboxGroup>
+            </FilterSection>
+
+            <FilterSection title="Community">
+              <CheckboxGroup
+                aria-label="Community"
+                value={filters.community}
+                onChange={(v) => set({ community: v })}
+                className="flex flex-col gap-1"
+              >
+                {COMMUNITY_OPTIONS.map((o) => (
                   <FilterCheckbox key={o.value} value={o.value} label={o.label} />
                 ))}
               </CheckboxGroup>

@@ -50,6 +50,7 @@ import { computeFees, money, type Money, type FeeConfig, type FeeMode } from "@/
 import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, refundPayment, getMyPayments } from "@/lib/data/payments";
+import { earnTournamentRegistration } from "@/lib/data/gamify-earn";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type {
   TourneyItem,
@@ -899,6 +900,10 @@ export async function confirmRegistrationPayment(
   };
   trackServerEvent(uid, "payment_succeeded", analyticsProps);
   trackServerEvent(uid, "registration_confirmed", analyticsProps);
+
+  // E10 — a confirmed tournament division registration earns Rally Points (§G4.2).
+  // Failure-isolated; the E10#tid#did sourceKey dedupes concurrent Stripe events.
+  await earnTournamentRegistration(uid, tid, did);
 
   return { ok: true, registration: updated, payment };
 }

@@ -23,6 +23,7 @@ import { GSI } from "@/lib/db/table";
 import { userKeys, usernameKey } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
 import { emitInsert } from "@/lib/streams/inline";
+import { earnSignup, earnStarterStep } from "@/lib/data/gamify-earn";
 import type { AuthedUser } from "@/lib/auth/verify";
 import type {
   UserProfileItem,
@@ -283,6 +284,9 @@ export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileI
       // Streams Lambda in prod). The new profile has no homeCityKey yet, so this attributes
       // no player until onboarding sets the city (a MODIFY the PUT route emits, M14).
       await emitInsert(profile as unknown as Record<string, unknown>);
+      // Welcome bonus (E24) — once ever, at profile creation (endowed progress, G2.2).
+      // Failure-isolated: never blocks profile creation.
+      await earnSignup(user.uid);
       return profile;
     } catch (err) {
       if (err instanceof UsernameTakenError) {
@@ -368,4 +372,7 @@ export async function completeOnboarding(
     update: "SET onboarded = :t, completedSteps = :steps, updatedAt = :now",
     values: { ":t": true, ":steps": merged, ":now": new Date().toISOString() },
   });
+  // Starter step (E25 "complete your profile") — once ever; the sourceKey dedupes so a
+  // resumed / re-run onboarding never re-pays. Failure-isolated.
+  await earnStarterStep(uid, "profile");
 }

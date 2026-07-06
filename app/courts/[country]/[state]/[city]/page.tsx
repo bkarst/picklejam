@@ -4,9 +4,13 @@ import { notFound } from "next/navigation";
 import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
 import { getCourtsInCity, getCourt } from "@/lib/data/courts";
 import { getCityGames } from "@/lib/data/outings";
+import { getCityBoard, cityBoardMonth } from "@/lib/data/gamify-boards";
+import { getCityCommunityQuest } from "@/lib/data/gamify-community";
+import { CommunityQuestBar } from "@/components/gamify/CommunityQuestBar";
+import { CityActiveTeaser } from "@/components/gamify/CityActiveTeaser";
 import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
 import { OutingCard } from "@/components/outings/OutingCard";
-import { cityGamesPath } from "@/lib/urls";
+import { cityGamesPath, cityLeaderboardPath } from "@/lib/urls";
 import { buildMetadata, cityTitle } from "@/lib/seo/metadata";
 import { itemListJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
@@ -61,6 +65,12 @@ export default async function CityPage({ params }: { params: Params }) {
     nowMs(),
   );
   const upcomingGames = (await getCityGames(cityItem.cityKey, cityDay)).slice(0, 3);
+  // Gamification aside modules (§G12.8): a live community quest + the city RP board teaser.
+  const cityMonth = cityBoardMonth(nowMs());
+  const [communityQuest, cityBoard] = await Promise.all([
+    getCityCommunityQuest(cityItem.cityKey, nowMs()),
+    getCityBoard(cityItem.cityKey, cityMonth),
+  ]);
   // Hydrate the (≤3) games' court names so the cards link to the venue.
   const upcomingCourts = new Map(
     (
@@ -143,6 +153,17 @@ export default async function CityPage({ params }: { params: Params }) {
 
         {/* Aside */}
         <aside className="flex flex-col gap-6">
+          {/* Community quest (§G12.8-I1) — server frame + client-hydrated live progress */}
+          {communityQuest && (
+            <CommunityQuestBar
+              questId={communityQuest.questId}
+              month={cityMonth}
+              title={communityQuest.title}
+              goal={communityQuest.goal ?? communityQuest.rule.target}
+              initialProgress={communityQuest.progress ?? 0}
+            />
+          )}
+
           {/* Upcoming games in the city (§6.7) → full finder at /play */}
           <section className="rounded-2xl border border-border bg-surface p-4">
             <div className="flex items-baseline justify-between">
@@ -177,6 +198,11 @@ export default async function CityPage({ params }: { params: Params }) {
               Run a tournament →
             </Link>
           </section>
+
+          {/* Most active this month (§G12.8-I2) — hidden below 3 ranked players */}
+          {cityBoard.length >= 3 && (
+            <CityActiveTeaser board={cityBoard} cityName={cityItem.name} leaderboardHref={cityLeaderboardPath(country, state, city)} />
+          )}
 
           {/* Popular searches */}
           <section className="rounded-2xl border border-border bg-surface p-4">

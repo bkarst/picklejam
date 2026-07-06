@@ -403,6 +403,12 @@ export const legalDocs: Record<LegalDocSlug, LegalDoc> = {
         ],
       },
       {
+        heading: "Fair play and Rally Points",
+        body: [
+          `${NAME} rewards real play with Rally Points, levels, and badges. Keep it honest: fabricated check-ins, farming or trading points, fake or coordinated reviews, and other attempts to game these features are not allowed. We may reverse Rally Points, remove badges or standings, and — for serious or repeated abuse — issue a moderation strike that can void your points and any Elite eligibility.`,
+        ],
+      },
+      {
         heading: "Reporting and enforcement",
         body: [
           `If you see something that breaks these guidelines, report it or email ${SUPPORT}. We review reports and may remove content, issue warnings, or suspend or remove accounts that violate these guidelines or our Terms. We try to be fair and proportionate, and serious or repeated violations may result in a permanent ban.`,

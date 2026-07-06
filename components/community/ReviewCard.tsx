@@ -12,11 +12,18 @@
 import type { JSX, ReactNode } from "react";
 import { Chip } from "@heroui/react";
 import type { ReviewItem } from "@/lib/db/types";
+import { LevelChip } from "@/components/gamify/LevelChip";
 import { StarsDisplay } from "./Stars";
 
 export interface ReviewAuthor {
   name?: string;
   avatarUrl?: string;
+  /** Gamification (§G12.16) — hydrated for public reviewers; absent ⇒ no chips. */
+  level?: number;
+  /** Crew at THIS court (≥4 check-in days this window, §G7.1). */
+  isCrew?: boolean;
+  /** Elite member (any year) — a subtle review crest (§G11/§G12.17). */
+  isElite?: boolean;
 }
 
 function initialOf(name: string | undefined): string {
@@ -87,6 +94,17 @@ export function ReviewCard({
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className="font-semibold text-foreground">{name}</span>
+            {/* Elite crest (§G11) — subtle, ≤14px, a trusted-local-voice marker. */}
+            {author?.isElite && (
+              <span className="text-[14px] leading-none text-warning" role="img" aria-label="Elite member" title="Elite member">🏆</span>
+            )}
+            {/* Gamification chips (§G12.16) — only for hydrated (public) authors, never "Player". */}
+            {author?.level != null && <LevelChip level={author.level} size="sm" />}
+            {author?.isCrew && (
+              <Chip size="sm" variant="soft" color="success" aria-label="Court Crew member">
+                Crew
+              </Chip>
+            )}
             <StarsDisplay rating={review.rating1to5} size="sm" />
           </div>
           {date && <time className="shrink-0 text-xs text-muted">{date}</time>}

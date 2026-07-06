@@ -21,6 +21,7 @@ import { courtKeys } from "@/lib/db/keys";
 import { getCourt } from "@/lib/data/courts";
 import { courtLocalDay } from "@/lib/directory/court-local-day";
 import { createCheckin, getCourtCheckinsToday, getMyCheckins } from "@/lib/data/checkins";
+import { earnCheckin } from "@/lib/data/gamify-earn";
 import {
   issueAnonToken,
   getAnonCheckinsForDay,
@@ -108,8 +109,21 @@ export async function POST(
         lookingToPlay: fields.lookingToPlay,
         day,
       });
+      // Rally Points — after the durable write (failure-isolated). Anonymous check-ins
+      // earn nothing (§G2.4); the block is absent when the account hid its identity.
+      const gamify = fields.anonymous
+        ? undefined
+        : await earnCheckin({
+            uid,
+            courtId,
+            courtName: court.name,
+            courtCityKey: court.cityKey,
+            day,
+            note: fields.note,
+            lookingToPlay: fields.lookingToPlay,
+          });
       const todayCount = (await getCourtCheckinsToday(courtId, day)).length;
-      return Response.json({ checkin, todayCount });
+      return Response.json({ checkin, todayCount, ...(gamify ? { gamify } : {}) });
     }
 
     // ── anonymous check-in ────────────────────────────────────────────────────

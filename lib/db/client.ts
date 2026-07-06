@@ -51,6 +51,15 @@ function keyAttrs(index?: IndexName): { pk: string; sk: string } {
   }
 }
 
+/**
+ * Cast a typed item to the `Record<string, unknown>` the write helpers accept. Typed entity
+ * interfaces (from `lib/db/types.ts`) lack an index signature, so a put/tx of one needs this
+ * one-line widening — shared here instead of re-declared in every data module.
+ */
+export function asRecord(o: unknown): Record<string, unknown> {
+  return o as Record<string, unknown>;
+}
+
 // ── Reads ─────────────────────────────────────────────────────────────────
 
 /** GetItem by primary key. */

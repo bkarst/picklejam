@@ -14,6 +14,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { getCourt } from "@/lib/data/courts";
 import { upsertReview, deleteReview } from "@/lib/data/reviews";
+import { earnReview } from "@/lib/data/gamify-earn";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,8 @@ async function upsert(req: NextRequest, ctx: { params: Promise<{ courtId: string
   return guarded(async () => {
     const { courtId } = await ctx.params;
     const user = await requireAuth(req);
-    if (!(await getCourt(courtId))) bad("Court not found", 404);
+    const court = await getCourt(courtId);
+    if (!court) bad("Court not found", 404);
 
     const body = await jsonBody(req);
     const rating = body.rating1to5;
@@ -89,7 +91,17 @@ async function upsert(req: NextRequest, ctx: { params: Promise<{ courtId: string
       tags,
       photoUrl,
     });
-    return Response.json(review);
+    // Rally Points — after the durable write (failure-isolated). E5 pays first-publish
+    // only (edits dedupe via the ledger row); E6/E7 pay when newly qualifying.
+    const gamify = await earnReview({
+      uid: user.uid,
+      courtId,
+      courtName: court.name,
+      body: text,
+      hasPhoto: !!review.photoUrl,
+      checkinVerified: !!review.checkinVerified,
+    });
+    return Response.json({ ...review, ...(gamify ? { gamify } : {}) });
   });
 }
 

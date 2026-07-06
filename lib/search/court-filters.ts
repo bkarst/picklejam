@@ -22,6 +22,9 @@ export interface FilterableCourt {
   facilityType?: string | null;
   amenities?: string[] | null;
   surface?: string[] | null;
+  // Community frontier facets (§G12.10)
+  reviewCount?: number;
+  hasTrailblazer?: boolean;
 }
 
 export interface CourtFilters {
@@ -35,6 +38,8 @@ export interface CourtFilters {
   amenities: string[];
   /** Subset of SURFACE_OPTIONS values (lowercased surface tokens). */
   surfaces: string[];
+  /** Subset of COMMUNITY_OPTIONS values (the G7.3 exploration frontier). */
+  community: string[];
 }
 
 export const EMPTY_FILTERS: CourtFilters = {
@@ -43,6 +48,7 @@ export const EMPTY_FILTERS: CourtFilters = {
   access: [],
   amenities: [],
   surfaces: [],
+  community: [],
 };
 
 // ── option lists (drive the panel UI) ───────────────────────────────────────
@@ -105,6 +111,12 @@ export const SURFACE_OPTIONS: { value: string; label: string }[] = [
   "Grass",
 ].map((label) => ({ value: label.toLowerCase(), label }));
 
+/** The G7.3 exploration frontier — courts that need a first review / first check-in. */
+export const COMMUNITY_OPTIONS: { value: string; label: string }[] = [
+  { value: "unreviewed", label: "Unreviewed courts" },
+  { value: "no-trailblazer", label: "No Trailblazer yet" },
+];
+
 // ── matching ─────────────────────────────────────────────────────────────
 
 const norm = (s: string) => s.toLowerCase().trim();
@@ -148,6 +160,12 @@ function surfaceMatches(c: FilterableCourt, value: string): boolean {
   return (c.surface ?? []).some((s) => norm(s) === value);
 }
 
+function communityMatches(c: FilterableCourt, value: string): boolean {
+  if (value === "unreviewed") return (c.reviewCount ?? 0) === 0;
+  if (value === "no-trailblazer") return !c.hasTrailblazer;
+  return false;
+}
+
 /** Whether a court satisfies every active facet (AND across facets, OR within). */
 export function courtMatchesFilters(c: FilterableCourt, f: CourtFilters): boolean {
   if (f.minCourts > 0 && (c.totalCourts ?? 0) < f.minCourts) return false;
@@ -155,6 +173,7 @@ export function courtMatchesFilters(c: FilterableCourt, f: CourtFilters): boolea
   if (f.access.length && !f.access.some((a) => accessMatches(c, a))) return false;
   if (f.amenities.length && !f.amenities.some((v) => amenityMatches(c, v))) return false;
   if (f.surfaces.length && !f.surfaces.some((v) => surfaceMatches(c, v))) return false;
+  if (f.community.length && !f.community.some((v) => communityMatches(c, v))) return false;
   return true;
 }
 
@@ -165,6 +184,11 @@ export function filterCourts<T extends FilterableCourt>(courts: T[], f: CourtFil
 /** Count of active facets — drives the "Filters (N)" badge. */
 export function activeFilterCount(f: CourtFilters): number {
   return (
-    (f.minCourts > 0 ? 1 : 0) + f.types.length + f.access.length + f.amenities.length + f.surfaces.length
+    (f.minCourts > 0 ? 1 : 0) +
+    f.types.length +
+    f.access.length +
+    f.amenities.length +
+    f.surfaces.length +
+    f.community.length
   );
 }

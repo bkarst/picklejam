@@ -55,6 +55,7 @@ import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, getMyPayments, type WritePaymentInput } from "@/lib/data/payments";
 import { trackServerEvent } from "@/lib/analytics/server";
+import { earnLadderMatch } from "@/lib/data/gamify-earn";
 import { createNotification } from "@/lib/data/notifications";
 import { getUserProfile } from "@/lib/data/users";
 import { canChallenge, applyResult, dueDateFrom, isExpired } from "@/lib/ladders/rerank";
@@ -1034,6 +1035,14 @@ export async function confirmChallengeResult(
     cid,
     winnerUid: challenge!.winnerUid,
   });
+
+  // E16 — BOTH participants earn (win or lose; playing is the behavior, §G4.2).
+  // Failure-isolated; each keys its own E16#lid#cid row. (E17 rung-climb bonus is
+  // deferred — it needs the net rungs moved from applyOutcome.)
+  await Promise.all([
+    earnLadderMatch(challenge!.challengerUid, lid, cid),
+    earnLadderMatch(challenge!.challengedUid, lid, cid),
+  ]);
 
   const ladder = await getLadderMeta(lid);
   for (const p of [challenge!.challengerUid, challenge!.challengedUid]) {

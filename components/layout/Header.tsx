@@ -45,9 +45,24 @@ const ICONS = {
   user: "M20 21a8 8 0 10-16 0M12 11a4 4 0 100-8 4 4 0 000 8z",
 };
 
+/**
+ * True only after the first client render. The server can't know the persisted theme
+ * (`heroui-theme` lives in localStorage), so any theme-dependent render must match the
+ * server's default on the first client render, then correct after mount — otherwise the
+ * theme toggle's icon/label hydration-mismatches. The no-FOUC head script (layout.tsx)
+ * already applies the real theme to <html> before paint, so there's no visual flash of
+ * the wrong theme — only the (invisible, aria-only) toggle affordance settles post-mount.
+ */
+function useMounted(): boolean {
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the standard mount latch
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const isDark = useMounted() && resolvedTheme === "dark";
   return (
     <button
       type="button"
@@ -64,7 +79,7 @@ export function Header() {
   const pathname = usePathname();
   const { user, signOut, openAuth } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const isDark = useMounted() && resolvedTheme === "dark";
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const mobile = useOverlayState(); // HeroUI Drawer state (backdrop, focus-trap, Esc, scroll-lock)
   const navRef = useRef<HTMLElement>(null);

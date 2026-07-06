@@ -16,9 +16,11 @@
 import type { JSX } from "react";
 import Link from "next/link";
 import { Skeleton } from "@heroui/react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useGroup } from "@/lib/api/groups";
 import { MembershipButton } from "@/components/groups/MembershipButton";
 import { MemberStatusList } from "@/components/groups/MemberStatusList";
+import { BoardTable } from "@/components/gamify/BoardTable";
 import { groupManagePath } from "@/lib/urls";
 import type { GroupJoinPolicy } from "@/lib/db/types";
 
@@ -28,6 +30,7 @@ export interface GroupDetailClientProps {
 }
 
 export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProps): JSX.Element {
+  const { user } = useAuth();
   const { data, isLoading } = useGroup(groupId);
   const membership = data?.membership ?? null;
   const isManager = membership?.role === "owner" || membership?.role === "admin";
@@ -73,6 +76,40 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
           )}
         </div>
       </section>
+
+      {/* This month — members-only RP board (§G12.13). Absent for non-members. */}
+      {data?.board && (
+        <section className="rounded-2xl border border-border bg-surface p-5">
+          <h2 className="font-display text-lg font-bold text-foreground">This month</h2>
+          <div className="mt-3">
+            {data.board.rows.length > 0 ? (
+              <>
+                <BoardTable
+                  rows={data.board.rows.map((r) => ({
+                    rank: r.rank,
+                    uid: r.uid,
+                    username: r.username,
+                    displayName: r.displayName,
+                    avatarUrl: r.avatarUrl,
+                    level: r.level,
+                    value: r.value,
+                  }))}
+                  valueHeader="Rally Points"
+                  highlightUid={user?.uid}
+                  showMovement={false}
+                />
+                {data.board.hiddenCount > 0 && (
+                  <p className="mt-2 text-xs text-muted">
+                    {data.board.hiddenCount} member{data.board.hiddenCount === 1 ? "" : "s"} hide leaderboards.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted">No Rally Points yet this month — first outing wins it.</p>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

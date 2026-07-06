@@ -13,6 +13,11 @@ import { RatingTiles } from "@/components/account/RatingTiles";
 import { primaryRating, skillBand } from "@/components/account/ratings";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { courtUrl } from "@/lib/urls";
+import { getGamifyProfile } from "@/lib/data/gamify";
+import { getMyBadges } from "@/lib/data/gamify-badges";
+import { levelName } from "@/lib/gamify/levels";
+import { LevelChip } from "@/components/gamify/LevelChip";
+import { BadgeTile } from "@/components/gamify/BadgeTile";
 import type { UserProfileItem } from "@/lib/db/types";
 
 export const revalidate = 3600;
@@ -119,10 +124,11 @@ export default async function PlayerProfilePage({ params }: { params: Params }) 
   // Private profiles never leak fields, and are noindex (see generateMetadata).
   if (!profileIsIndexable(user)) return <PrivateProfile user={user} />;
 
-  const [ratings, cities, homeCourt] = await Promise.all([
+  const [ratings, cities, homeCourt, gamify] = await Promise.all([
     getUserRatings(user.uid),
     user.homeCityKey ? getCitiesByKeys([user.homeCityKey]) : Promise.resolve([]),
     user.homeCourtId ? getCourt(user.homeCourtId) : Promise.resolve(undefined),
+    getGamifyProfile(user.uid),
   ]);
 
   const city = cities[0];
@@ -130,6 +136,20 @@ export default async function PlayerProfilePage({ params }: { params: Params }) 
   const primary = primaryRating(ratings, user.defaultRatingSource);
   const band = skillBand(primary?.value);
   const since = memberSince(user.createdAt);
+
+  // Gamification is public on public profiles, but suppressed if the owner turned it off (§G12.4).
+  const gamifyOn = !!gamify && gamify.prefs.enabled;
+  // Elite (§G11): a subtle gold profile ring + chip when the member holds any Elite year.
+  const eliteYears = gamifyOn ? (gamify?.eliteYears ?? []) : [];
+  const isElite = eliteYears.length > 0;
+  const eliteLatest = isElite ? [...eliteYears].sort().at(-1) : undefined;
+  const badgesView = gamifyOn
+    ? await getMyBadges(user.uid, { ...gamify.counters, streakBest: gamify.streakBest }, gamify.showcase ?? [])
+    : null;
+  const showcaseBadges = (badgesView?.showcase ?? [])
+    .map((id) => badgesView!.entries.find((e) => e.familyId === id))
+    .filter((e): e is NonNullable<typeof e> => !!e && e.tier > 0);
+  const earnedBadges = badgesView?.entries.filter((e) => e.tier > 0) ?? [];
 
   return (
     <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
@@ -141,7 +161,7 @@ export default async function PlayerProfilePage({ params }: { params: Params }) 
           {/* Header */}
           <section className="rounded-2xl border border-border bg-surface p-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <Avatar className="size-24 shrink-0 text-2xl sm:size-28">
+              <Avatar className={`size-24 shrink-0 text-2xl sm:size-28${isElite ? " ring-4 ring-warning/70 ring-offset-2 ring-offset-surface" : ""}`}>
                 {user.avatarUrl && <Avatar.Image src={user.avatarUrl} alt={user.displayName} />}
                 <Avatar.Fallback className="bg-accent text-accent-foreground">
                   {initials(user.displayName)}
@@ -162,8 +182,25 @@ export default async function PlayerProfilePage({ params }: { params: Params }) 
                       {location}
                     </p>
                   )}
+                  {gamifyOn && gamify && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <LevelChip level={gamify.level} name={levelName(gamify.level)} />
+                      {isElite && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-sm font-semibold text-warning">
+                          <span aria-hidden="true">🏆</span> Elite{eliteLatest ? ` ${eliteLatest}` : ""}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <RatingTiles ratings={ratings} />
+                {showcaseBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-2" aria-label="Pinned badges">
+                    {showcaseBadges.map((b) => (
+                      <BadgeTile key={b.familyId} name={b.name} tier={b.tier} tierName={b.tierName} earned size="sm" />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -207,17 +244,40 @@ export default async function PlayerProfilePage({ params }: { params: Params }) 
               <DetailRow icon={ICONS.bars} label="Skill band">
                 {band ?? <span className="text-muted">Unrated</span>}
               </DetailRow>
+              {gamifyOn && gamify && (
+                <DetailRow icon={ICONS.bars} label="Level">
+                  {gamify.level} · {levelName(gamify.level)}
+                </DetailRow>
+              )}
+              {gamifyOn && gamify && gamify.streakWeeks > 0 && (
+                <DetailRow icon={ICONS.clock} label="Play streak">
+                  {gamify.streakWeeks} {gamify.streakWeeks === 1 ? "week" : "weeks"}
+                </DetailRow>
+              )}
             </dl>
           </section>
 
-          {/* Achievement badges — Stage 3/4; empty state for now. */}
+          {/* Achievement badges — the trophy case (§G12.4-I4). */}
           <section className="rounded-2xl border border-border bg-surface p-6">
             <h2 className="font-display text-sm font-bold uppercase tracking-wide text-accent">
               Achievement badges
             </h2>
-            <p className="mt-3 text-sm text-muted">
-              Badges are earned by playing, hosting, and reviewing. None yet — the courts are calling.
-            </p>
+            {earnedBadges.length > 0 ? (
+              <>
+                <p className="mt-1 text-sm text-muted">
+                  {earnedBadges.length} {earnedBadges.length === 1 ? "badge" : "badges"} earned
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {earnedBadges.map((b) => (
+                    <BadgeTile key={b.familyId} name={b.name} tier={b.tier} tierName={b.tierName} earned />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-muted">
+                Badges are earned by playing, hosting, and reviewing. None yet — the courts are calling.
+              </p>
+            )}
           </section>
         </aside>
       </div>

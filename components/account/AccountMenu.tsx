@@ -18,6 +18,7 @@ import { usePathname } from "next/navigation";
 import { Avatar, Skeleton } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { accountNav } from "@/lib/nav";
+import { GamifyMenuRow } from "@/components/account/GamifyMenuRow";
 
 function initials(name: string | null, email: string | null): string {
   const base = name?.trim() || email?.split("@")[0] || "";
@@ -102,6 +103,7 @@ export function AccountMenu(): JSX.Element {
             </p>
             {user.email && <p className="truncate text-xs text-muted">{user.email}</p>}
           </div>
+          <GamifyMenuRow onNavigate={() => setOpen(false)} />
           <div className="my-1 h-px bg-border" />
           <ul className="flex flex-col">
             {accountNav.map((link) => (

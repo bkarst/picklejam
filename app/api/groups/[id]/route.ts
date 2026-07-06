@@ -19,6 +19,7 @@ import {
   deleteGroup,
   type UpdateGroupInput,
 } from "@/lib/data/groups";
+import { getGroupBoard } from "@/lib/data/gamify-boards";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
 import { mapGroupErrors } from "../_util";
 import type { GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
@@ -70,11 +71,15 @@ export async function GET(
       ...(m.joinedAt !== undefined ? { joinedAt: m.joinedAt } : {}),
     }));
 
+    // The "This month" RP board (§G12.13) is members-only — never in the shared ISR shell.
+    const board = isMember ? await getGroupBoard(memberViews, uid, Date.now()) : undefined;
+
     return Response.json({
       group,
       membership: mine ? { role: mine.role, status: mine.status } : null,
       members: memberViews,
       memberCount: group.memberCount,
+      ...(board ? { board } : {}),
       // Meet-ups (+ court refs) travel on this per-viewer response so a PRIVATE group's
       // schedule is delivered CLIENT-SIDE to members only — it is never baked into the
       // shared, cached ISR shell (which would leak it to non-members).

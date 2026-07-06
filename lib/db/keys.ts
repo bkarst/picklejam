@@ -499,6 +499,73 @@ export const systemKeys = {
   anonCheckinDayPrefix: (day: string): string => `CHECKIN${SEP}${day}${SEP}`,
 } as const;
 
+// ── Gamification layer (Gamification PRD §G13; access patterns #29–38) ────────
+
+export const gamifyKeys = {
+  /** Per-user gamify aggregate (#29). */
+  profile: (uid: string): PrimaryKey => ({ pk: `USER${SEP}${uid}`, sk: `GAMIFY${SEP}${META}` }),
+  /** Idempotent XP ledger row (#30) — SK IS the deterministic sourceKey (G13.2); GSI1 orders by time. */
+  ledger: (uid: string, sourceKey: string, ts: string): PrimaryKey & Gsi1Key => ({
+    pk: `USER${SEP}${uid}`,
+    sk: `XP${SEP}${sourceKey}`,
+    gsi1pk: `USER${SEP}${uid}`,
+    gsi1sk: `XPTS${SEP}${ts}${SEP}${sourceKey}`,
+  }),
+  ledgerPrefix: (): string => `XP${SEP}`,
+  ledgerTsPrefix: (): string => `XPTS${SEP}`,
+  /** Tiered badge award (#31) — one row per family, tier upgraded in place. */
+  badge: (uid: string, familyId: string, ts: string): PrimaryKey & Gsi1Key => ({
+    pk: `USER${SEP}${uid}`,
+    sk: `BADGE${SEP}${familyId}`,
+    gsi1pk: `USER${SEP}${uid}`,
+    gsi1sk: `BADGETS${SEP}${ts}`,
+  }),
+  badgePrefix: (): string => `BADGE${SEP}`,
+  /** Moderation strike (#38). */
+  strike: (uid: string, ts: string): PrimaryKey => ({ pk: `USER${SEP}${uid}`, sk: `STRIKE${SEP}${ts}` }),
+  strikePrefix: (): string => `STRIKE${SEP}`,
+} as const;
+
+export const questKeys = {
+  meta: (questId: string): PrimaryKey => ({ pk: `QUEST${SEP}${questId}`, sk: META }),
+  /** GSI2 active-window feed (#34). */
+  active: (questId: string, endTs: string): Gsi2Key => ({
+    gsi2pk: `QUEST${SEP}ACTIVE`,
+    gsi2sk: `${endTs}${SEP}${questId}`,
+  }),
+  activePk: (): string => `QUEST${SEP}ACTIVE`,
+  /** Per-user progress (#35); questId is week-stamped (G9.1). */
+  progress: (uid: string, questId: string): PrimaryKey => ({
+    pk: `USER${SEP}${uid}`,
+    sk: `QUESTPROG${SEP}${questId}`,
+  }),
+  progressPrefix: (): string => `QUESTPROG${SEP}`,
+  /** Community-quest contributor marker (≥3 qualifying actions) — read at close to pay E27. */
+  contributor: (questId: string, uid: string): PrimaryKey => ({
+    pk: `QUEST${SEP}${questId}`,
+    sk: `CONTRIB${SEP}${uid}`,
+  }),
+  contributorPrefix: (): string => `CONTRIB${SEP}`,
+} as const;
+
+export const boardKeys = {
+  courtBoardPk: (courtId: string, yyyymm: string): string => `CRTLB${SEP}${courtId}${SEP}${yyyymm}`,
+  cityBoardPk: (cityKey: string, yyyymm: string): string => `CITYLB${SEP}${cityKey}${SEP}${yyyymm}`,
+  meta: (boardPk: string): PrimaryKey => ({ pk: boardPk, sk: META }),
+  tally: (boardPk: string, uid: string): PrimaryKey => ({ pk: boardPk, sk: `TALLY${SEP}${uid}` }),
+  rank: (boardPk: string, rank: number): PrimaryKey => ({ pk: boardPk, sk: `RANK${SEP}${pad(rank)}` }),
+  tallyPrefix: (): string => `TALLY${SEP}`,
+  rankPrefix: (): string => `RANK${SEP}`,
+} as const;
+
+export const eliteKeys = {
+  /** Roster + nomination queue (#36/#37). */
+  roster: (year: string, uid: string): PrimaryKey => ({ pk: `ELITE${SEP}${year}`, sk: `USER${SEP}${uid}` }),
+  rosterPk: (year: string): string => `ELITE${SEP}${year}`,
+  /** Prefix to Query a year's roster rows (each SK is `USER#<uid>`). */
+  rosterMemberPrefix: (): string => `USER${SEP}`,
+} as const;
+
 // ── Username uniqueness reservation (§9.5 #12, Stage 2) ──────────────────────
 
 /**
@@ -529,4 +596,8 @@ export const keys = {
   connect: connectKeys,
   notif: notifKeys,
   system: systemKeys,
+  gamify: gamifyKeys,
+  quest: questKeys,
+  board: boardKeys,
+  elite: eliteKeys,
 } as const;

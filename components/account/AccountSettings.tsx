@@ -21,6 +21,7 @@ import Link from "next/link";
 import { Button, Skeleton, Switch } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useMyProfile, useUpdateProfile, type ProfileUpdate } from "@/lib/api/profile";
+import { GamifySettingsSection } from "./GamifySettingsSection";
 
 function SettingRow({
   title,
@@ -170,6 +171,9 @@ function SettingsInner({
           Check-in visibility and search settings are rolling out — your choice is saved on this device now and will sync when the feature ships.
         </p>
       </section>
+
+      {/* Gamification (privacy-adjacent) */}
+      <GamifySettingsSection isPrivate={!isPublic} />
 
       {/* Security (informational — managed by Firebase) */}
       <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
