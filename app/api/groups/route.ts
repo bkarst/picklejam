@@ -12,6 +12,11 @@ import { getCourt } from "@/lib/data/courts";
 import { createGroup, type CreateGroupInput } from "@/lib/data/groups";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
 import { mapGroupErrors } from "./_util";
+import {
+  MIN_GROUP_MAX_MEMBERS,
+  MAX_GROUP_MAX_MEMBERS,
+  isValidGroupMaxMembers,
+} from "@/lib/groups/limits";
 import type { GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +25,7 @@ const MAX_NAME = 120;
 const MAX_DESC = 4000;
 const VISIBILITIES: GroupVisibility[] = ["private", "unlisted", "public"];
 const JOIN_POLICIES: GroupJoinPolicy[] = ["invite", "request", "open"];
+const MAX_MEMBERS_ERR = `maxMembers must be an integer between ${MIN_GROUP_MAX_MEMBERS} and ${MAX_GROUP_MAX_MEMBERS}`;
 
 export async function POST(req: NextRequest): Promise<Response> {
   return guarded(async () => {
@@ -52,6 +58,13 @@ export async function POST(req: NextRequest): Promise<Response> {
         ? body.description.trim().slice(0, MAX_DESC)
         : undefined;
 
+    let maxMembers: number | undefined;
+    if (body.maxMembers !== undefined) {
+      const n = Number(body.maxMembers);
+      if (!isValidGroupMaxMembers(n)) bad(MAX_MEMBERS_ERR);
+      maxMembers = n;
+    }
+
     const input: CreateGroupInput = {
       name,
       creatorId: user.uid,
@@ -61,6 +74,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       ...(description !== undefined ? { description } : {}),
       ...(visibility !== undefined ? { visibility } : {}),
       ...(joinPolicy !== undefined ? { joinPolicy } : {}),
+      ...(maxMembers !== undefined ? { maxMembers } : {}),
       ...(typeof body.avatarUrl === "string" ? { avatarUrl: body.avatarUrl } : {}),
     };
 

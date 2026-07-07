@@ -5,7 +5,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { leaguesHub, laddersHub, organizeLeagueNew } from "@/lib/urls";
+import { leaguesHub, laddersHub, organizeLeagueNew, discoverPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -102,7 +102,7 @@ export default function LeaguesHubPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/search"
+              href={discoverPath("leagues")}
               className="inline-flex h-12 items-center rounded-full bg-secondary px-6 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Find a league

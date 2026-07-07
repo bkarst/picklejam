@@ -1,0 +1,14 @@
+{
+  "conditions": [],
+  "parameters": {
+    "ads_enabled": {
+      "defaultValue": {
+        "value": "false"
+      },
+      "valueType": "BOOLEAN",
+      "description": "Master switch for rendering ad slots (AdSlot + house-ad fallback). Default off; set true to enable ads. Read client-side via useAdsEnabled()."
+    }
+  },
+  "parameterGroups": {},
+  "version": {}
+}

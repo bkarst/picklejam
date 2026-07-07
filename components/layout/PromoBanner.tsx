@@ -11,11 +11,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { showsChrome } from "@/lib/route-class";
 
-const KEY = "pl-promo-dismissed";
+const KEY = "pl-promo-round-robin-dismissed";
 const PROMO = {
-  text: "Leagues are live — find one near you.",
-  href: "/leagues",
-  cta: "Explore leagues",
+  text: "Free round robins — set one up in minutes, no account needed.",
+  href: "/round-robin",
+  cta: "Create a round robin",
 };
 
 export function PromoBanner() {

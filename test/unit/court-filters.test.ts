@@ -39,6 +39,17 @@ describe("court-filters", () => {
     expect(courtMatchesFilters(court({ totalCourts: 1 }), f({ minCourts: 0 }))).toBe(true);
   });
 
+  it("Facility rating is a minimum-tier floor", () => {
+    expect(courtMatchesFilters(court({ facilityTier: 4 }), f({ minFacilityTier: 4 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityTier: 5 }), f({ minFacilityTier: 4 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityTier: 3 }), f({ minFacilityTier: 4 }))).toBe(false);
+    // Any (0) matches all, including a court missing the field.
+    expect(courtMatchesFilters(court({ facilityTier: 1 }), f({ minFacilityTier: 0 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityTier: undefined }), f({ minFacilityTier: 3 }))).toBe(false);
+    // Contributes exactly one to the active-facet count.
+    expect(activeFilterCount(f({ minFacilityTier: 4 }))).toBe(1);
+  });
+
   it("Type: indoor/outdoor/lighted/dedicated/reservable predicates", () => {
     expect(courtMatchesFilters(court({ indoorCourts: 2 }), f({ types: ["indoor"] }))).toBe(true);
     expect(courtMatchesFilters(court({ indoorCourts: 0 }), f({ types: ["indoor"] }))).toBe(false);

@@ -1,18 +1,32 @@
 /**
  * /api/courts/[courtId]/follow — follow / unfollow a court (PRD §6.1).
  *
+ * GET    → { following } for the caller (false when signed out — a read probe, not a 401).
  * POST   → follow (idempotent).
  * DELETE → unfollow (idempotent).
  *
- * Both require auth; `requireAuth` 401s propagate via `guarded`.
+ * POST/DELETE require auth; `requireAuth` 401s propagate via `guarded`.
  */
 
 import type { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth/verify";
-import { followCourt, unfollowCourt } from "@/lib/data/follows";
+import { requireAuth, verifyRequest } from "@/lib/auth/verify";
+import { followCourt, unfollowCourt, isFollowing } from "@/lib/data/follows";
 import { guarded } from "@/app/api/_util";
 
 export const dynamic = "force-dynamic";
+
+export async function GET(
+  req: NextRequest,
+  ctx: { params: Promise<{ courtId: string }> },
+): Promise<Response> {
+  return guarded(async () => {
+    const { courtId } = await ctx.params;
+    // Anonymous / invalid token → not following (this is a read probe, so no 401).
+    const user = await verifyRequest(req).catch(() => null);
+    const following = user ? await isFollowing(user.uid, courtId) : false;
+    return Response.json({ following });
+  });
+}
 
 export async function POST(
   req: NextRequest,

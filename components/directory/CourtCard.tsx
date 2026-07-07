@@ -15,7 +15,9 @@ import Link from "next/link";
 import { Chip } from "@heroui/react";
 import type { CourtItem } from "@/lib/db/types";
 import { courtUrl } from "@/lib/urls";
+import { courtFacilityScore } from "@/lib/ingest/map";
 import { RatingBadge } from "./RatingBadge";
+import { FacilityRating } from "./FacilityRating";
 import { SaveHeartButton } from "./SaveHeartButton";
 
 /** Small location-pin glyph for the stat line (decorative). */
@@ -115,6 +117,11 @@ export function CourtCard({
   const href = courtUrl(court);
   const photo = court.photos?.find((p) => p.visible);
   const tags = deriveTags(court);
+  // Prefer the ingest-denormalized facility score; compute live for un-backfilled courts.
+  const facility =
+    court.facilityScore != null && court.facilityTier != null
+      ? { score: court.facilityScore, tier: court.facilityTier }
+      : courtFacilityScore(court);
   const showRank = index !== undefined && variant === "list";
   const courtWord = court.totalCourts === 1 ? "Court" : "Courts";
   const attributionName = photo?.attribution?.name;
@@ -197,7 +204,11 @@ export function CourtCard({
           </div>
         )}
 
-        <div className="mt-auto pt-1">
+        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+          {/* Facility score (setup quality) — z-10 keeps its info tooltip above the card link overlay. */}
+          <span className="relative z-10">
+            <FacilityRating variant="compact" score={facility.score} tier={facility.tier} />
+          </span>
           <RatingBadge rating={court.ratingAvg ?? 0} reviewCount={court.reviewCount ?? 0} size="sm" />
         </div>
       </div>

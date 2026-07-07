@@ -4,7 +4,7 @@
  * Disallowed from crawling via robots (/api/).
  */
 import type { NextRequest } from "next/server";
-import { getCourtsNear } from "@/lib/data/courts";
+import { getCourtsNear, courtFacilityScore } from "@/lib/data/courts";
 import { DEFAULT_NEAR_RADIUS_M, MAX_NEAR_RADIUS_M } from "@/lib/geo/constants";
 
 export async function GET(req: NextRequest) {
@@ -17,7 +17,13 @@ export async function GET(req: NextRequest) {
   }
   const courts = await getCourtsNear(lat, lng, radius);
   return Response.json({
-    courts: courts.map((c) => ({
+    courts: courts.map((c) => {
+      // Prefer the value denormalized at ingest; compute live for any un-backfilled court.
+      const facility =
+        c.facilityScore != null && c.facilityTier != null
+          ? { score: c.facilityScore, tier: c.facilityTier }
+          : courtFacilityScore(c);
+      return {
       courtId: c.courtId,
       name: c.name,
       cityKey: c.cityKey,
@@ -29,6 +35,8 @@ export async function GET(req: NextRequest) {
       outdoorCourts: c.outdoorCourts,
       access: c.access ?? null,
       lighted: Boolean(c.lighted),
+      facilityScore: facility.score,
+      facilityTier: facility.tier,
       dedicated: Boolean(c.dedicated),
       hasReservations: Boolean(c.hasReservations),
       facilityType: c.facilityType ?? null,
@@ -38,6 +46,7 @@ export async function GET(req: NextRequest) {
       reviewCount: c.reviewCount ?? 0,
       hasTrailblazer: Boolean(c.trailblazerUid),
       distanceMeters: c.distanceMeters,
-    })),
+      };
+    }),
   });
 }

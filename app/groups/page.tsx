@@ -5,7 +5,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { groupsHub, groupNewPath } from "@/lib/urls";
+import { groupsHub, groupNewPath, discoverPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -96,7 +96,7 @@ export default function GroupsHubPage() {
               Start a group
             </Link>
             <Link
-              href="/search"
+              href={discoverPath("groups")}
               className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Find a group

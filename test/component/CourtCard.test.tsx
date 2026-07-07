@@ -67,10 +67,10 @@ describe("<CourtCard>", () => {
     expect(screen.getByText("4.6")).toBeInTheDocument();
   });
 
-  it("exposes an accessible save control", () => {
+  it("exposes an accessible favorite control", () => {
     render(<CourtCard court={court} />);
     expect(
-      screen.getByRole("button", { name: `Save ${court.name}` }),
+      screen.getByRole("button", { name: `Favorite ${court.name}` }),
     ).toBeInTheDocument();
   });
 

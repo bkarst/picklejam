@@ -3,7 +3,7 @@
  */
 
 export { RatingBadge } from "./RatingBadge";
-export { FacilityRating } from "./FacilityRating";
+export { FacilityRating, facilityTierLabel } from "./FacilityRating";
 export { CourtCard } from "./CourtCard";
 export { SaveHeartButton } from "./SaveHeartButton";
 export { CityCard } from "./CityCard";

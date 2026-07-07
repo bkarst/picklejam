@@ -53,6 +53,7 @@ import { GSI } from "@/lib/db/table";
 import { groupKeys, outingKeys, courtKeys } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
 import { sanitizeLine, sanitizeMultiline } from "@/lib/util/sanitize";
+import { DEFAULT_GROUP_MAX_MEMBERS } from "@/lib/groups/limits";
 import { courtUrl } from "@/lib/urls";
 import { emitInsert, emitModify, emitRemove } from "@/lib/streams/inline";
 import { createNotification } from "@/lib/data/notifications";
@@ -108,6 +109,30 @@ export class InviteError extends Error {
   }
 }
 
+/** A join/approve/accept was refused because the group is at its member cap → 409. */
+export class GroupFullError extends Error {
+  readonly status = 409;
+  constructor(message = "This group is full") {
+    super(message);
+    this.name = "GroupFullError";
+  }
+}
+
+/** The effective active-member cap for a group (legacy groups fall back to the default). */
+export function groupMemberCap(group: Pick<GroupItem, "maxMembers">): number {
+  return group.maxMembers ?? DEFAULT_GROUP_MAX_MEMBERS;
+}
+
+/**
+ * Guard: refuse a new ACTIVE member when the group is at capacity. Best-effort — it
+ * reads the aggregator-owned `memberCount` (eventually consistent in prod), so a
+ * burst of exactly-simultaneous joins could overshoot the cap by a hair; for a
+ * community group that soft ceiling is the right trade-off vs. re-owning the counter.
+ */
+function assertHasRoom(group: GroupItem): void {
+  if (group.memberCount >= groupMemberCap(group)) throw new GroupFullError();
+}
+
 // ── types ────────────────────────────────────────────────────────────────────
 
 export interface CreateGroupInput {
@@ -122,6 +147,8 @@ export interface CreateGroupInput {
   visibility?: GroupVisibility; // default "private"
   joinPolicy?: GroupJoinPolicy; // default "invite"
   avatarUrl?: string;
+  /** Cap on active members. Defaults to `DEFAULT_GROUP_MAX_MEMBERS` (40). */
+  maxMembers?: number;
   // Injectable for deterministic tests.
   groupId?: string;
   slug?: string;
@@ -226,6 +253,7 @@ export async function createGroup(input: CreateGroupInput): Promise<GroupItem> {
     joinPolicy,
     ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
     memberCount: 0, // the aggregator counts the creator via the emitted MEMBER insert below
+    maxMembers: input.maxMembers ?? DEFAULT_GROUP_MAX_MEMBERS,
     createdAt: iso,
     updatedAt: iso,
   };
@@ -541,6 +569,10 @@ export async function joinGroup(groupId: string, uid: string): Promise<JoinResul
     throw new GroupJoinError("This group is invite-only — an invite is required to join");
   }
 
+  // "open" joins become ACTIVE immediately, so they must fit under the cap; "request"
+  // joins are only PENDING (no seat consumed), so the cap is enforced at approval instead.
+  if (group.joinPolicy === "open") assertHasRoom(group);
+
   const iso = new Date().toISOString();
   const status: GroupMemberStatus = group.joinPolicy === "open" ? "active" : "pending";
   const member = buildMember(groupId, uid, status, iso);
@@ -590,12 +622,15 @@ export async function approveMember(
   if (!existing) throw new GroupNotFoundError(`${groupId} member ${uid}`);
   if (existing.status === "active") return existing; // idempotent
 
+  // Approving turns the request ACTIVE, so it must fit under the cap (409 if full).
+  const group = await getGroupMeta(groupId);
+  if (group) assertHasRoom(group);
+
   const iso = new Date().toISOString();
   const updated: GroupMemberItem = { ...existing, status: "active", joinedAt: iso, updatedAt: iso };
   await putItem(asItem(updated));
   await emitModify(asItem(existing), asItem(updated)); // pending→active ⇒ memberCount++
 
-  const group = await getGroupMeta(groupId);
   await createNotification(uid, {
     type: "system",
     title: "Request approved",
@@ -728,6 +763,9 @@ export async function acceptInvite(
   const existing = await getMember(groupId, uid);
   if (existing && existing.status === "active") return existing; // idempotent
 
+  // An invite still can't push a group past its cap — the owner raises the limit for more.
+  assertHasRoom(group);
+
   const iso = new Date(now).toISOString();
   const member = buildMember(groupId, uid, "active", iso);
   // Emit from the atomic prior image (L10): two concurrent invite accepts for the same uid
@@ -750,6 +788,8 @@ export interface UpdateGroupInput {
   visibility?: GroupVisibility;
   joinPolicy?: GroupJoinPolicy;
   avatarUrl?: string;
+  /** New active-member cap (validated by the route). */
+  maxMembers?: number;
   /** `null` clears the home court. */
   homeCourtId?: string | null;
   courtIds?: string[];
@@ -818,6 +858,12 @@ export async function updateGroup(
   setOrRemove("homeCourtId", nextHomeCourtId);
   setOrRemove("courtIds", dedupedCourts.length > 0 ? dedupedCourts : undefined);
   setOrRemove("avatarUrl", nextAvatarUrl);
+  // The member cap is a plain scalar — SET it only when the patch carries a new value
+  // (never REMOVE, so an unrelated settings edit can't wipe the group's cap).
+  if (patch.maxMembers !== undefined) {
+    sets.push("maxMembers = :mm");
+    values[":mm"] = patch.maxMembers;
+  }
   if (isPublic) {
     const g2 = groupKeys.inCity(groupId, current.cityKey);
     sets.push("gsi2pk = :g2pk", "gsi2sk = :g2sk");

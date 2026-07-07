@@ -227,6 +227,17 @@ export function groupsCityPathFromKey(cityKey: string): string {
   return groupsCityPath(country, state, city);
 }
 
+// ── unified "near me" finder (§6.9/§7.x) ─────────────────────────────────────
+
+/**
+ * The unified finder for groups / leagues / ladders / tournaments near you. A
+ * personalized JS utility → NOINDEX (canonical discovery is the per-city finder
+ * pages); the descriptive slug is for humans sharing the link. Optional `type`
+ * deep-links a tab.
+ */
+export const discoverPath = (type?: "groups" | "leagues" | "ladders" | "tournaments"): string =>
+  type ? `/discover-pickleball-near-me?type=${type}` : "/discover-pickleball-near-me";
+
 // ── Content Hub /learn + News /news (Stage 9, §6.5/§6.6) ─────────────────────
 //
 // Route-collision note (next-conventions.md): `/learn/authors` and

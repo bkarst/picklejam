@@ -21,6 +21,7 @@
 import { useState } from "react";
 import type { JSX } from "react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { ApiError } from "@/lib/api/authed";
 import { useJoinGroup, useLeaveGroup, type GroupMembership } from "@/lib/api/groups";
 import type { GroupJoinPolicy } from "@/lib/db/types";
 import { joinPolicyMeta } from "./format";
@@ -37,6 +38,8 @@ export interface MembershipButtonProps {
    * membership-derived `key` so `committed` re-seeds from the now-known membership.
    */
   loading?: boolean;
+  /** The group is at its member cap — a non-member can't join (§6.9). */
+  full?: boolean;
 }
 
 const PRIMARY =
@@ -47,6 +50,7 @@ export function MembershipButton({
   joinPolicy,
   membership = null,
   loading = false,
+  full = false,
 }: MembershipButtonProps): JSX.Element {
   const { requireAuth } = useAuth();
   const joinMut = useJoinGroup(groupId);
@@ -84,9 +88,11 @@ export function MembershipButton({
     setCommitted({ role: prev?.role ?? "member", status: nextStatus });
     joinMut
       .mutateAsync()
-      .catch(() => {
+      .catch((e: unknown) => {
         setCommitted(prev);
-        setError("Something went wrong. Please try again.");
+        // Surface a precise reason for expected refusals (e.g. 409 "This group is full");
+        // fall back to a generic message for anything unexpected.
+        setError(e instanceof ApiError ? e.message : "Something went wrong. Please try again.");
       })
       .finally(() => setSubmitting(false));
   };
@@ -171,22 +177,26 @@ export function MembershipButton({
 
   // ── Not a member ───────────────────────────────────────────────────────────
   const inviteOnly = joinPolicy === "invite";
+  // A full group blocks new members regardless of join policy (owner raises the cap).
+  const blocked = inviteOnly || full;
   return (
     <div className="flex flex-col gap-2">
       <button
         type="button"
-        onClick={inviteOnly ? undefined : () => requireAuth(join)}
-        disabled={inviteOnly || submitting}
-        aria-disabled={inviteOnly || undefined}
+        onClick={blocked ? undefined : () => requireAuth(join)}
+        disabled={blocked || submitting}
+        aria-disabled={blocked || undefined}
         className={`${PRIMARY} ${
-          inviteOnly
+          blocked
             ? "cursor-not-allowed bg-surface-secondary text-muted"
             : "bg-secondary text-secondary-foreground hover:opacity-90 disabled:opacity-60"
         }`}
       >
-        {submitting ? "Saving…" : policy.action}
+        {submitting ? "Saving…" : full ? "Group is full" : policy.action}
       </button>
-      <p className="text-sm text-muted">{policy.hint}</p>
+      <p className="text-sm text-muted">
+        {full ? "This group has reached its member limit." : policy.hint}
+      </p>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );

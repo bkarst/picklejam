@@ -14,8 +14,8 @@ export function HeroSearch() {
   return (
     <div className="w-full max-w-xl">
       <SearchTypeahead
-        placeholder="Search courts, cities, or games…"
-        ariaLabel="Search courts, cities, or games"
+        placeholder="Search courts or cities…"
+        ariaLabel="Search courts or cities"
         prepopulateNearby
         showSubmitButton
         submitLabel="Search"

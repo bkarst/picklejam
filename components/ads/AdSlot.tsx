@@ -3,9 +3,11 @@
 /**
  * AdSlot — reserved, CWV-safe AdSense unit (PRD §2.2, UI §2.12).
  *
- * On an ad-INELIGIBLE route (`useAdsAllowed` false) it renders NOTHING — not even
- * reserved space. On an eligible route it ALWAYS renders a fixed-height reserved
- * box (CLS ≈ 0) showing ONE of:
+ * Gated by the remote `ads_enabled` flag (Firebase Remote Config, default FALSE
+ * via {@link useAdsEnabled}) AND the route: on an ad-INELIGIBLE route OR while the
+ * flag is off it renders NOTHING — not even reserved space. On an eligible route
+ * with ads enabled it ALWAYS renders a fixed-height reserved box (CLS ≈ 0) showing
+ * ONE of:
  *   • a real `adsbygoogle` unit — only when a publisher id is configured AND ad
  *     consent is granted;
  *   • otherwise a tasteful in-house "house ad" (never collapses → no CLS).
@@ -26,6 +28,7 @@ import { useEffect, useRef } from "react";
 import { brand } from "@/brand.config";
 import { useConsent } from "@/components/consent/ConsentProvider";
 import { useAdsAllowed } from "@/lib/ads/eligibility";
+import { useAdsEnabled } from "@/components/ads/AdsFlagProvider";
 
 export type AdSlotKind = "in-feed" | "in-article" | "below-content" | "footer" | "sidebar";
 
@@ -68,11 +71,14 @@ export function AdSlot({
   className?: string;
 }) {
   const eligible = useAdsAllowed();
+  // Remote master switch (Firebase Remote Config `ads_enabled`, default false),
+  // resolved server-side in the root layout and read here from context.
+  const adsEnabled = useAdsEnabled();
   const { ads } = useConsent();
   const pushedRef = useRef(false);
 
   const publisherId = brand.ads.adsensePublisherId;
-  const showRealAd = Boolean(publisherId) && ads;
+  const showRealAd = Boolean(publisherId) && ads && adsEnabled;
 
   // Queue the ad for AdSense once (StrictMode-safe via pushedRef). Pushing before
   // adsbygoogle.js loads is fine — the library drains the queue on load.
@@ -87,8 +93,9 @@ export function AdSlot({
     }
   }, [showRealAd]);
 
-  // Ineligible route → render nothing (not even reserved space).
-  if (!eligible) return null;
+  // Ineligible route OR the remote `ads_enabled` flag is off → render nothing
+  // (not even reserved space, so no house-ad and no CLS while ads are disabled).
+  if (!eligible || !adsEnabled) return null;
 
   const minHeight = RESERVED_HEIGHT[kind];
 

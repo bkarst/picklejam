@@ -22,6 +22,11 @@ import {
 import { getGroupBoard } from "@/lib/data/gamify-boards";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
 import { mapGroupErrors } from "../_util";
+import {
+  MIN_GROUP_MAX_MEMBERS,
+  MAX_GROUP_MAX_MEMBERS,
+  isValidGroupMaxMembers,
+} from "@/lib/groups/limits";
 import type { GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +35,7 @@ const MAX_NAME = 120;
 const MAX_DESC = 4000;
 const VISIBILITIES: GroupVisibility[] = ["private", "unlisted", "public"];
 const JOIN_POLICIES: GroupJoinPolicy[] = ["invite", "request", "open"];
+const MAX_MEMBERS_ERR = `maxMembers must be an integer between ${MIN_GROUP_MAX_MEMBERS} and ${MAX_GROUP_MAX_MEMBERS}`;
 
 async function optionalUid(req: NextRequest): Promise<string | undefined> {
   try {
@@ -77,14 +83,16 @@ export async function GET(
     return Response.json({
       group,
       membership: mine ? { role: mine.role, status: mine.status } : null,
-      members: memberViews,
+      // The roster (member identities) is MEMBERS-ONLY (§6.9): a non-member receives
+      // only the count (`memberCount`), never the member list.
+      members: isMember ? memberViews : [],
       memberCount: group.memberCount,
       ...(board ? { board } : {}),
-      // Meet-ups (+ court refs) travel on this per-viewer response so a PRIVATE group's
-      // schedule is delivered CLIENT-SIDE to members only — it is never baked into the
-      // shared, cached ISR shell (which would leak it to non-members).
-      meetups,
-      courts,
+      // Meet-ups (+ their court refs) are MEMBERS-ONLY (§6.9): a non-member never
+      // receives a group's schedule — not baked into the shared ISR shell, and
+      // withheld here too, so place/time never reach a non-member's browser.
+      meetups: isMember ? meetups : [],
+      courts: isMember ? courts : {},
     });
   });
 }
@@ -112,6 +120,11 @@ export async function PATCH(
     if (body.joinPolicy !== undefined) {
       if (!JOIN_POLICIES.includes(body.joinPolicy as GroupJoinPolicy)) bad("Invalid joinPolicy");
       patch.joinPolicy = body.joinPolicy as GroupJoinPolicy;
+    }
+    if (body.maxMembers !== undefined) {
+      const n = Number(body.maxMembers);
+      if (!isValidGroupMaxMembers(n)) bad(MAX_MEMBERS_ERR);
+      patch.maxMembers = n;
     }
     if (body.homeCourtId === null || typeof body.homeCourtId === "string") {
       patch.homeCourtId = body.homeCourtId as string | null;

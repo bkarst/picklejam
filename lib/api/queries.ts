@@ -26,6 +26,9 @@ export interface NearCourt {
   outdoorCourts: number;
   access: string | null;
   lighted: boolean;
+  // facility-quality rating (setup-only, §9.8) — denormalized at ingest
+  facilityScore: number;
+  facilityTier: number;
   // facet fields (§6.1 More Filters)
   dedicated: boolean;
   hasReservations: boolean;

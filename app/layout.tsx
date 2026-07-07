@@ -8,8 +8,10 @@ import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { AnalyticsBootstrap } from "@/components/analytics/AnalyticsBootstrap";
 import { AdSenseLoader } from "@/components/ads/AdSlot";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { PromoBanner } from "@/components/layout/PromoBanner";
+import { AdsFlagProvider } from "@/components/ads/AdsFlagProvider";
+import { getAdsEnabled } from "@/lib/ads/ads-enabled.server";
+import { Footer } from "@/components/layout/Footer";
 import { HelpButton } from "@/components/layout/HelpButton";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/jsonld";
@@ -92,9 +94,12 @@ const consentModeDefaultScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Remote `ads_enabled` flag, resolved server-side (default false) and passed to
+  // client <AdSlot>s via <AdsFlagProvider> so ad gating is SSR-correct (no CLS).
+  const adsEnabled = await getAdsEnabled();
   return (
     <html
       lang="en"
@@ -117,15 +122,17 @@ export default function RootLayout({
         </a>
         <Providers>
           <ConsentProvider>
-            <AnalyticsBootstrap />
-            {/* AdSense library — consent-gated + only when a publisher id is set. */}
-            <AdSenseLoader />
-            <PromoBanner />
-            <Header />
-            {children}
-            <Footer />
-            <HelpButton />
-            <ConsentBanner />
+            <AdsFlagProvider value={adsEnabled}>
+              <AnalyticsBootstrap />
+              {/* AdSense library — consent-gated + only when a publisher id is set. */}
+              <AdSenseLoader />
+              <PromoBanner />
+              <Header />
+              {children}
+              <Footer />
+              <HelpButton />
+              <ConsentBanner />
+            </AdsFlagProvider>
           </ConsentProvider>
         </Providers>
       </body>

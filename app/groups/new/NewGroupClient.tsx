@@ -19,6 +19,12 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useCreateGroup } from "@/lib/api/groups";
 import { CourtSearch, type PickedCourt } from "@/components/groups";
 import { groupPath } from "@/lib/urls";
+import {
+  DEFAULT_GROUP_MAX_MEMBERS,
+  MIN_GROUP_MAX_MEMBERS,
+  MAX_GROUP_MAX_MEMBERS,
+  isValidGroupMaxMembers,
+} from "@/lib/groups/limits";
 import type { GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
 
 const FIELD =
@@ -65,6 +71,7 @@ export function NewGroupClient(): JSX.Element {
   const [court, setCourt] = useState<PickedCourt | null>(null);
   const [visibility, setVisibility] = useState<GroupVisibility>("private");
   const [joinPolicy, setJoinPolicy] = useState<GroupJoinPolicy>("invite");
+  const [maxMembers, setMaxMembers] = useState(String(DEFAULT_GROUP_MAX_MEMBERS));
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +82,11 @@ export function NewGroupClient(): JSX.Element {
       setError("Add a name and pick a home court.");
       return;
     }
+    const cap = Number(maxMembers);
+    if (!isValidGroupMaxMembers(cap)) {
+      setError(`Member limit must be a whole number between ${MIN_GROUP_MAX_MEMBERS} and ${MAX_GROUP_MAX_MEMBERS}.`);
+      return;
+    }
     setError(null);
     try {
       const created = await createMut.mutateAsync({
@@ -83,6 +95,7 @@ export function NewGroupClient(): JSX.Element {
         homeCourtId: court.id,
         visibility,
         joinPolicy,
+        maxMembers: cap,
         ...(description.trim() ? { description: description.trim() } : {}),
       });
       router.push(groupPath(created.groupId));
@@ -153,6 +166,18 @@ export function NewGroupClient(): JSX.Element {
               </ToggleButton>
             ))}
           </ToggleButtonGroup>
+        </Field>
+
+        <Field label="Member limit" hint={`The most people who can be in the group. Default ${DEFAULT_GROUP_MAX_MEMBERS}.`}>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={MIN_GROUP_MAX_MEMBERS}
+            max={MAX_GROUP_MAX_MEMBERS}
+            value={maxMembers}
+            onChange={(e) => setMaxMembers(e.target.value)}
+            className={FIELD}
+          />
         </Field>
 
         <Field label="Description (optional)">

@@ -35,10 +35,13 @@ test("Stage 8 — public group: detail + meet-up + court rail + city finder + op
   // The open-join mutates the one shared seeded group — run on a single project.
   test.skip(testInfo.project.name !== "chromium", "join mutates shared seeded group");
 
-  // Group detail: name + the scheduled meet-up + crawlable SportsOrganization JSON-LD.
+  // Group detail: name + crawlable SportsOrganization JSON-LD. The meet-up's place &
+  // time are MEMBERS-ONLY (§6.9), so a non-member (signed-out here) sees a join prompt,
+  // never the meet-up itself — even though the group and its identity are public.
   await page.goto("/groups/e2egroup");
   await expect(page.getByText("Lawrence Dinkers Club").first()).toBeVisible();
-  await expect(page.getByText("Dinkers Club Open Play").first()).toBeVisible();
+  await expect(page.getByText("Dinkers Club Open Play")).toHaveCount(0);
+  await expect(page.getByText(/visible to members/i)).toBeVisible();
   const ld = (await page.locator('script[type="application/ld+json"]').allTextContents()).join(" ");
   expect(ld).toContain('"SportsOrganization"');
 

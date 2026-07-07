@@ -22,6 +22,7 @@ import { MembershipButton } from "@/components/groups/MembershipButton";
 import { MemberStatusList } from "@/components/groups/MemberStatusList";
 import { BoardTable } from "@/components/gamify/BoardTable";
 import { groupManagePath } from "@/lib/urls";
+import { DEFAULT_GROUP_MAX_MEMBERS } from "@/lib/groups/limits";
 import type { GroupJoinPolicy } from "@/lib/db/types";
 
 export interface GroupDetailClientProps {
@@ -34,6 +35,11 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
   const { data, isLoading } = useGroup(groupId);
   const membership = data?.membership ?? null;
   const isManager = membership?.role === "owner" || membership?.role === "admin";
+  const isMember = membership?.status === "active";
+  const memberCap = data ? (data.group.maxMembers ?? DEFAULT_GROUP_MAX_MEMBERS) : undefined;
+  // The group is "full" only for a non-member; existing members always keep their seat.
+  const isFull =
+    data != null && membership == null && data.memberCount >= (memberCap ?? Infinity);
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,6 +55,7 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
             joinPolicy={joinPolicy}
             membership={membership}
             loading={isLoading}
+            full={isFull}
           />
         </div>
         {isManager && (
@@ -63,7 +70,12 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
       </section>
 
       <section className="rounded-2xl border border-border bg-surface p-5">
-        <h2 className="font-display text-lg font-bold text-foreground">Members</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg font-bold text-foreground">Members</h2>
+          {data && (
+            <span className="text-sm text-muted">{data.memberCount}</span>
+          )}
+        </div>
         <div className="mt-3">
           {isLoading || !data ? (
             <div className="flex flex-col gap-3">
@@ -71,8 +83,11 @@ export function GroupDetailClient({ groupId, joinPolicy }: GroupDetailClientProp
                 <Skeleton key={i} className="h-10 w-full rounded-xl" />
               ))}
             </div>
-          ) : (
+          ) : isMember ? (
             <MemberStatusList members={data.members} limit={12} />
+          ) : (
+            // Non-members see only the count (above) — never who's in the group (§6.9).
+            <p className="text-sm text-muted">Join the group to see who&apos;s a member.</p>
           )}
         </div>
       </section>

@@ -906,6 +906,12 @@ export interface GroupItem extends BaseItem {
   avatarUrl?: string;
   /** Reconciled by Streams on MEMBER insert/remove (§9.4). */
   memberCount: number;
+  /**
+   * Cap on ACTIVE members (§6.9). Set at create (default 40, `DEFAULT_GROUP_MAX_MEMBERS`)
+   * and editable in settings. Absent on legacy groups → the default applies. Enforced at
+   * join / approve / invite-accept.
+   */
+  maxMembers?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -28,6 +28,7 @@ import { WriteReviewButton } from "@/components/community/WriteReviewButton";
 import { StarsDisplay } from "@/components/community/Stars";
 import { FollowButton } from "@/components/community/FollowButton";
 import { courtUrl, metersToMiles, groupsCityPath } from "@/lib/urls";
+import { formatPhone, telHref } from "@/lib/util/phone";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
 import { brand } from "@/brand.config";
@@ -190,7 +191,7 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
                       {courtItem.address}
                     </a>
                   )}
-                  {courtItem.phone && <a href={`tel:${courtItem.phone}`} className="text-foreground hover:underline">{courtItem.phone}</a>}
+                  {courtItem.phone && <a href={telHref(courtItem.phone)} className="text-foreground hover:underline">{formatPhone(courtItem.phone)}</a>}
                   {courtItem.website && (
                     <a href={courtItem.website} target="_blank" rel="noopener noreferrer" className="truncate text-accent hover:underline">
                       {courtItem.website.replace(/^https?:\/\//, "")}
@@ -206,13 +207,6 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             </div>
           </div>
 
-          {/* Community band */}
-          <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <div><dt className="inline text-muted">Players </dt><dd className="inline font-semibold text-foreground">{courtItem.playerCount ?? 0}</dd></div>
-            <div><dt className="inline text-muted">Games </dt><dd className="inline font-semibold text-foreground">{courtItem.gamesCount ?? 0}</dd></div>
-            <div><dt className="inline text-muted">Reviews </dt><dd className="inline font-semibold text-foreground">{courtItem.reviewCount ?? 0}</dd></div>
-            <div><dt className="inline text-muted">Groups </dt><dd className="inline font-semibold text-foreground">{courtItem.groupCount ?? 0}</dd></div>
-          </dl>
           {/* Status line (§G12.1-I1) — Captain + Trailblazer, JS-off complete */}
           <CourtStatusLine status={courtStatus} />
           {/* Checked in today (day-fresh, no live polling) */}

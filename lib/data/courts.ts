@@ -17,7 +17,8 @@ import type { CourtItem } from "@/lib/db/types";
 // Facility-quality rating (pure, setup-only — not reviews). Implemented alongside
 // the other derived court attrs in the ingest mapper; re-exported here as the
 // court read-layer entry point so callers can score/re-score a CourtItem on read.
-export { courtFacilityScore, type FacilityScoreInput } from "@/lib/ingest/map";
+import { courtFacilityScore, type FacilityScoreInput } from "@/lib/ingest/map";
+export { courtFacilityScore, type FacilityScoreInput };
 
 
 export type CourtWithDistance = CourtItem & { distanceMeters: number };
@@ -27,11 +28,26 @@ function isVisible(c: CourtItem): boolean {
   return !c.hidden && !c.deleted && c.hasPickleball !== false;
 }
 
-/** Highest popularity first, then most courts, then name. */
-function byPopularity(a: CourtItem, b: CourtItem): number {
+/** Facility rating for ordering — prefers the ingest-denormalized value, computes as a fallback. */
+function facilityOf(c: CourtItem): { tier: number; score: number } {
+  if (c.facilityTier != null && c.facilityScore != null) {
+    return { tier: c.facilityTier, score: c.facilityScore };
+  }
+  return courtFacilityScore(c);
+}
+
+/**
+ * Facility-quality first: tier → score, then popularity, reviews, and name as
+ * tiebreakers (§9.8). Backs the "Best courts" ordering on city + court-type pages.
+ */
+function byFacility(a: CourtItem, b: CourtItem): number {
+  const fa = facilityOf(a);
+  const fb = facilityOf(b);
   return (
+    fb.tier - fa.tier ||
+    fb.score - fa.score ||
     (b.popularityRank ?? 0) - (a.popularityRank ?? 0) ||
-    (b.totalCourts ?? 0) - (a.totalCourts ?? 0) ||
+    (b.reviewCount ?? 0) - (a.reviewCount ?? 0) ||
     a.name.localeCompare(b.name)
   );
 }
@@ -71,7 +87,7 @@ export async function getCourtsInCity(
     pk: courtKeys.cityCourtsPk(cityKey),
     skBeginsWith: "COURT#",
   });
-  return items.filter(isVisible).sort(byPopularity);
+  return items.filter(isVisible).sort(byFacility);
 }
 
 /**
@@ -137,11 +153,11 @@ export async function getCourtsMatching(
       const courts = await getCourtsInCity(country, state.code, city.slug);
       for (const c of courts) {
         if (c.indexable !== false && predicate(c)) out.push(c);
-        if (out.length >= limit) return out.sort(byPopularity);
+        if (out.length >= limit) return out.sort(byFacility);
       }
     }
   }
-  return out.sort(byPopularity);
+  return out.sort(byFacility);
 }
 
 /** Nearby courts to a given court (excludes itself) — court-detail interlink. */

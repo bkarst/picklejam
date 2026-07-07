@@ -29,6 +29,12 @@ import {
   type PickedCourt,
 } from "@/components/groups";
 import { groupPath, outingPath } from "@/lib/urls";
+import {
+  DEFAULT_GROUP_MAX_MEMBERS,
+  MIN_GROUP_MAX_MEMBERS,
+  MAX_GROUP_MAX_MEMBERS,
+  isValidGroupMaxMembers,
+} from "@/lib/groups/limits";
 import type { GroupItem, GroupVisibility, GroupJoinPolicy } from "@/lib/db/types";
 
 /** The home court (courtId → name/url) hydrated onto the group detail response. */
@@ -69,6 +75,9 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
   const [description, setDescription] = useState(group.description ?? "");
   const [visibility, setVisibility] = useState<GroupVisibility>(group.visibility);
   const [joinPolicy, setJoinPolicy] = useState<GroupJoinPolicy>(group.joinPolicy);
+  const [maxMembers, setMaxMembers] = useState(
+    String(group.maxMembers ?? DEFAULT_GROUP_MAX_MEMBERS),
+  );
   const [homeCourt, setHomeCourt] = useState<PickedCourt | null>(() =>
     homeCourtToPicked(group, courts),
   );
@@ -76,6 +85,11 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
+    const cap = Number(maxMembers);
+    if (!isValidGroupMaxMembers(cap)) {
+      setError(`Member limit must be a whole number between ${MIN_GROUP_MAX_MEMBERS} and ${MAX_GROUP_MAX_MEMBERS}.`);
+      return;
+    }
     setSaved(false);
     setError(null);
     try {
@@ -84,6 +98,7 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
         description: description.trim(),
         visibility,
         joinPolicy,
+        maxMembers: cap,
         // Send the home court only when one is picked (clearing isn't a Settings action) — this
         // is the field that was missing, so a group with no home court can finally schedule
         // meet-ups (L18).
@@ -163,6 +178,22 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
             ))}
           </ToggleButtonGroup>
         </div>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-foreground">Member limit</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={MIN_GROUP_MAX_MEMBERS}
+            max={MAX_GROUP_MAX_MEMBERS}
+            value={maxMembers}
+            onChange={(e) => setMaxMembers(e.target.value)}
+            className={FIELD}
+          />
+          <span className="text-xs text-muted">
+            The most people who can be in the group. Current members: {group.memberCount}.
+          </span>
+        </label>
 
         <div className="flex flex-wrap items-center gap-3">
           <button

@@ -100,6 +100,8 @@ export interface CreateGroupInput {
   visibility: GroupVisibility;
   joinPolicy: GroupJoinPolicy;
   description?: string;
+  /** Active-member cap (server defaults to 40 when omitted). */
+  maxMembers?: number;
 }
 
 /** PATCH /api/groups/[id] payload (settings the owner/admin can edit). */
@@ -109,6 +111,7 @@ export interface UpdateGroupInput {
   visibility?: GroupVisibility;
   joinPolicy?: GroupJoinPolicy;
   homeCourtId?: string;
+  maxMembers?: number;
 }
 
 /** POST /api/groups/[id]/invites → the created invite + its shareable link. */

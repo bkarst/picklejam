@@ -7,7 +7,7 @@
  */
 
 import { LEGAL_DOC_SLUGS, legalDocs } from "@/lib/legal/docs";
-import { legalPath } from "@/lib/urls";
+import { legalPath, discoverPath } from "@/lib/urls";
 
 export interface NavLink {
   label: string;
@@ -31,10 +31,10 @@ export const primaryNav: NavColumn[] = [
     intent: "Discovery",
     links: [
       { label: "Find Courts", href: "/search", description: "Browse courts near you" },
-      { label: "Find Games", href: "/search", description: "Open play & outings" },
       { label: "Find Groups", href: "/groups", description: "Clubs & crews" },
-      { label: "Check In", href: "/courts", description: "Show you're playing today" },
-      { label: "Leaderboards", href: "/leaderboards", description: "Most active players near you" },
+      { label: "Find Near You", href: discoverPath(), description: "Groups, leagues, ladders & tournaments near you" },
+      { label: "Check In", href: "/search", description: "Show you're playing today" },
+      { label: "Write a Review", href: "/search", description: "Share your take on a court" },
     ],
   },
   {

@@ -27,8 +27,10 @@ import {
   updateGroup,
   deleteGroup,
   GroupJoinError,
+  GroupFullError,
   InviteError,
 } from "@/lib/data/groups";
+import { DEFAULT_GROUP_MAX_MEMBERS } from "@/lib/groups/limits";
 import type { CourtItem, GroupCourtRefItem, GroupMemberItem, Counts } from "@/lib/db/types";
 
 /**
@@ -302,6 +304,89 @@ d("groups data + streams wiring (DynamoDB Local)", () => {
     // Owner declines B → the pending row is removed, count unchanged.
     await declineMember(g.groupId, owner, pendB);
     expect(await getItem(groupKeys.member(g.groupId, pendB))).toBeUndefined();
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+  });
+
+  // ── member cap (§6.9) ────────────────────────────────────────────────────────
+  it("createGroup defaults maxMembers to 40 when none is given", async () => {
+    const g = await createGroup({
+      name: "Default Cap",
+      creatorId: `grp-${RUN}-cap-def`,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+    });
+    expect(g.maxMembers).toBe(DEFAULT_GROUP_MAX_MEMBERS);
+    expect((await getGroupMeta(g.groupId))?.maxMembers).toBe(40);
+  });
+
+  it("open join is refused once the group hits its member cap (GroupFullError)", async () => {
+    const g = await createGroup({
+      name: "Capped Open",
+      creatorId: `grp-${RUN}-cap-o`,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+      visibility: "public",
+      joinPolicy: "open",
+      maxMembers: 2, // owner + exactly one more
+    });
+    // Owner is #1; this join fills the last seat.
+    expect((await joinGroup(g.groupId, `grp-${RUN}-cap-o1`)).status).toBe("active");
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+
+    // The group is full — the next join is rejected and the count doesn't move.
+    await expect(joinGroup(g.groupId, `grp-${RUN}-cap-o2`)).rejects.toBeInstanceOf(GroupFullError);
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+
+    // Raising the cap lets the blocked user in.
+    await updateGroup(g.groupId, `grp-${RUN}-cap-o`, { maxMembers: 3 });
+    expect((await joinGroup(g.groupId, `grp-${RUN}-cap-o2`)).status).toBe("active");
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(3);
+  });
+
+  it("approving a pending member past the cap is refused (GroupFullError)", async () => {
+    const owner = `grp-${RUN}-cap-ap`;
+    const g = await createGroup({
+      name: "Capped Approvals",
+      creatorId: owner,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+      visibility: "public",
+      joinPolicy: "request",
+      maxMembers: 2,
+    });
+    const a = `grp-${RUN}-cap-ap-a`;
+    const b = `grp-${RUN}-cap-ap-b`;
+    await joinGroup(g.groupId, a); // pending
+    await joinGroup(g.groupId, b); // pending
+    // First approval fills the group (owner + a = 2).
+    expect((await approveMember(g.groupId, owner, a)).status).toBe("active");
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+    // Second approval would exceed the cap → refused; the request stays pending.
+    await expect(approveMember(g.groupId, owner, b)).rejects.toBeInstanceOf(GroupFullError);
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+  });
+
+  it("accepting an invite past the cap is refused (GroupFullError)", async () => {
+    const owner = `grp-${RUN}-cap-inv`;
+    const g = await createGroup({
+      name: "Capped Invites",
+      creatorId: owner,
+      cityKey: CITY_KEY,
+      homeCourtId: COURT_HOME,
+      visibility: "private",
+      joinPolicy: "invite",
+      maxMembers: 2,
+    });
+    const T0 = Date.parse("2099-01-01T00:00:00.000Z");
+    const inv1 = await createInvite(g.groupId, owner, { now: T0 });
+    // First accept fills the group (owner + guest1 = 2).
+    await acceptInvite(g.groupId, inv1.token, `grp-${RUN}-cap-inv-1`, { now: T0 });
+    expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
+    // A second invite can't push past the cap.
+    const inv2 = await createInvite(g.groupId, owner, { now: T0 });
+    await expect(
+      acceptInvite(g.groupId, inv2.token, `grp-${RUN}-cap-inv-2`, { now: T0 }),
+    ).rejects.toBeInstanceOf(GroupFullError);
     expect((await getGroupMeta(g.groupId))?.memberCount).toBe(2);
   });
 

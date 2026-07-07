@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Skeleton } from "@heroui/react";
 import { useMyRegistrations } from "@/lib/api/tournaments";
 import { formatMoney } from "@/lib/money";
-import { tournamentPath, tournamentBracketPath } from "@/lib/urls";
+import { tournamentPath, tournamentBracketPath, discoverPath } from "@/lib/urls";
 import type { PaymentStatus } from "@/lib/stripe/types";
 
 const TH = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted";
@@ -46,7 +46,7 @@ export default function MyRegistrationsPage(): JSX.Element {
         <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border p-6 text-sm text-muted">
           <p>You haven&apos;t registered for any tournaments yet.</p>
           <Link
-            href="/tournaments"
+            href={discoverPath("tournaments")}
             className="inline-flex h-11 items-center rounded-full bg-secondary px-5 font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Find a tournament

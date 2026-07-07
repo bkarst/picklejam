@@ -4,7 +4,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { laddersHub, leaguesHub, organizeLeagueNew } from "@/lib/urls";
+import { laddersHub, leaguesHub, organizeLeagueNew, discoverPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -67,7 +67,7 @@ export default function LaddersHubPage() {
           we handle the rankings and challenge deadlines.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/search" className="inline-flex h-12 items-center rounded-full bg-secondary px-6 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+          <Link href={discoverPath("ladders")} className="inline-flex h-12 items-center rounded-full bg-secondary px-6 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             Find a ladder
           </Link>
           <Link href={organizeLeagueNew()} className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">

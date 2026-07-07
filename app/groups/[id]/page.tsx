@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGroup } from "@/lib/data/groups";
 import { getCity } from "@/lib/data/geo";
 import { parseCityKey } from "@/lib/db/keys";
 import { stateAbbr } from "@/lib/geo/us-states";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { sportGroupJsonLd, itemListJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
+import { sportGroupJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { OutingCard } from "@/components/outings/OutingCard";
+import { GroupMeetups } from "@/components/groups/GroupMeetups";
 import { GroupDetailClient } from "./GroupDetailClient";
 import { PrivateGroupView } from "./PrivateGroupView";
 import { visibilityMeta, memberCountLabel } from "@/components/groups/format";
-import { groupsHub, groupsCityPath, groupPath, outingPath } from "@/lib/urls";
+import { groupsHub, groupsCityPath, groupPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -50,7 +49,7 @@ export default async function GroupDetailPage({ params }: { params: Params }) {
   const data = await getGroup(id);
   if (!data) notFound();
 
-  const { group, meetups, courts } = data;
+  const { group, courts } = data;
   const base = brand.siteUrl;
   const isPublic = group.visibility === "public";
   const isPrivate = group.visibility === "private";
@@ -99,7 +98,8 @@ export default async function GroupDetailPage({ params }: { params: Params }) {
             ...(isPublic && cityHref ? [{ name: cityLabel ?? "City", url: `${base}${cityHref}` }] : []),
             { name: group.name, url: `${base}${groupPath(id)}` },
           ]),
-          // Public groups only: SportsOrganization + an ItemList of upcoming meet-ups.
+          // Public groups only: SportsOrganization (identity). Meet-ups are members-only
+          // (§6.9), so they are NOT emitted to crawlers — no meet-up ItemList here.
           ...(isPublic
             ? [
                 sportGroupJsonLd(group, {
@@ -108,9 +108,6 @@ export default async function GroupDetailPage({ params }: { params: Params }) {
                   stateCode,
                   memberCount: group.memberCount,
                 }),
-                ...(meetups.length > 0
-                  ? [itemListJsonLd(meetups.map((m) => ({ name: m.title, url: `${base}${outingPath(m.outingId)}` })))]
-                  : []),
               ]
             : []),
         ]}
@@ -162,27 +159,9 @@ export default async function GroupDetailPage({ params }: { params: Params }) {
             </div>
           )}
 
-          {/* Upcoming meet-ups (reuses the outings OutingCard; from getGroup) */}
-          <section className="mt-8">
-            <h2 className="font-display text-2xl font-bold text-foreground">Upcoming meet-ups</h2>
-            <p className="mt-1 text-sm text-muted">Group games scheduled at your courts.</p>
-            {meetups.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-border p-8 text-sm text-muted">
-                No meet-ups scheduled yet. Owners and admins can schedule one from the manage console.
-              </div>
-            ) : (
-              <ul className="mt-4 flex flex-col gap-3">
-                {meetups.map((m) => {
-                  const c = m.courtId ? courts?.[m.courtId] : undefined;
-                  return (
-                    <li key={m.outingId}>
-                      <OutingCard outing={m} court={c ? { name: c.name, href: c.url } : null} showDate />
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
+          {/* Upcoming meet-ups — MEMBERS-ONLY, loaded client-side (never in this shared
+              ISR shell), so a non-member never sees a meet-up's place or time (§6.9). */}
+          <GroupMeetups groupId={id} />
         </div>
 
         {/* Sidebar — per-viewer membership + live roster (CSR overlay) */}

@@ -16,6 +16,8 @@ export interface FilterableCourt {
   indoorCourts: number;
   outdoorCourts: number;
   lighted: boolean;
+  /** Facility-quality tier 1–5 (setup-only, §9.8). */
+  facilityTier?: number;
   dedicated?: boolean;
   hasReservations?: boolean;
   access?: string | null;
@@ -30,6 +32,8 @@ export interface FilterableCourt {
 export interface CourtFilters {
   /** Minimum total courts (0 = Any). */
   minCourts: number;
+  /** Minimum facility tier 1–5 (0 = Any). */
+  minFacilityTier: number;
   /** Subset of TYPE_OPTIONS values. */
   types: string[];
   /** Subset of ACCESS_OPTIONS values. */
@@ -44,6 +48,7 @@ export interface CourtFilters {
 
 export const EMPTY_FILTERS: CourtFilters = {
   minCourts: 0,
+  minFacilityTier: 0,
   types: [],
   access: [],
   amenities: [],
@@ -60,6 +65,14 @@ export const NUMBER_OPTIONS: { value: number; label: string }[] = [
   { value: 6, label: "6+" },
   { value: 8, label: "8+" },
   { value: 10, label: "10+" },
+];
+
+/** Minimum facility-tier options (§9.8) — mirrors the tier words on the court card. */
+export const FACILITY_TIER_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Any" },
+  { value: 3, label: "Good or better" },
+  { value: 4, label: "Excellent or better" },
+  { value: 5, label: "Premier only" },
 ];
 
 export interface TypeOption {
@@ -169,6 +182,7 @@ function communityMatches(c: FilterableCourt, value: string): boolean {
 /** Whether a court satisfies every active facet (AND across facets, OR within). */
 export function courtMatchesFilters(c: FilterableCourt, f: CourtFilters): boolean {
   if (f.minCourts > 0 && (c.totalCourts ?? 0) < f.minCourts) return false;
+  if (f.minFacilityTier > 0 && (c.facilityTier ?? 0) < f.minFacilityTier) return false;
   if (f.types.length && !f.types.some((t) => typeMatches(c, t))) return false;
   if (f.access.length && !f.access.some((a) => accessMatches(c, a))) return false;
   if (f.amenities.length && !f.amenities.some((v) => amenityMatches(c, v))) return false;
@@ -185,6 +199,7 @@ export function filterCourts<T extends FilterableCourt>(courts: T[], f: CourtFil
 export function activeFilterCount(f: CourtFilters): number {
   return (
     (f.minCourts > 0 ? 1 : 0) +
+    (f.minFacilityTier > 0 ? 1 : 0) +
     f.types.length +
     f.access.length +
     f.amenities.length +

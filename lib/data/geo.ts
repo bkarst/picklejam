@@ -81,6 +81,16 @@ export async function getTopStates(country: string, limit = 8): Promise<StateIte
 }
 
 /**
+ * Mis-ingested "country as city" bucket: courts whose city couldn't be parsed were
+ * bucketed under the country name, producing a bogus `united-states` city per state
+ * (39 in all). Excluded from the homepage grid. TODO: clean these at the source so
+ * they also drop from state pages, search, and the sitemap (§9.8 data hygiene).
+ */
+function isCountryNamedCity(c: CityItem): boolean {
+  return c.slug === "united-states";
+}
+
+/**
  * Top cities in a country by venue count (homepage "Explore places to play").
  * Traverses states → cities (no scans); bounded fan-out, run behind ISR.
  */
@@ -89,6 +99,7 @@ export async function getTopCities(country: string, limit = 8): Promise<CityItem
   const perState = await Promise.all(states.map((s) => getCitiesInState(country, s.code)));
   return perState
     .flat()
+    .filter((c) => !isCountryNamedCity(c))
     .sort((a, b) => (b.counts?.locations ?? 0) - (a.counts?.locations ?? 0))
     .slice(0, limit);
 }

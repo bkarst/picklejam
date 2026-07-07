@@ -29,6 +29,7 @@ import {
   COMMUNITY_OPTIONS,
   type CourtFilters,
   EMPTY_FILTERS,
+  FACILITY_TIER_OPTIONS,
   NUMBER_OPTIONS,
   SURFACE_OPTIONS,
   TYPE_OPTIONS,
@@ -115,6 +116,26 @@ export function MoreFiltersDrawer({
                 {NUMBER_OPTIONS.map((o) => (
                   <Radio key={o.value} value={String(o.value)} className="min-h-11 py-1">
                     <Radio.Content className="items-center gap-2">
+                      <Radio.Control className="size-6 shrink-0">
+                        <Radio.Indicator />
+                      </Radio.Control>
+                      <span className="text-base text-foreground">{o.label}</span>
+                    </Radio.Content>
+                  </Radio>
+                ))}
+              </RadioGroup>
+            </FilterSection>
+
+            <FilterSection title="Facility rating">
+              <RadioGroup
+                aria-label="Minimum facility rating"
+                value={String(filters.minFacilityTier)}
+                onChange={(v) => set({ minFacilityTier: Number(v) })}
+                className="flex flex-col gap-1"
+              >
+                {FACILITY_TIER_OPTIONS.map((o) => (
+                  <Radio key={o.value} value={String(o.value)} className="min-h-11 py-1">
+                    <Radio.Content className="items-center gap-3">
                       <Radio.Control className="size-6 shrink-0">
                         <Radio.Indicator />
                       </Radio.Control>

@@ -24,6 +24,7 @@ import {
   EMPTY_FILTERS,
   filterCourts,
 } from "@/lib/search/court-filters";
+import { FacilityRating, facilityTierLabel } from "@/components/directory";
 import { SearchTypeahead } from "./SearchTypeahead";
 import { MoreFiltersDrawer } from "./MoreFiltersDrawer";
 
@@ -71,9 +72,11 @@ function popupHtml(c: NearCourt, href: string): string {
   const meta =
     `${c.totalCourts} court${c.totalCourts === 1 ? "" : "s"} · ${metersToMiles(c.distanceMeters)} mi` +
     `${c.indoorCourts > 0 ? " · Indoor" : ""}${c.lighted ? " · Lighted" : ""}`;
+  const facility = `${facilityTierLabel(c.facilityTier)} · ${c.facilityScore}/100`;
   return `<div style="min-width:172px">
     <div style="font-weight:700;color:${PIN_COLOR};font-size:14px;line-height:1.25">${escapeHtml(c.name)}</div>
     <div style="margin-top:3px;font-size:12px;color:#6b7280">${escapeHtml(meta)}</div>
+    <div style="margin-top:4px;font-size:12px;font-weight:600;color:${PIN_COLOR}">${escapeHtml(facility)}</div>
     <a href="${escapeHtml(href)}" style="display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:${PIN_COLOR};text-decoration:none">View →</a>
   </div>`;
 }
@@ -329,9 +332,12 @@ export function MapFinder() {
               const { country, state, city } = parseCityKey(c.cityKey);
               return (
                 <li key={c.courtId} className="rounded-xl border border-border bg-surface p-4 hover:bg-surface-secondary">
-                  <Link href={courtPath(country, state, city, c.slug)} className="font-display font-bold text-accent hover:underline">
-                    {c.name}
-                  </Link>
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={courtPath(country, state, city, c.slug)} className="font-display font-bold text-accent hover:underline">
+                      {c.name}
+                    </Link>
+                    <FacilityRating variant="compact" score={c.facilityScore} tier={c.facilityTier} className="mt-0.5 shrink-0" />
+                  </div>
                   <p className="mt-1 text-sm text-muted">
                     {c.totalCourts} courts · {metersToMiles(c.distanceMeters)} mi
                     {c.indoorCourts > 0 ? " · Indoor" : ""}

@@ -9,7 +9,8 @@
  */
 
 import { useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedFetch } from "@/lib/api/authed";
 import { accountListKeys } from "@/lib/api/account-lists";
 import { gamifyQueryKeys } from "@/lib/api/gamify";
@@ -86,6 +87,23 @@ export function useCheckIn(courtId: string) {
   });
 }
 
+/**
+ * Whether the signed-in caller currently follows the court — reads the
+ * `communityKeys.following(courtId)` key that {@link useFollowCourt} invalidates,
+ * so the follow button can hydrate its real state (and thus offer "unfollow"). No
+ * query when signed out — an anonymous viewer is never following.
+ */
+export function useIsFollowing(courtId: string) {
+  const authed = useAuthedFetch();
+  const { user } = useAuth();
+  return useQuery<boolean>({
+    queryKey: communityKeys.following(courtId),
+    queryFn: async () =>
+      (await authed<{ following: boolean }>(`/api/courts/${courtId}/follow`)).following,
+    enabled: !!user,
+  });
+}
+
 /** Follow (`true`) / unfollow (`false`) a court. Requires a signed-in user. */
 export function useFollowCourt(courtId: string) {
   const authed = useAuthedFetch();
@@ -96,10 +114,10 @@ export function useFollowCourt(courtId: string) {
         method: follow ? "POST" : "DELETE",
       }),
     onSuccess: () => {
+      // Refresh the per-court follow state ({@link useIsFollowing}) and the "Saved
+      // courts" list (/account/courts, `accountListKeys.followedCourts`) so a
+      // follow/unfollow shows up instead of lingering stale for the 60s staleTime (M20).
       void qc.invalidateQueries({ queryKey: communityKeys.following(courtId) });
-      // The "Saved courts" list (/account/courts) reads `accountListKeys.followedCourts`;
-      // invalidate it so a follow/unfollow shows up on return instead of lingering stale
-      // for the 60s global staleTime (M20). The `following` key above has no query reader.
       void qc.invalidateQueries({ queryKey: accountListKeys.followedCourts });
     },
   });

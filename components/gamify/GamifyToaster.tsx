@@ -15,11 +15,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { subscribeGamify } from "@/lib/gamify/bus";
-import { trackEvent } from "@/lib/analytics/client";
 import { gamifyCopy } from "@/lib/gamify/copy";
 import type { GamifyBlock } from "@/lib/gamify/block";
-import { RpDelta } from "./RpDelta";
-import { LevelRing } from "./LevelRing";
+import { elaborateCelebration, type Celebration } from "@/lib/gamify/celebrate";
+import { QuickRpReward } from "./QuickRpReward";
+import { RewardCelebration } from "./RewardCelebration";
 
 interface ToastItem {
   id: number;
@@ -32,8 +32,10 @@ const TOAST_MS = 3000;
 
 export function GamifyToaster() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [pendingLevelUp, setPendingLevelUp] = useState<{ level: number; name: string } | null>(null);
-  const [modalLevelUp, setModalLevelUp] = useState<{ level: number; name: string } | null>(null);
+  // Elaborate celebrations (first-times / milestones) queue and play one at a time,
+  // each waiting behind any open dialog (e.g. the check-in sheet, PRD §G12.2-I6).
+  const [celebrations, setCelebrations] = useState<Celebration[]>([]);
+  const [active, setActive] = useState<Celebration | null>(null);
   const idRef = useRef(0);
   const levelUpShownRef = useRef(false);
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -62,20 +64,13 @@ export function GamifyToaster() {
   useEffect(() => {
     const timerMap = timers.current;
     const unsub = subscribeGamify((block: GamifyBlock) => {
+      // Tier 1 — the quick reward flourish on EVERY earn.
       if (block.capped) {
         pushToast("cap", <span>{gamifyCopy.capReached}</span>);
       } else if (block.awards.length > 0) {
         const more = block.awards.length - 1;
-        pushToast(
-          "rp",
-          <span className="flex items-center gap-2">
-            <RpDelta points={block.total} />
-            <span className="truncate text-muted">
-              {block.awards[0].label}
-              {more > 0 ? ` +${more} more` : ""}
-            </span>
-          </span>,
-        );
+        const label = `${block.awards[0].label}${more > 0 ? ` +${more} more` : ""}`;
+        pushToast("rp", <QuickRpReward total={block.total} label={label} />);
       }
       for (const badge of block.badges ?? []) {
         pushToast("badge", <span>{gamifyCopy.badgeToast(badge.name, `Tier ${badge.tier}`)}</span>);
@@ -93,9 +88,16 @@ export function GamifyToaster() {
           );
         }
       }
-      if (block.levelUp && !levelUpShownRef.current) {
-        levelUpShownRef.current = true;
-        setPendingLevelUp(block.levelUp);
+
+      // Tier 2 — the elaborate celebration for first-times / milestones. Level-ups fire
+      // at most once per session (higher threshold wins); other milestones each show.
+      const celebration = elaborateCelebration(block);
+      if (celebration) {
+        if (celebration.kind === "level") {
+          if (levelUpShownRef.current) return;
+          levelUpShownRef.current = true;
+        }
+        setCelebrations((q) => [...q, celebration]);
       }
     });
     return () => {
@@ -105,9 +107,10 @@ export function GamifyToaster() {
     };
   }, [pushToast]);
 
-  // Queue the level-up modal BEHIND any open dialog (e.g. the check-in sheet).
+  // Play the next queued celebration once nothing else is active and no other dialog is
+  // open (so it never stacks over the check-in sheet, PRD §G12.2-I6).
   useEffect(() => {
-    if (!pendingLevelUp) return;
+    if (active || celebrations.length === 0) return;
     let cancelled = false;
     const tryOpen = () => {
       if (cancelled) return;
@@ -115,15 +118,15 @@ export function GamifyToaster() {
         setTimeout(tryOpen, 300); // a dialog is open — wait it out
         return;
       }
-      setModalLevelUp(pendingLevelUp);
-      setPendingLevelUp(null);
+      setActive(celebrations[0]);
+      setCelebrations((q) => q.slice(1));
     };
     const t = setTimeout(tryOpen, 350); // let the toast breathe first
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [pendingLevelUp]);
+  }, [active, celebrations]);
 
   return (
     <>
@@ -144,91 +147,7 @@ export function GamifyToaster() {
           ))}
         </div>
       )}
-      {modalLevelUp && <LevelUpModal levelUp={modalLevelUp} onClose={() => setModalLevelUp(null)} />}
+      {active && <RewardCelebration celebration={active} onClose={() => setActive(null)} />}
     </>
-  );
-}
-
-function LevelUpModal({
-  levelUp,
-  onClose,
-}: {
-  levelUp: { level: number; name: string };
-  onClose: () => void;
-}) {
-  const dismissRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    dismissRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "Tab") {
-        // Single focusable → keep focus inside (basic trap).
-        e.preventDefault();
-        dismissRef.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      className="gamify-rise fixed inset-0 z-[70] flex items-center justify-center bg-foreground/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="levelup-title"
-        className="w-full max-w-sm rounded-3xl bg-background p-6 text-center shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="relative mx-auto mb-4 flex h-24 w-24 items-center justify-center" aria-hidden="true">
-          {/* Celebration burst — bouncing balls; static under reduced motion. */}
-          {[0, 1, 2, 3].map((i) => (
-            <span
-              key={i}
-              className="absolute h-2.5 w-2.5 rounded-full bg-accent motion-safe:animate-bounce"
-              style={{
-                top: `${20 + (i % 2) * 55}%`,
-                left: `${10 + i * 25}%`,
-                animationDelay: `${i * 120}ms`,
-              }}
-            />
-          ))}
-          <LevelRing level={levelUp.level} progress={1} size={88} />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted">Level up</p>
-        <h2 id="levelup-title" className="mt-1 text-2xl font-bold text-foreground">
-          {gamifyCopy.levelUp(levelUp.level, levelUp.name)}
-        </h2>
-        <p className="mt-2 text-sm text-muted">You&rsquo;re climbing the ranks. Keep playing to reach the next level.</p>
-        <button
-          ref={dismissRef}
-          type="button"
-          onClick={onClose}
-          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-accent px-6 font-semibold text-accent-foreground transition hover:bg-accent-hover"
-        >
-          Keep playing
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            const url = `${window.location.origin}/og/level/${levelUp.level}`;
-            void navigator.clipboard?.writeText(url).catch(() => {});
-            trackEvent("badge_shared", { kind: "level", level: levelUp.level });
-          }}
-          className="mt-2 inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground"
-        >
-          Copy share link
-        </button>
-      </div>
-    </div>
   );
 }

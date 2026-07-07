@@ -26,6 +26,7 @@ export const CLIENT_EVENTS = [
   "leaderboard_viewed", // carries scope
   "badge_shared",
   "quest_viewed",
+  "gamify_celebration_shown", // reward celebration overlay impression (carries kind)
   "gamification_disabled", // the health metric for the G2.4 opt-in guarantee
   "gamification_enabled",
 ] as const;

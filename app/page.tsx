@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { getCountry, getTopCities, getTopStates } from "@/lib/data/geo";
+import { getCountry } from "@/lib/data/geo";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroSearch } from "@/components/home/HeroSearch";
-import { CityCard, StatLine } from "@/components/directory";
+import { PlayFeatures } from "@/components/home/PlayFeatures";
+import { StatLine } from "@/components/directory";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { countryPath, courtTypePath } from "@/lib/urls";
-import { stateUrl } from "@/lib/urls";
+import { countryPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -26,17 +27,7 @@ const HOME_FAQ = [
 ];
 
 export default async function Home() {
-  const [us, topCities, topStates] = await Promise.all([
-    getCountry("us"),
-    getTopCities("us", 8),
-    getTopStates("us", 6),
-  ]);
-
-  const ctas = [
-    { title: "Round Robin", body: "Quick matches. Rotating partners.", href: "/round-robin", cta: "Create Round Robin" },
-    { title: "Leagues", body: "Join a league and play weekly.", href: "/leagues", cta: "Browse Leagues" },
-    { title: "Tournaments", body: "Compete. Climb. Win.", href: "/tournaments", cta: "Find Tournaments" },
-  ];
+  const us = await getCountry("us");
 
   return (
     <>
@@ -68,61 +59,56 @@ export default async function Home() {
         </main>
       </section>
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-12">
-        {/* Explore places to play */}
-        <section aria-labelledby="explore-heading">
-          <div className="flex items-baseline justify-between">
-            <h2 id="explore-heading" className="font-display text-2xl font-bold text-foreground">
-              Explore places to play
+      {/* Ways to play — Round Robin, Leagues, Tournaments (full-bleed bands) */}
+      <PlayFeatures />
+
+      {/* Community CTA — full-bleed photo band */}
+      <section className="relative isolate overflow-hidden">
+        <Image
+          src="/images/home/cta-community.jpg"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/35"
+          aria-hidden="true"
+        />
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-20 sm:py-28">
+          <div className="max-w-xl">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur">
+              <span className="size-1.5 rounded-full bg-brand-lime" aria-hidden="true" />
+              Get on the court
+            </span>
+            <h2 className="mt-4 font-display text-3xl font-bold text-white sm:text-4xl">
+              Your next game is a tap away
             </h2>
-            <Link href="/courts" className="text-sm font-semibold text-accent hover:underline">
-              View all cities →
-            </Link>
-          </div>
-
-          {topCities.length > 0 ? (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {topCities.map((c) => (
-                <CityCard key={c.cityKey} city={c} />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-muted">The directory is being populated — check back soon.</p>
-          )}
-
-          {/* Secondary groupings */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {topStates.map((s) => (
-              <Link key={s.code} href={stateUrl(s)} className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-secondary">
-                {s.name}
+            <p className="mt-3 text-lg text-white/85">
+              Thousands of courts, games, and players near you. Find your spot, check in, meet the
+              regulars, and play more pickleball.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/search"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-brand-lime px-7 text-base font-semibold text-accent transition-transform hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Find courts near me
               </Link>
-            ))}
-            <Link href={countryPath("us")} className="rounded-full border border-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-secondary">All states</Link>
-            {["indoor", "outdoor", "lighted", "dedicated"].map((t) => (
-              <Link key={t} href={courtTypePath(t)} className="rounded-full border border-border px-3 py-1.5 text-sm capitalize text-foreground hover:bg-surface-secondary">
-                {t}
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Organize CTAs */}
-        <section className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {ctas.map((c) => (
-            <div key={c.title} className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5">
-              <div>
-                <h3 className="font-display text-lg font-bold text-foreground">{c.title}</h3>
-                <p className="mt-1 text-sm text-muted">{c.body}</p>
-              </div>
-              <Link href={c.href} className="mt-4 inline-flex h-10 w-fit items-center rounded-full bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                {c.cta}
+              <Link
+                href={countryPath("us")}
+                className="inline-flex h-12 items-center justify-center rounded-full border border-white/40 px-7 text-base font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Browse the directory
               </Link>
             </div>
-          ))}
-        </section>
+          </div>
+        </div>
+      </section>
 
+      <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:py-20">
         {/* FAQ */}
-        <section className="mt-12 max-w-3xl">
+        <section>
           <h2 className="font-display text-2xl font-bold text-foreground">Frequently asked questions</h2>
           <div className="mt-4">
             <FaqAccordion items={HOME_FAQ} />
