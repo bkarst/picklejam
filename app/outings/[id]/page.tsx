@@ -15,6 +15,7 @@ import { sportsEventJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
 import { RsvpControl } from "@/components/outings/RsvpControl";
+import { EventCheckinButton } from "@/components/outings/EventCheckinButton";
 import { WeatherChip } from "@/components/outings/WeatherChip";
 import { formatOutingDate, formatTimeRange, formatSkillRange } from "@/components/outings/format";
 import { courtUrl, cityGamesPath, outingPath } from "@/lib/urls";
@@ -113,6 +114,14 @@ function RsvpList({
                   {p?.displayName ?? "Player"}
                   {r.uid === organizerId && <span className="ml-1 text-xs font-normal text-muted">(Host)</span>}
                 </span>
+                {r.arrivedAt && (
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-foreground">
+                    <svg viewBox="0 0 24 24" className="size-3 text-success" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Arrived
+                  </span>
+                )}
                 {showPosition && (
                   <span className="shrink-0 text-xs font-semibold text-muted">
                     #{r.waitlistPos ?? i + 1}
@@ -343,6 +352,14 @@ export default async function OutingDetailPage({ params }: { params: Params }) {
             waitlistCount={outing.waitlistCount ?? waitlist.length}
             waitlistEnabled={Boolean(outing.waitlist)}
             guestPolicy={outing.guestPolicy}
+          />
+
+          {/* Event check-in — renders only around game time (§6.2). */}
+          <EventCheckinButton
+            outingId={outing.outingId}
+            courtId={outing.courtId}
+            startTs={outing.startTs}
+            endTs={outing.endTs}
           />
 
           {/* Add to calendar — not for PRIVATE games (their .ics is gated, L2). */}

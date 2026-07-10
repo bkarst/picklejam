@@ -220,6 +220,15 @@ export const outingKeys = {
   }),
   rsvpPrefix: (): string => `RSVP${SEP}`,
   series: (seriesId: string): PrimaryKey => ({ pk: `SERIES${SEP}${seriesId}`, sk: META }),
+  /**
+   * Pre-event reminder queue row, bucketed by UTC due-day so the reminder job
+   * reads exactly one partition per day (`REMDAY#yyyy-mm-dd`) — never a scan.
+   */
+  reminder: (dueTs: string, outingId: string): PrimaryKey => ({
+    pk: `REMDAY${SEP}${dueTs.slice(0, 10)}`,
+    sk: `REM${SEP}${dueTs}${SEP}${outingId}`,
+  }),
+  reminderDayPk: (utcDay: string): string => `REMDAY${SEP}${utcDay}`,
 } as const;
 
 // ── Groups & clubs ──────────────────────────────────────────────────────────

@@ -227,6 +227,8 @@ export interface UserProfileItem extends BaseItem {
   notifPrefs?: NotifPrefs;
   /** Emails opted out of notification mail (one-click unsubscribe → suppression). */
   unsubscribed?: string[];
+  /** Mirrored from the auth token — where the notification email mirror is sent. */
+  email?: string;
 }
 
 // ── community graph (Stage 3, §6.2/§6.4/§9.3) ────────────────────────────────
@@ -243,6 +245,10 @@ export interface CheckinItem extends BaseItem {
   lookingToPlay?: boolean;
   /** Court-local yyyymmdd of the check-in (day bucket, §9.4). */
   checkinDay: string;
+  /** Set when the check-in is for a specific event (group meet-up / outing, §6.7). */
+  outingId?: string | null;
+  /** Denormalized host group of an event check-in (the notification fan-out target). */
+  groupId?: string | null;
 }
 
 /** A court review (§6.4) — one per user per court (editable). */
@@ -271,6 +277,10 @@ export interface FollowItem extends BaseItem {
 export type NotificationType =
   | "new_game_at_followed_court"
   | "outing_rsvp"
+  /** A player checked in for a group event (anonymous copy — never names the player). */
+  | "outing_checkin"
+  /** Pre-event "can you make it?" RSVP ask for an outing. */
+  | "outing_reminder"
   | "review_helpful"
   | "system"
   // — gamification (§G14) —
@@ -372,6 +382,24 @@ export interface RsvpItem extends BaseItem {
   waitlistPos?: number;
   guestCount?: number;
   respondedAt?: string;
+  /** Set when the attendee checked in for the event (they arrived at the court). */
+  arrivedAt?: string;
+}
+
+/**
+ * Pre-event RSVP reminder queue row (§6.7). Bucketed by UTC due-day
+ * (`REMDAY#yyyy-mm-dd`) so the reminder job reads one partition per day — never
+ * a scan. Recurring outings re-enqueue the next occurrence when processed.
+ */
+export interface OutingReminderItem extends BaseItem {
+  entity: "OUTINGREM";
+  outingId: string;
+  /** The occurrence this reminder announces (ISO start). */
+  occurrenceTs: string;
+  /** When the reminder becomes due to send (ISO). */
+  dueTs: string;
+  /** Epoch-seconds expiry — unclaimed rows die instead of accumulating. */
+  ttl: number;
 }
 
 /** Recurring-series master (§6.7 RRULE). */

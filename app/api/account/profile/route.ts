@@ -60,6 +60,7 @@ export async function PUT(req: NextRequest): Promise<Response> {
       notifPrefs: current.notifPrefs,
       unsubscribed: current.unsubscribed,
       checkinVisibility: current.checkinVisibility,
+      email: current.email,
       createdAt: current.createdAt,
     };
 

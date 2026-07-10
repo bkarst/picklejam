@@ -49,6 +49,7 @@ import { getCourt } from "@/lib/data/courts";
 import type {
   OutingItem,
   OutingRefItem,
+  OutingReminderItem,
   RsvpItem,
   SeriesItem,
   OutingType,
@@ -101,7 +102,26 @@ export interface RsvpResult {
   rsvp: RsvpItem;
   goingCount: number;
   waitlistCount: number;
+  /** The caller's status BEFORE this call (undefined = first RSVP). Lets the
+   *  route notify only on genuine transitions, never on a re-submit no-op. */
+  previousStatus?: RsvpStatus;
+  /** False when a concurrent double-submit won the race (suppress notifications). */
+  changed?: boolean;
 }
+
+/** Cancel result: the removed RSVP + fresh counts + the outing META (already
+ *  fetched by the cancel, so callers never re-read it for their fan-out). The
+ *  META is stripped of `inviteToken` HERE, so even a handler that serializes
+ *  this result verbatim cannot leak the private invite link. */
+export interface CancelRsvpResult {
+  rsvp: RsvpItem;
+  goingCount: number;
+  waitlistCount: number;
+  outing: Omit<OutingItem, "inviteToken">;
+}
+
+/** How far before an occurrence the pre-event RSVP reminder goes out. */
+export const REMINDER_LEAD_MS = 24 * 60 * 60 * 1000;
 
 // ── create (composite atomic write, N15) ─────────────────────────────────────
 
@@ -218,6 +238,19 @@ export async function createOuting(input: CreateOutingInput): Promise<OutingItem
     items.push(txPut(meetup as unknown as Record<string, unknown>, "attribute_not_exists(pk)"));
   }
 
+  // Pre-event RSVP reminder (§6.7) — a GROUP feature: the ask goes to members
+  // who haven't answered, so only group meet-ups enqueue a due-day queue row
+  // (24h before start; immediately due when created closer than that). Rows
+  // carry a TTL so one missed by the sweep's catch-up window can't accumulate.
+  if (hostType === "GROUP" && groupId && Date.parse(startTs) > now) {
+    items.push(
+      txPut(
+        buildReminderItem(outingId, startTs, now) as unknown as Record<string, unknown>,
+        "attribute_not_exists(pk)",
+      ),
+    );
+  }
+
   await transactWrite(items);
 
   // Reconcile §9.4 aggregates (inline locally; the real Streams Lambda in prod).
@@ -225,6 +258,29 @@ export async function createOuting(input: CreateOutingInput): Promise<OutingItem
   await emitInsert(outingRef as unknown as Record<string, unknown>);
 
   return outing;
+}
+
+/**
+ * Build the reminder queue row for one occurrence (pure). Due 24h before the
+ * occurrence, clamped to "now" for outings created inside the lead window.
+ */
+export function buildReminderItem(
+  outingId: string,
+  occurrenceTs: string,
+  now: number,
+): OutingReminderItem {
+  const dueTs = new Date(Math.max(Date.parse(occurrenceTs) - REMINDER_LEAD_MS, now)).toISOString();
+  return {
+    ...outingKeys.reminder(dueTs, outingId),
+    entity: "OUTINGREM",
+    outingId,
+    occurrenceTs,
+    dueTs,
+    // Expire unclaimed rows well after the occurrence — a reminder the sweep
+    // never claimed (scheduler down past the catch-up window) is useless by then.
+    ttl: Math.floor((Date.parse(occurrenceTs) + 7 * 86_400_000) / 1000),
+    createdAt: new Date(now).toISOString(),
+  };
 }
 
 // ── reads ────────────────────────────────────────────────────────────────────
@@ -423,6 +479,8 @@ export async function rsvp(
       rsvp: item,
       goingCount: same?.goingCount ?? 0,
       waitlistCount: same?.waitlistCount ?? 0,
+      previousStatus: sOld,
+      changed: false,
     };
   }
 
@@ -484,6 +542,8 @@ export async function rsvp(
       rsvp: cur ?? item,
       goingCount: lost?.goingCount ?? 0,
       waitlistCount: lost?.waitlistCount ?? 0,
+      previousStatus: sOld,
+      changed: false,
     };
   }
 
@@ -514,7 +574,49 @@ export async function rsvp(
     rsvp: item,
     goingCount: fresh?.goingCount ?? 0,
     waitlistCount: fresh?.waitlistCount ?? 0,
+    previousStatus: sOld,
+    changed: true,
   };
+}
+
+/**
+ * Record the caller's ARRIVAL at an event (§6.2/§6.7): stamp `arrivedAt` on
+ * their RSVP; a walk-up with no RSVP becomes `going` first (through the normal
+ * capacity-aware path — a full outing waitlists them) and is then stamped.
+ *
+ * Returns TRUE only when the arrival was NEWLY recorded — the exactly-once gate
+ * for the "a player arrived" fan-out. A re-tap / duplicate request returns
+ * false and must not re-notify. The conditional stamp doubles as the probe, so
+ * the common path (RSVP exists, not yet arrived) is a single conditional write.
+ */
+export async function checkInToEvent(outing: OutingItem, uid: string): Promise<boolean> {
+  if (await markArrived(outing.outingId, uid, outing.startTs)) return true;
+  // Stamp refused: they either already arrived (no-op) or have no RSVP yet.
+  const existing = await getItem<RsvpItem>(outingKeys.rsvp(outing.outingId, uid, outing.startTs));
+  if (existing) return false; // already arrived — never re-notify
+  await rsvp(outing.outingId, uid, "going"); // walk-up: claim a spot (or waitlist)
+  return markArrived(outing.outingId, uid, outing.startTs);
+}
+
+/**
+ * Stamp `arrivedAt` on the caller's RSVP — exactly once. The condition refuses
+ * both a missing row AND an already-stamped one, so a `true` return means THIS
+ * call recorded the arrival. No counters move.
+ */
+async function markArrived(outingId: string, uid: string, startTs: string): Promise<boolean> {
+  const ts = new Date().toISOString();
+  try {
+    await updateItem({
+      key: outingKeys.rsvp(outingId, uid, startTs),
+      update: "SET arrivedAt = :ts, updatedAt = :ts",
+      condition: "attribute_exists(pk) AND attribute_not_exists(arrivedAt)",
+      values: { ":ts": ts },
+    });
+    return true;
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return false;
+    throw err;
+  }
 }
 
 /**
@@ -609,7 +711,10 @@ async function renumberWaitlistAfterDeparture(
  * waitlist is promoted into the freed spot (counts adjusted accordingly), and the
  * remaining waitlisters are repositioned.
  */
-export async function cancelRsvp(outingId: string, uid: string): Promise<RsvpResult | undefined> {
+export async function cancelRsvp(
+  outingId: string,
+  uid: string,
+): Promise<CancelRsvpResult | undefined> {
   const meta = await getOutingMeta(outingId);
   if (!meta) return undefined;
   const startTs = meta.startTs;
@@ -638,10 +743,15 @@ export async function cancelRsvp(outingId: string, uid: string): Promise<RsvpRes
   }
 
   const fresh = await getOutingMeta(outingId);
+  // The META is already in hand for the caller's fan-out — minus the private
+  // inviteToken, so no response path can ever serialize it.
+  const outing = { ...(fresh ?? meta) };
+  delete outing.inviteToken;
   return {
     rsvp: { ...existing, status: "declined" },
     goingCount: fresh?.goingCount ?? 0,
     waitlistCount: fresh?.waitlistCount ?? 0,
+    outing,
   };
 }
 

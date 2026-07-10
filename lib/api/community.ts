@@ -52,6 +52,10 @@ export interface CheckInVars {
   skill?: number;
   lookingToPlay?: boolean;
   anonymous?: boolean;
+  /** Check in FOR an event (group meet-up / outing) at this court (§6.7). */
+  outingId?: string;
+  /** Invite token for a private event (same access rule as RSVP). */
+  inviteToken?: string;
 }
 
 /**

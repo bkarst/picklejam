@@ -35,7 +35,17 @@ const TYPE_META: { type: NotificationType; title: string; description: string }[
   {
     type: "outing_rsvp",
     title: "RSVPs to your outings",
-    description: "When a player RSVPs to a game you're organizing.",
+    description: "When a player RSVPs to a game you're organizing or a group event you're part of.",
+  },
+  {
+    type: "outing_checkin",
+    title: "Event check-ins",
+    description: "When a player arrives for a group event you're part of, or at a court you favorite.",
+  },
+  {
+    type: "outing_reminder",
+    title: "Event RSVP reminders",
+    description: "A pre-event ask to RSVP for your group's upcoming games.",
   },
   {
     type: "review_helpful",

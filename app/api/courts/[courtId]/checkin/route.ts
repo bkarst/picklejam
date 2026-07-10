@@ -15,12 +15,18 @@
  */
 
 import type { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { verifyRequest } from "@/lib/auth/verify";
 import { getItem } from "@/lib/db/client";
 import { courtKeys } from "@/lib/db/keys";
 import { getCourt } from "@/lib/data/courts";
 import { courtLocalDay } from "@/lib/directory/court-local-day";
 import { createCheckin, getCourtCheckinsToday, getMyCheckins } from "@/lib/data/checkins";
+import { checkInToEvent, getOutingMeta } from "@/lib/data/outings";
+import { canAccessPrivateOuting } from "@/lib/outings/access";
+import { isEventCheckinOpen } from "@/lib/outings/timing";
+import { notifyEventCheckin } from "@/lib/outings/notify";
+import { outingPath } from "@/lib/urls";
 import { earnCheckin } from "@/lib/data/gamify-earn";
 import {
   issueAnonToken,
@@ -30,7 +36,7 @@ import {
 } from "@/lib/data/anon";
 import { guarded, bad, jsonBodyOptional } from "@/app/api/_util";
 import { sanitizeMultiline } from "@/lib/util/sanitize";
-import type { CheckinItem } from "@/lib/db/types";
+import type { CheckinItem, OutingItem } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +56,35 @@ interface CheckinFields {
   skill?: number;
   lookingToPlay?: boolean;
   anonymous: boolean;
+}
+
+/**
+ * Resolve + authorize an EVENT check-in's outing ("check in with a group event",
+ * §6.2/§6.7). Requires a signed-in caller (arrival is marked on THEIR RSVP), the
+ * event to be at THIS court, and — for private events — the shared access rule
+ * (lib/outings/access, the same gate RSVP uses).
+ */
+async function resolveEventOuting(
+  outingId: string,
+  courtId: string,
+  uid: string | undefined,
+  body: Record<string, unknown>,
+): Promise<OutingItem> {
+  if (!uid) bad("Sign in to check in for an event", 401);
+  const outing = await getOutingMeta(outingId);
+  if (!outing) bad("Event not found", 404);
+  if (outing!.courtId !== courtId) bad("This event is at a different court");
+  // Enforce the SAME window the button renders (lib/outings/timing) — without
+  // this, a crafted request could stamp arrivals and fan out notifications at
+  // any time, days before or after the event.
+  if (!isEventCheckinOpen(outing!.startTs, outing!.endTs, Date.now())) {
+    bad("Event check-in isn't open — it opens 2 hours before start");
+  }
+  const token = typeof body.inviteToken === "string" ? body.inviteToken : undefined;
+  if (!(await canAccessPrivateOuting(outing!, uid!, token))) {
+    bad("This is a private event — an invite is required to check in", 403);
+  }
+  return outing!;
 }
 
 /** Validate + normalize the optional check-in fields (400 on bad input). */
@@ -92,11 +127,31 @@ export async function POST(
       /* anonymous check-in */
     }
 
+    // Event check-in ("check in with a group event"): resolve + authorize the
+    // outing up front so a bad event reference 4xxs before anything is written.
+    const outingId = typeof body.outingId === "string" && body.outingId ? body.outingId : undefined;
+    const outing = outingId ? await resolveEventOuting(outingId, courtId, uid, body) : undefined;
+
     // ── account check-in ──────────────────────────────────────────────────────
     if (uid) {
       const today = (await getMyCheckins(uid)).filter((c) => c.checkinDay === day);
       const existing = today.find((c) => c.courtId === courtId);
       if (existing) {
+        // Already checked in at this court today (e.g. a plain morning check-in,
+        // or a double-tap). An EVENT check-in still records arrival — and still
+        // notifies, but only when the arrival is NEW: checkInToEvent's
+        // exactly-once stamp is the gate, so a re-tap never re-notifies while a
+        // first event check-in after an unrelated court check-in still does.
+        if (outing) {
+          try {
+            if (await checkInToEvent(outing, uid)) {
+              await notifyEventCheckin({ outing, courtName: court.name, actorUid: uid });
+            }
+          } catch (err) {
+            console.error("[checkin] event side effects failed (swallowed)", err);
+          }
+          revalidatePath(outingPath(outing.outingId));
+        }
         const todayCount = (await getCourtCheckinsToday(courtId, day)).length;
         return Response.json({ checkin: existing, todayCount });
       }
@@ -110,7 +165,23 @@ export async function POST(
         skill: fields.skill,
         lookingToPlay: fields.lookingToPlay,
         day,
+        ...(outing ? { outingId: outing.outingId, groupId: outing.groupId ?? null } : {}),
       });
+
+      // Event side effects — arrival on the RSVP + the ANONYMOUS fan-out to the
+      // host group's members and the court's followers (§9.3). The fan-out is
+      // gated on a NEWLY-recorded arrival (exactly-once). Failure-isolated: the
+      // durable check-in above never rolls back on a notify hiccup.
+      if (outing) {
+        try {
+          if (await checkInToEvent(outing, uid)) {
+            await notifyEventCheckin({ outing, courtName: court.name, actorUid: uid });
+          }
+        } catch (err) {
+          console.error("[checkin] event side effects failed (swallowed)", err);
+        }
+        revalidatePath(outingPath(outing.outingId));
+      }
       // Rally Points — after the durable write (failure-isolated). Anonymous check-ins
       // earn nothing (§G2.4); the block is absent when the account hid its identity.
       const gamify = fields.anonymous

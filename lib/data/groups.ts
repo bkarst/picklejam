@@ -316,6 +316,18 @@ export async function getGroupMember(
   return getItem<GroupMemberItem>(groupKeys.member(groupId, uid));
 }
 
+/**
+ * The uids of a group's ACTIVE members (one Query on the MEMBER# prefix) — the
+ * lightweight fan-out list for group notifications (no profile hydration).
+ */
+export async function getActiveMemberUids(groupId: string): Promise<string[]> {
+  const { items } = await query<GroupMemberItem>({
+    pk: groupKeys.meta(groupId).pk,
+    skBeginsWith: groupKeys.memberPrefix(),
+  });
+  return items.filter((m) => m.status === "active").map((m) => m.uid);
+}
+
 type GroupRow = GroupItem | GroupMemberItem | GroupInviteItem | (Record<string, unknown> & {
   sk: string;
   outingId?: string;

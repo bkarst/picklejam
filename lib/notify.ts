@@ -182,8 +182,8 @@ async function maybeSendEmail(
 ): Promise<void> {
   const profile = await getUserProfile(uid);
   if (!profile) return;
-  // Profiles don't store email yet; prefer the template, fall back to any stored one.
-  const email = template.email ?? (profile as { email?: string }).email;
+  // Prefer an explicit template address, else the profile's mirrored auth email.
+  const email = template.email ?? profile.email;
   if (!email) return;
   if (!resolveEmailAllowed(profile, template.type, { email })) return;
 

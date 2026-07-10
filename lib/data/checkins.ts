@@ -33,6 +33,10 @@ export interface CreateCheckinInput {
   lookingToPlay?: boolean;
   /** Court-local `yyyymmdd` (see {@link import("@/lib/directory/court-local-day")}). */
   day: string;
+  /** Present when the check-in is for a specific event (group meet-up / outing). */
+  outingId?: string | null;
+  /** The event's host group (denormalized fan-out target). */
+  groupId?: string | null;
   /** Injectable for deterministic tests. */
   ts?: string;
   id?: string;
@@ -84,6 +88,8 @@ export function buildCheckinItem(
     ...(input.note !== undefined ? { note: input.note } : {}),
     ...(input.skill !== undefined ? { skill: input.skill } : {}),
     ...(input.lookingToPlay !== undefined ? { lookingToPlay: input.lookingToPlay } : {}),
+    ...(input.outingId ? { outingId: input.outingId } : {}),
+    ...(input.groupId ? { groupId: input.groupId } : {}),
     ...(cityKey ? { cityKey } : {}),
     createdAt: iso,
   };

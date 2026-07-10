@@ -205,6 +205,8 @@ export interface ProfileInput {
   notifPrefs?: NotifPrefs;
   unsubscribed?: string[];
   checkinVisibility?: "public" | "private";
+  /** Mirrored from the auth token (§9.3) — the notification email address. */
+  email?: string;
   /** Preserve the original create timestamp across updates. */
   createdAt?: string;
 }
@@ -237,6 +239,7 @@ export function buildProfileItem(input: ProfileInput): UserProfileItem {
     ...(input.notifPrefs !== undefined ? { notifPrefs: input.notifPrefs } : {}),
     ...(input.unsubscribed !== undefined ? { unsubscribed: input.unsubscribed } : {}),
     ...(input.checkinVisibility !== undefined ? { checkinVisibility: input.checkinVisibility } : {}),
+    ...(input.email !== undefined ? { email: input.email } : {}),
     createdAt: input.createdAt ?? now,
     updatedAt: now,
   };
@@ -266,7 +269,21 @@ export async function generateUniqueUsername(base: string): Promise<string> {
  */
 export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileItem> {
   const existing = await getUserProfile(user.uid);
-  if (existing) return existing;
+  if (existing) {
+    // Keep the notification email in sync with the auth token (§9.3): the mirror
+    // is what `notify`'s email channel sends to. Best-effort — a miss just means
+    // this sign-in didn't refresh it.
+    if (user.email && existing.email !== user.email) {
+      await updateItem({
+        key: userKeys.profile(user.uid),
+        update: "SET email = :e, updatedAt = :u",
+        values: { ":e": user.email, ":u": new Date().toISOString() },
+        condition: "attribute_exists(pk)",
+      }).catch(() => {});
+      return { ...existing, email: user.email };
+    }
+    return existing;
+  }
 
   const base = user.name ?? user.email?.split("@")[0] ?? "player";
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -280,6 +297,7 @@ export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileI
       displayName: user.name ?? user.email ?? "Player",
       visibility: "public",
       onboarded: false,
+      ...(user.email ? { email: user.email } : {}),
     });
     try {
       await putProfileWithUsername(profile); // create (create-only: reservation + profile)
