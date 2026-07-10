@@ -33,21 +33,23 @@ describe("court-filters", () => {
     expect(activeFilterCount(EMPTY_FILTERS)).toBe(0);
   });
 
-  it("Number is a minimum-total-courts floor", () => {
+  it("Number of Courts is a minimum-total-courts floor", () => {
     expect(courtMatchesFilters(court({ totalCourts: 4 }), f({ minCourts: 4 }))).toBe(true);
     expect(courtMatchesFilters(court({ totalCourts: 3 }), f({ minCourts: 4 }))).toBe(false);
     expect(courtMatchesFilters(court({ totalCourts: 1 }), f({ minCourts: 0 }))).toBe(true);
+    // Contributes exactly one to the active-facet count.
+    expect(activeFilterCount(f({ minCourts: 4 }))).toBe(1);
   });
 
-  it("Facility rating is a minimum-tier floor", () => {
-    expect(courtMatchesFilters(court({ facilityTier: 4 }), f({ minFacilityTier: 4 }))).toBe(true);
-    expect(courtMatchesFilters(court({ facilityTier: 5 }), f({ minFacilityTier: 4 }))).toBe(true);
-    expect(courtMatchesFilters(court({ facilityTier: 3 }), f({ minFacilityTier: 4 }))).toBe(false);
+  it("Rating is a minimum-facility-score floor", () => {
+    expect(courtMatchesFilters(court({ facilityScore: 80 }), f({ minRating: 80 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityScore: 92 }), f({ minRating: 80 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityScore: 79 }), f({ minRating: 80 }))).toBe(false);
     // Any (0) matches all, including a court missing the field.
-    expect(courtMatchesFilters(court({ facilityTier: 1 }), f({ minFacilityTier: 0 }))).toBe(true);
-    expect(courtMatchesFilters(court({ facilityTier: undefined }), f({ minFacilityTier: 3 }))).toBe(false);
+    expect(courtMatchesFilters(court({ facilityScore: 12 }), f({ minRating: 0 }))).toBe(true);
+    expect(courtMatchesFilters(court({ facilityScore: undefined }), f({ minRating: 60 }))).toBe(false);
     // Contributes exactly one to the active-facet count.
-    expect(activeFilterCount(f({ minFacilityTier: 4 }))).toBe(1);
+    expect(activeFilterCount(f({ minRating: 80 }))).toBe(1);
   });
 
   it("Type: indoor/outdoor/lighted/dedicated/reservable predicates", () => {
@@ -113,17 +115,17 @@ describe("court-filters", () => {
   });
 
   it("activeFilterCount sums active facets", () => {
-    expect(activeFilterCount(f({ minCourts: 4, types: ["indoor", "lighted"], surfaces: ["clay"], community: ["unreviewed"] }))).toBe(5);
+    expect(activeFilterCount(f({ minRating: 70, types: ["indoor", "lighted"], surfaces: ["clay"], community: ["unreviewed"] }))).toBe(5);
   });
 
   it("filterCourts returns only matching courts", () => {
     const courts = [
-      court({ totalCourts: 2, surface: ["clay"] }),
-      court({ totalCourts: 8, surface: ["wood"] }),
-      court({ totalCourts: 10, surface: ["clay"] }),
+      court({ facilityScore: 55, surface: ["clay"] }),
+      court({ facilityScore: 88, surface: ["wood"] }),
+      court({ facilityScore: 91, surface: ["clay"] }),
     ];
-    const out = filterCourts(courts, f({ minCourts: 6, surfaces: ["clay"] }));
+    const out = filterCourts(courts, f({ minRating: 60, surfaces: ["clay"] }));
     expect(out).toHaveLength(1);
-    expect(out[0].totalCourts).toBe(10);
+    expect(out[0].facilityScore).toBe(91);
   });
 });

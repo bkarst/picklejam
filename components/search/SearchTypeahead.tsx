@@ -66,7 +66,7 @@ function highlightMatch(text: string, q: string): ReactNode {
 }
 
 export function SearchTypeahead({
-  placeholder = "Search courts, cities, or players…",
+  placeholder = "Search courts or cities…",
   autoFocus = false,
   prepopulateNearby = false,
   showSubmitButton = false,

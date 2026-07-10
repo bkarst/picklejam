@@ -74,10 +74,9 @@ function popupHtml(c: NearCourt, href: string): string {
     `${c.indoorCourts > 0 ? " · Indoor" : ""}${c.lighted ? " · Lighted" : ""}`;
   const facility = `${facilityTierLabel(c.facilityTier)} · ${c.facilityScore}/100`;
   return `<div style="min-width:172px">
-    <div style="font-weight:700;color:${PIN_COLOR};font-size:14px;line-height:1.25">${escapeHtml(c.name)}</div>
+    <a href="${escapeHtml(href)}" target="_blank" rel="noopener" style="display:inline-block;font-weight:700;color:${PIN_COLOR};font-size:14px;line-height:1.25;text-decoration:underline;text-underline-offset:2px">${escapeHtml(c.name)}</a>
     <div style="margin-top:3px;font-size:12px;color:#6b7280">${escapeHtml(meta)}</div>
     <div style="margin-top:4px;font-size:12px;font-weight:600;color:${PIN_COLOR}">${escapeHtml(facility)}</div>
-    <a href="${escapeHtml(href)}" style="display:inline-block;margin-top:7px;font-size:13px;font-weight:600;color:${PIN_COLOR};text-decoration:none">View →</a>
   </div>`;
 }
 
@@ -90,17 +89,6 @@ export function MapFinder() {
   const [radiusMi, setRadiusMi] = useState(DEFAULT_RADIUS_MI);
   const [radiusDisplay, setRadiusDisplay] = useState(DEFAULT_RADIUS_MI);
   const filtersDrawer = useOverlayState();
-
-  // Quick pills (Indoor / Lighted) toggle membership in the shared `types` facet,
-  // so a pill and its More-Filters checkbox stay in sync (one source of truth).
-  const toggleType = useCallback(
-    (t: string) =>
-      setFilters((prev) => ({
-        ...prev,
-        types: prev.types.includes(t) ? prev.types.filter((x) => x !== t) : [...prev.types, t],
-      })),
-    [],
-  );
 
   const locate = useCallback(() => {
     if (!("geolocation" in navigator)) {
@@ -247,37 +235,13 @@ export function MapFinder() {
           <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
           </svg>
-          More Filters
+          Filters
           {activeCount > 0 && (
             <span className="grid size-5 place-items-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
               {activeCount}
             </span>
           )}
         </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filters">
-        {(["indoor", "lighted"] as const).map((f) => {
-          const active = filters.types.includes(f);
-          return (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={active}
-              onClick={() => toggleType(f)}
-              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm capitalize focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-                active
-                  ? "border-accent bg-accent text-accent-foreground"
-                  : "border-border text-foreground hover:bg-surface-secondary"
-              }`}
-            >
-              {f}
-            </button>
-          );
-        })}
-        <span className="ml-auto text-sm text-muted" aria-live="polite">
-          {coords && !isLoading ? `${filtered.length} court${filtered.length === 1 ? "" : "s"} nearby` : ""}
-        </span>
       </div>
 
       {/* Search radius — expand/reduce how far "nearby" reaches. */}
@@ -313,6 +277,11 @@ export function MapFinder() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* List (the a11y text equivalent of the map) */}
         <div>
+          {coords && !isLoading && (
+            <p className="mb-3 text-sm font-semibold text-foreground" aria-live="polite">
+              {filtered.length} court{filtered.length === 1 ? "" : "s"} nearby
+            </p>
+          )}
           {geoStatus === "locating" && <p className="text-muted">Finding your location…</p>}
           {geoStatus === "located" && isLoading && <p className="text-muted">Loading nearby courts…</p>}
           {geoStatus === "denied" && (
@@ -330,13 +299,21 @@ export function MapFinder() {
           <ul className="flex flex-col gap-3">
             {filtered.map((c) => {
               const { country, state, city } = parseCityKey(c.cityKey);
+              // Stretched link: the whole card is the court link (its hover state
+              // promises a click). The rating sits above the overlay (relative) so
+              // its ⓘ tooltip stays hoverable.
               return (
-                <li key={c.courtId} className="rounded-xl border border-border bg-surface p-4 hover:bg-surface-secondary">
+                <li key={c.courtId} className="relative rounded-xl border border-border bg-surface p-4 hover:bg-surface-secondary">
                   <div className="flex items-start justify-between gap-3">
-                    <Link href={courtPath(country, state, city, c.slug)} className="font-display font-bold text-accent hover:underline">
+                    <Link
+                      href={courtPath(country, state, city, c.slug)}
+                      target="_blank"
+                      rel="noopener"
+                      className="font-display font-bold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus after:absolute after:inset-0 after:cursor-pointer after:content-['']"
+                    >
                       {c.name}
                     </Link>
-                    <FacilityRating variant="compact" score={c.facilityScore} tier={c.facilityTier} className="mt-0.5 shrink-0" />
+                    <FacilityRating variant="compact" score={c.facilityScore} tier={c.facilityTier} className="relative mt-0.5 shrink-0" />
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {c.totalCourts} courts · {metersToMiles(c.distanceMeters)} mi

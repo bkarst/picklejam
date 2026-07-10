@@ -6,7 +6,7 @@
  * it's unit-testable and shared by `MapFinder` + `MoreFiltersDrawer`.
  *
  * Semantics (§6.1): across facets = AND (a court must satisfy every active facet);
- * within a facet = OR (any selected value matches). Number is a min-courts floor.
+ * within a facet = OR (any selected value matches). Rating is a min-score floor.
  * Flip a facet to AND by swapping its `.some(...)` for `.every(...)` below.
  */
 
@@ -16,8 +16,8 @@ export interface FilterableCourt {
   indoorCourts: number;
   outdoorCourts: number;
   lighted: boolean;
-  /** Facility-quality tier 1–5 (setup-only, §9.8). */
-  facilityTier?: number;
+  /** Facility-quality score 0–100 (setup-only, §9.8). */
+  facilityScore?: number;
   dedicated?: boolean;
   hasReservations?: boolean;
   access?: string | null;
@@ -32,8 +32,8 @@ export interface FilterableCourt {
 export interface CourtFilters {
   /** Minimum total courts (0 = Any). */
   minCourts: number;
-  /** Minimum facility tier 1–5 (0 = Any). */
-  minFacilityTier: number;
+  /** Minimum facility rating 0–100 (0 = Any). */
+  minRating: number;
   /** Subset of TYPE_OPTIONS values. */
   types: string[];
   /** Subset of ACCESS_OPTIONS values. */
@@ -48,7 +48,7 @@ export interface CourtFilters {
 
 export const EMPTY_FILTERS: CourtFilters = {
   minCourts: 0,
-  minFacilityTier: 0,
+  minRating: 0,
   types: [],
   access: [],
   amenities: [],
@@ -58,21 +58,16 @@ export const EMPTY_FILTERS: CourtFilters = {
 
 // ── option lists (drive the panel UI) ───────────────────────────────────────
 
-export const NUMBER_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: "Any" },
-  { value: 2, label: "2+" },
-  { value: 4, label: "4+" },
-  { value: 6, label: "6+" },
-  { value: 8, label: "8+" },
-  { value: 10, label: "10+" },
-];
+/** Slider ceiling for the Number of Courts facet (10 filters as "10 or more"). */
+export const MAX_MIN_COURTS = 10;
 
-/** Minimum facility-tier options (§9.8) — mirrors the tier words on the court card. */
-export const FACILITY_TIER_OPTIONS: { value: number; label: string }[] = [
+/** Minimum facility-rating options (§9.8) — the 0–100 score shown on court cards. */
+export const RATING_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: "Any" },
-  { value: 3, label: "Good or better" },
-  { value: 4, label: "Excellent or better" },
-  { value: 5, label: "Premier only" },
+  { value: 60, label: "60+" },
+  { value: 70, label: "70+" },
+  { value: 80, label: "80+" },
+  { value: 90, label: "90+" },
 ];
 
 export interface TypeOption {
@@ -182,7 +177,7 @@ function communityMatches(c: FilterableCourt, value: string): boolean {
 /** Whether a court satisfies every active facet (AND across facets, OR within). */
 export function courtMatchesFilters(c: FilterableCourt, f: CourtFilters): boolean {
   if (f.minCourts > 0 && (c.totalCourts ?? 0) < f.minCourts) return false;
-  if (f.minFacilityTier > 0 && (c.facilityTier ?? 0) < f.minFacilityTier) return false;
+  if (f.minRating > 0 && (c.facilityScore ?? 0) < f.minRating) return false;
   if (f.types.length && !f.types.some((t) => typeMatches(c, t))) return false;
   if (f.access.length && !f.access.some((a) => accessMatches(c, a))) return false;
   if (f.amenities.length && !f.amenities.some((v) => amenityMatches(c, v))) return false;
@@ -199,7 +194,7 @@ export function filterCourts<T extends FilterableCourt>(courts: T[], f: CourtFil
 export function activeFilterCount(f: CourtFilters): number {
   return (
     (f.minCourts > 0 ? 1 : 0) +
-    (f.minFacilityTier > 0 ? 1 : 0) +
+    (f.minRating > 0 ? 1 : 0) +
     f.types.length +
     f.access.length +
     f.amenities.length +
