@@ -12,3 +12,4 @@ export { CountryCard } from "./CountryCard";
 export { Breadcrumbs } from "./Breadcrumbs";
 export { StatLine } from "./StatLine";
 export { CourtsGamesToggle } from "./CourtsGamesToggle";
+export { SurfaceFeatures } from "./SurfaceFeatures";

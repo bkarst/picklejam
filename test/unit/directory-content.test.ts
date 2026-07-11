@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cityFaq, citySubtitle } from "@/lib/directory/city-content";
-import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
+import { courtSpecs, courtAmenities, courtFaq } from "@/lib/directory/court-content";
 import type { CourtItem } from "@/lib/db/types";
 
 function court(over: Partial<CourtItem>): CourtItem {
@@ -41,15 +41,23 @@ describe("city content (§6.1 / §3.4)", () => {
 });
 
 describe("court content (§6.1 / §3.4)", () => {
-  it("surfaceFeatures lists surface, nets/lines, court counts, amenities, facility", () => {
-    const f = surfaceFeatures(court({ surface: ["concrete"], lines: "permanent", nets: "portable", indoorCourts: 3, amenities: ["lighted", "restrooms"], facilityType: "public" }));
-    expect(f).toContain("concrete surface");
-    expect(f).toContain("Permanent lines");
-    expect(f).toContain("Portable nets");
-    expect(f).toContain("3 indoor courts");
-    expect(f).toContain("LED lighting");
-    expect(f).toContain("Restrooms");
-    expect(f).toContain("Facility type: Public");
+  it("courtSpecs lists court counts, surface, nets/lines, facility as key→value", () => {
+    const s = courtSpecs(court({ surface: ["concrete"], lines: "permanent", nets: "portable", indoorCourts: 3, outdoorCourts: 2, facilityType: "public" }));
+    expect(s).toContainEqual({ label: "Courts", value: "3 indoor · 2 outdoor" });
+    expect(s).toContainEqual({ label: "Surface", value: "Concrete" });
+    expect(s).toContainEqual({ label: "Lines", value: "Permanent" });
+    expect(s).toContainEqual({ label: "Nets", value: "Portable" });
+    expect(s).toContainEqual({ label: "Facility", value: "Public" });
+  });
+
+  it("courtAmenities maps known amenity keys and folds in the lighted flag", () => {
+    const a = courtAmenities(court({ amenities: ["restrooms", "water"], lighted: true }));
+    expect(a).toContainEqual({ key: "lighted", label: "LED lighting" });
+    expect(a).toContainEqual({ key: "restrooms", label: "Restrooms" });
+    expect(a).toContainEqual({ key: "water", label: "Water fountain" });
+    // no duplicate when the amenities list already carries lighted
+    const b = courtAmenities(court({ amenities: ["lighted"], lighted: true }));
+    expect(b.filter((x) => x.key === "lighted")).toHaveLength(1);
   });
 
   it("courtFaq cost answer matches access type", () => {

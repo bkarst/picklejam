@@ -19,16 +19,51 @@ const AMENITY_LABEL: Record<string, string> = {
   adaptive: "Adaptive programs",
 };
 
-/** The "Surface & Features" checklist (§6.1 court detail). */
-export function surfaceFeatures(court: CourtItem): string[] {
-  const out: string[] = [];
-  if (court.surface?.length) out.push(`${court.surface.join(", ")} surface`);
-  if (court.lines) out.push(`${cap(court.lines)} lines`);
-  if (court.nets) out.push(`${cap(court.nets)} nets`);
-  if ((court.indoorCourts ?? 0) > 0) out.push(`${court.indoorCourts} indoor court${court.indoorCourts === 1 ? "" : "s"}`);
-  if ((court.outdoorCourts ?? 0) > 0) out.push(`${court.outdoorCourts} outdoor court${court.outdoorCourts === 1 ? "" : "s"}`);
-  for (const a of court.amenities ?? []) out.push(AMENITY_LABEL[a.toLowerCase()] ?? cap(a));
-  if (court.facilityType) out.push(`Facility type: ${cap(court.facilityType)}`);
+const NETS_LABEL: Record<string, string> = {
+  permanent: "Permanent",
+  portable: "Portable",
+  byo: "Bring your own",
+  tennis: "Tennis",
+};
+
+export interface CourtSpec {
+  label: string;
+  value: string;
+}
+
+export interface CourtAmenity {
+  /** Normalized lowercase key — the `SurfaceFeatures` icon map is keyed off this. */
+  key: string;
+  label: string;
+}
+
+/** "Surface & Features" court-setup specs — key→value facts (§6.1 court detail). */
+export function courtSpecs(court: CourtItem): CourtSpec[] {
+  const out: CourtSpec[] = [];
+  const counts = [
+    (court.indoorCourts ?? 0) > 0 ? `${court.indoorCourts} indoor` : null,
+    (court.outdoorCourts ?? 0) > 0 ? `${court.outdoorCourts} outdoor` : null,
+  ].filter(Boolean);
+  if (counts.length) out.push({ label: "Courts", value: counts.join(" · ") });
+  else if ((court.totalCourts ?? 0) > 0) out.push({ label: "Courts", value: String(court.totalCourts) });
+  if (court.surface?.length) out.push({ label: "Surface", value: cap(court.surface.join(", ")) });
+  if (court.lines) out.push({ label: "Lines", value: cap(court.lines) });
+  if (court.nets) out.push({ label: "Nets", value: NETS_LABEL[court.nets] ?? cap(court.nets) });
+  if (court.facilityType) out.push({ label: "Facility", value: cap(court.facilityType) });
+  return out;
+}
+
+/** "Surface & Features" amenities — the has/has-not facility offerings (§6.1). */
+export function courtAmenities(court: CourtItem): CourtAmenity[] {
+  const out: CourtAmenity[] = [];
+  for (const a of court.amenities ?? []) {
+    const key = a.toLowerCase();
+    out.push({ key, label: AMENITY_LABEL[key] ?? cap(a) });
+  }
+  // `lighted` is a top-level fact; surface it as an amenity when the list omits it.
+  if (court.lighted && !out.some((a) => a.key === "lighted")) {
+    out.unshift({ key: "lighted", label: AMENITY_LABEL.lighted });
+  }
   return out;
 }
 

@@ -18,7 +18,7 @@ import { GroupsRail } from "@/components/groups";
 import { buildMetadata, courtTitle } from "@/lib/seo/metadata";
 import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd, reviewJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
-import { Breadcrumbs, CourtCard, FacilityRating } from "@/components/directory";
+import { Breadcrumbs, CourtCard, FacilityRating, SurfaceFeatures } from "@/components/directory";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { CheckInSheet } from "@/components/community/CheckInSheet";
@@ -30,7 +30,7 @@ import { FollowButton } from "@/components/community/FollowButton";
 import { courtUrl, metersToMiles, groupsCityPath } from "@/lib/urls";
 import { formatPhone, telHref } from "@/lib/util/phone";
 import { stateAbbr } from "@/lib/geo/us-states";
-import { surfaceFeatures, courtFaq } from "@/lib/directory/court-content";
+import { courtSpecs, courtAmenities, courtFaq } from "@/lib/directory/court-content";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -97,7 +97,8 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
   const st = stateAbbr(state);
   const base = brand.siteUrl;
   const faq = courtFaq(courtItem);
-  const features = surfaceFeatures(courtItem);
+  const specs = courtSpecs(courtItem);
+  const amenities = courtAmenities(courtItem);
   const reviews = reviewsPage.items;
   // Review-card author chips (§G12.16) — public reviewers get name · level · Crew.
   const reviewAuthors = await hydrateReviewAuthors(courtItem.courtId, reviews, boardMonth);
@@ -252,17 +253,10 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             </section>
           )}
 
-          {features.length > 0 && (
+          {(specs.length > 0 || amenities.length > 0) && (
             <section>
               <h2 className="font-display text-xl font-bold text-foreground">Surface &amp; Features</h2>
-              <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-foreground">
-                    <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
+              <SurfaceFeatures specs={specs} amenities={amenities} />
             </section>
           )}
 
