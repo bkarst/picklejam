@@ -211,7 +211,7 @@ export function reviewJsonLd(
     reviewRating: { "@type": "Rating", ratingValue: review.rating1to5, bestRating: 5, worstRating: 1 },
     ...(review.title ? { name: review.title } : {}),
     ...(review.body ? { reviewBody: review.body } : {}),
-    author: { "@type": "Person", name: review.author || "PickleLoko player" },
+    author: { "@type": "Person", name: review.author || `${brand.identity.name} player` },
     ...(review.createdAt ? { datePublished: review.createdAt } : {}),
   };
 }

@@ -256,28 +256,28 @@ function renderNotificationEmail(opts: {
   const esc = escapeHtml;
   return `<!doctype html>
 <html lang="en">
-  <body style="margin:0;padding:0;background:${palette.cream};font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${palette.charcoal};">
+  <body style="margin:0;padding:0;background:${palette.cream};font-family:Montserrat,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${palette.ink};">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.cream};padding:24px 0;">
       <tr>
         <td align="center">
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:${palette.white};border-radius:16px;overflow:hidden;border:1px solid ${border};">
             <tr>
-              <td style="background:${palette.forest};padding:20px 28px;">
+              <td style="background:${palette.courtGreen};padding:20px 28px;">
                 <span style="font-size:18px;font-weight:700;color:${palette.white};">${esc(identity.name)}</span>
               </td>
             </tr>
             <tr>
               <td style="padding:28px;">
-                <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:${palette.charcoal};">${esc(opts.title)}</h1>
+                <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:${palette.ink};">${esc(opts.title)}</h1>
                 ${opts.body ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:${muted};">${esc(opts.body)}</p>` : ""}
-                <a href="${esc(opts.link)}" style="display:inline-block;background:${palette.forest};color:${palette.white};text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:9999px;">View in ${esc(identity.name)}</a>
+                <a href="${esc(opts.link)}" style="display:inline-block;background:${palette.courtGreen};color:${palette.white};text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:9999px;">View in ${esc(identity.name)}</a>
               </td>
             </tr>
             <tr>
               <td style="padding:20px 28px;border-top:1px solid ${border};font-size:12px;line-height:1.6;color:${muted};">
                 You're receiving this because you have notifications turned on.
-                <a href="${esc(opts.unsubscribeUrl)}" style="color:${palette.forest};">Unsubscribe</a>
-                or <a href="${esc(siteUrl)}/account/alerts" style="color:${palette.forest};">manage alerts</a>.
+                <a href="${esc(opts.unsubscribeUrl)}" style="color:${palette.courtGreen};">Unsubscribe</a>
+                or <a href="${esc(siteUrl)}/account/alerts" style="color:${palette.courtGreen};">manage alerts</a>.
               </td>
             </tr>
           </table>

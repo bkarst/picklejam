@@ -2,14 +2,14 @@
  * og.tsx — reusable branded OG-image renderer (PRD §3.3).
  *
  * `renderOgImage()` returns a 1200×630 `ImageResponse` branded with the
- * PickleLoko palette (cream canvas, forest headline, hot-pink eyebrow, lime
+ * Pickle Jam palette (cream canvas, court-green headline, hot-pink eyebrow, lime
  * ball). Per-page OG routes (and the default `app/opengraph-image.tsx`) call it.
  *
  * ImageResponse constraints (next-conventions.md §8): flexbox only (no grid),
  * a subset of CSS. Import from `next/og` (NOT `next/server`).
  *
- * TODO(fonts): embed the Fredoka display font (fetch the .woff/.ttf + pass via
- * the `fonts` option) so the card matches the brand typography. For now we use
+ * TODO(fonts): embed the Archivo Black display font (fetch the .woff/.ttf + pass
+ * via the `fonts` option) so the card matches the brand typography. For now we use
  * next/og's built-in default sans — clean, but not on-brand.
  */
 
@@ -37,7 +37,7 @@ export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): Ima
           width: "100%",
           height: "100%",
           backgroundColor: palette.cream,
-          color: palette.forest,
+          color: palette.courtGreen,
           padding: 80,
           justifyContent: "space-between",
           fontFamily: "sans-serif",
@@ -65,7 +65,7 @@ export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): Ima
               fontSize: 76,
               fontWeight: 800,
               lineHeight: 1.05,
-              color: palette.forest,
+              color: palette.courtGreen,
             }}
           >
             {title}
@@ -76,7 +76,7 @@ export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): Ima
                 display: "flex",
                 fontSize: 36,
                 marginTop: 24,
-                color: palette.charcoal,
+                color: palette.ink,
               }}
             >
               {subtitle}
@@ -101,13 +101,13 @@ export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): Ima
               display: "flex",
               fontSize: 40,
               fontWeight: 800,
-              color: palette.forest,
+              color: palette.courtGreen,
               marginRight: 20,
             }}
           >
             {identity.name}
           </div>
-          <div style={{ display: "flex", fontSize: 28, color: palette.charcoal }}>
+          <div style={{ display: "flex", fontSize: 28, color: palette.ink }}>
             {identity.tagline}
           </div>
         </div>

@@ -1,5 +1,5 @@
 /**
- * globals.css — Tailwind v4 + HeroUI v3 theme, themed for PickleLoko.
+ * globals.css — Tailwind v4 + HeroUI v3 theme, themed for Pickle Jam.
  *
  * ⚠ Color / radius values below MIRROR `brand.config.ts` (the single source of
  * truth, PRD §2.3). CSS cannot import TS, so these are kept in sync by
@@ -16,8 +16,8 @@
 
 /* ── Tailwind theme extensions: fonts + brand-specific color aliases ── */
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fredoka), "Fredoka", ui-sans-serif, sans-serif;
+  --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), "Archivo", ui-sans-serif, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Brand aliases so `bg-primary` / `bg-secondary` / `bg-brand-lime` work.
@@ -37,31 +37,31 @@
   [data-theme="light"] {
     color-scheme: light;
 
-    --background: #fff9f2; /* cream */
-    --foreground: #222222; /* charcoal */
+    --background: #fff7e6; /* cream */
+    --foreground: #0f3d2e; /* court green ink */
     --surface: #ffffff;
-    --surface-foreground: #222222;
-    --muted: #6b6459;
-    --border: #eae2d6;
-    --separator: #eae2d6;
+    --surface-foreground: #0f3d2e;
+    --muted: #5c6b64;
+    --border: #e6e6e6;
+    --separator: #e6e6e6;
 
-    --accent: #1e5e3a; /* forest — primary action */
+    --accent: #0f3d2e; /* court green — primary emphasis / ink actions */
     --accent-foreground: #ffffff;
-    --success: #3fa35b; /* pickle green */
+    --success: #2fa36b;
     --success-foreground: #ffffff;
-    --warning: #f5a524;
-    --warning-foreground: #222222;
+    --warning: #e8a63d;
+    --warning-foreground: #0f3d2e;
     --danger: #e5484d;
     --danger-foreground: #ffffff;
 
-    --focus: #1e5e3a;
-    --link: #1e5e3a;
+    --focus: #0f3d2e;
+    --link: #0f3d2e;
 
     /* Custom brand tokens */
-    --secondary: #ff6b9d; /* hot pink */
-    --secondary-foreground: #222222;
-    --brand-lime: #bcef3f;
-    --brand-bubblegum: #ffb3c7;
+    --secondary: #ff4fa3; /* hot pink — primary CTA / attention */
+    --secondary-foreground: #ffffff;
+    --brand-lime: #c6f045;
+    --brand-bubblegum: #ffd6e6; /* soft pink */
 
     --radius: 0.75rem;
   }
@@ -70,30 +70,30 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #141310;
-    --foreground: #fff9f2;
-    --surface: #1f1d18;
-    --surface-foreground: #fff9f2;
-    --muted: #a89f91;
-    --border: #332f27;
-    --separator: #332f27;
+    --background: #0a2019; /* near-black green ink canvas */
+    --foreground: #fff7e6;
+    --surface: #12261d;
+    --surface-foreground: #fff7e6;
+    --muted: #93a69c;
+    --border: #24403a;
+    --separator: #24403a;
 
-    --accent: #3fa35b; /* pickle green — forest is too dark on ink */
-    --accent-foreground: #ffffff;
-    --success: #3fa35b;
+    --accent: #c6f045; /* lime — court green is too dark on ink */
+    --accent-foreground: #0f3d2e;
+    --success: #2fa36b;
     --success-foreground: #ffffff;
-    --warning: #f5a524;
-    --warning-foreground: #222222;
+    --warning: #e8a63d;
+    --warning-foreground: #0f3d2e;
     --danger: #e5484d;
     --danger-foreground: #ffffff;
 
-    --focus: #bcef3f;
-    --link: #bcef3f;
+    --focus: #c6f045;
+    --link: #c6f045;
 
-    --secondary: #ff6b9d;
-    --secondary-foreground: #222222;
-    --brand-lime: #bcef3f;
-    --brand-bubblegum: #ffb3c7;
+    --secondary: #ff4fa3;
+    --secondary-foreground: #ffffff;
+    --brand-lime: #c6f045;
+    --brand-bubblegum: #ffd6e6;
 
     --radius: 0.75rem;
   }
@@ -105,12 +105,21 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* DS §Casing: display headlines are ALL-CAPS with tight tracking (Archivo Black).
+     Per-instance opt-out with the `normal-case` utility (utilities beat @layer base). */
   h1,
   h2,
   h3,
   h4,
   .font-display {
     font-family: var(--font-display);
+    text-transform: uppercase;
+    /* Archivo Bold — heavy/sporty, but a clear step lighter than the "Black" cut.
+       Also the floor for the logo + any heading with no font-* utility (variable
+       Archivo would otherwise fall back to a thin 400). */
+    font-weight: 700;
+    /* Uppercase needs a touch of positive tracking so letters don't crowd. */
+    letter-spacing: 0.015em;
   }
 }
 
@@ -133,3 +142,41 @@
   to { opacity: 1; transform: translateY(0); }
 }
 .gamify-rise { animation: gamify-rise 200ms ease-out; }
+
+/* ── Pickle Jam "sticker" surface — the signature look (DS §sticker): a 2px ink
+   outline + a hard, offset drop shadow (never a soft blur). Theme-adaptive: the
+   ink color is `--foreground` (court green in light, cream in dark), so stickers
+   read on cream and on the dark court-green canvas alike. Pair with a Tailwind
+   `rounded-*` for the radius. ── */
+.pj-sticker {
+  border: 2px solid var(--foreground);
+  box-shadow: 6px 6px 0 var(--foreground);
+}
+.pj-sticker-lg {
+  border: 2px solid var(--foreground);
+  box-shadow: 10px 10px 0 var(--foreground);
+}
+
+/* ── Pickle Jam button & CTA typography — DS §07 (chunky, UPPERCASE, bold
+   Montserrat, slight tracking). These live OUTSIDE @layer so they win over
+   Tailwind utility classes (font-medium/-semibold, tracking-*). They cover
+   HeroUI buttons ([data-slot="button"]) and the app's pill CTAs / nav pills,
+   while excluding select/combobox triggers so data values aren't uppercased. ── */
+:is(
+  [data-slot="button"],
+  a[class*="rounded-full"],
+  button[class*="rounded-full"]
+):not([role="combobox"], [aria-haspopup="listbox"], [data-slot*="trigger"], [data-slot*="value"]) {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+/* Bold weight for actual buttons (filled or outlined), not bare nav pills. */
+:is(
+  [data-slot="button"],
+  a[class*="rounded-full"][class*="bg-"],
+  button[class*="rounded-full"][class*="bg-"],
+  a[class*="rounded-full"][class*="border"],
+  button[class*="rounded-full"][class*="border"]
+):not([role="combobox"], [aria-haspopup="listbox"], [data-slot*="trigger"], [data-slot*="value"]) {
+  font-weight: 700;
+}

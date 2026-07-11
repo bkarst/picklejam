@@ -12,7 +12,7 @@ import { NewsletterSignup } from "./NewsletterSignup";
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-16 border-t border-border bg-surface" role="contentinfo">
+    <footer className="mt-16 border-t border-border bg-background" role="contentinfo">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-2 lg:grid-cols-6">
         {/* Brand + newsletter */}
         <div className="lg:col-span-2">

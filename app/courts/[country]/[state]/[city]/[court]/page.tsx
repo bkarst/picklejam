@@ -118,7 +118,9 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
       : courtFacilityScore(courtItem);
 
   return (
-    <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+    // White page surface (overrides the app's cream canvas), full-bleed.
+    <main id="main" className="flex-1 bg-surface">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8">
       <JsonLd
         data={[
           breadcrumbListJsonLd([
@@ -189,17 +191,20 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
                   {courtItem.address && (
                     <a href={`https://www.google.com/maps/search/?api=1&query=${courtItem.lat},${courtItem.lng}`} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
                       {courtItem.address}
+                      <ExternalIcon />
                     </a>
                   )}
                   {courtItem.phone && <a href={telHref(courtItem.phone)} className="text-foreground hover:underline">{formatPhone(courtItem.phone)}</a>}
                   {courtItem.website && (
-                    <a href={courtItem.website} target="_blank" rel="noopener noreferrer" className="truncate text-accent hover:underline">
-                      {courtItem.website.replace(/^https?:\/\//, "")}
+                    <a href={courtItem.website} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center text-accent hover:underline">
+                      <span className="truncate">{courtItem.website.replace(/^https?:\/\//, "")}</span>
+                      <ExternalIcon />
                     </a>
                   )}
                   {courtItem.hasReservations && courtItem.reservationUrl && (
                     <a href={courtItem.reservationUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-10 items-center justify-center self-start rounded-full bg-accent px-4 font-semibold text-accent-foreground hover:bg-accent-hover">
                       Reserve a court
+                      <ExternalIcon />
                     </a>
                   )}
                 </div>
@@ -347,7 +352,31 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
           </ul>
         </section>
       )}
+      </div>
     </main>
+  );
+}
+
+/** "Opens in a new window" affordance for external (target="_blank") links. */
+function ExternalIcon() {
+  return (
+    <>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="ml-1 inline-block size-3.5 shrink-0 align-[-0.125em]"
+      >
+        <path d="M15 3h6v6" />
+        <path d="M10 14 21 3" />
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      </svg>
+      <span className="sr-only"> (opens in a new window)</span>
+    </>
   );
 }
 

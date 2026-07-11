@@ -35,6 +35,17 @@ At the foundation are three **core design principles**:
 
 When building, tweaking, or testing any UI, compare the rendered view against its design image in `design/views/` (per-view mockups, named by view — e.g. `4.5-court-detail.png`, `10.2-outing-detail.png`). Where a design file exists for that view, the UI **must** match it — if it doesn't, edit and tweak the implementation until it does. The design images are the visual source of truth.
 
+## Feature flags
+
+No generic flag module — flags live in three places: build-time env vars, one Firebase Remote Config value, and per-user gamification prefs. `NEXT_PUBLIC_*` flags are **inlined into the client bundle at build**, so flipping one needs a rebuild/deploy, not a runtime change.
+
+- **Paid events** — `NEXT_PUBLIC_PAID_EVENTS_ENABLED` → `publicEnv.paidEventsEnabled` (`lib/env.ts`). Default **off**. Master switch for paid tournaments/leagues/ladders: while off, the create/register routes 404 and every paid entry point (nav, hub/discover/city-finder CTAs) is hidden; the free app is unaffected. Gate any new paid surface behind `publicEnv.paidEventsEnabled`.
+- **Ads** — remote **`ads_enabled`** via **Firebase Remote Config**, read server-side by `getAdsEnabled()` (`lib/ads/ads-enabled.server.ts`), cached ~5 min, handed to client `<AdSlot>`s through `<AdsFlagProvider>` (SSR-gated, no CLS). Default **false** and fully fail-safe (any error/timeout ⇒ off). Also gated by `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` and the static `ads.enabled` master switch in `brand.config.ts`. The Remote Config parameter lives in the **Firebase project** (`pickle-jam`) — recreate `ads_enabled` there or it stays off.
+- **Gamification holdout** — `GAMIFY_HOLDOUT_ENABLED=1` → `resolveHoldout()` (`lib/gamify/prefs.ts`). Default **off**. The G18 retention experiment: buckets ~10% of users (by uid hash) into a holdout that sees no gamification surfaces (RP still accrues silently). Effective visibility is `prefs.enabled && !holdout`; the per-user `prefs.enabled` is a user preference, not a global flag.
+- **Dev auth** — `ALLOW_DEV_AUTH=1` (`lib/auth/verify.ts`). Accepts deterministic dev tokens for local/CI. **Never** honored when `APP_ENV=Production`, regardless of the var.
+
+Not feature flags despite the name: Stripe Connect `chargesEnabled`/`payoutsEnabled` (account status, `lib/stripe/gateway.ts`); per-outing `waitlistEnabled` (`Boolean(outing.waitlist)`); the `gamification_enabled` analytics event property.
+
 ## DynamoDB migrations
 
 - New migrations use **on-demand** capacity, never provisioned throughput.

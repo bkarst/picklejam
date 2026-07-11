@@ -6,10 +6,10 @@ import { test, expect } from "@playwright/test";
  * Consent Mode banner, and the marketing/legal pages (crawlable + JSON-LD + a real
  * 404 for an unknown legal doc). NOTE: no consent is pre-decided here (unlike the
  * other specs) so the consent banner is exercised. With no ADSENSE publisher id in
- * the E2E env, an eligible AdSlot shows its house-ad (aria-label "PickleLoko tip").
+ * the E2E env, an eligible AdSlot shows its house-ad (aria-label "Pickle Jam tip").
  */
 
-const HOUSE_AD = '[aria-label="PickleLoko tip"], [aria-label="Advertisement"]';
+const HOUSE_AD = '[aria-label="Pickle Jam tip"], [aria-label="Advertisement"]';
 
 test("release — ads render on an eligible content page, suppressed on the homepage (§2.2)", async ({ page }) => {
   // Eligible: a city directory page carries an ad slot.

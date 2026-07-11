@@ -6,6 +6,7 @@ import { getUserByUsername, getUserRatings } from "@/lib/data/users";
 import { getCitiesByKeys } from "@/lib/data/geo";
 import { getCourt } from "@/lib/data/courts";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { brand } from "@/brand.config";
 import { personJsonLd } from "@/lib/seo/jsonld";
 import { profileIsIndexable } from "@/lib/seo/noindex";
 import { JsonLd } from "@/components/JsonLd";
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   if (!user) return buildMetadata({ title: "Player not found", path, noindex: true });
   return buildMetadata({
     title: `${user.displayName} — Pickleball Profile`,
-    description: `${user.displayName}'s pickleball profile on PickleLoko — ratings, home court, and activity.`,
+    description: `${user.displayName}'s pickleball profile on ${brand.identity.name} — ratings, home court, and activity.`,
     path,
     noindex: !profileIsIndexable(user),
     openGraphType: "profile",
@@ -74,7 +75,7 @@ function PrivateProfile({ user }: { user: UserProfileItem }) {
         </span>
         <h1 className="font-display text-2xl font-bold text-foreground">This profile is private</h1>
         <p className="max-w-sm text-muted">
-          @{user.username} has chosen to keep their PickleLoko profile private.
+          @{user.username} has chosen to keep their {brand.identity.name} profile private.
         </p>
         <Link
           href="/players"

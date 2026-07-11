@@ -10,13 +10,13 @@
 import { brand } from "@/brand.config";
 
 export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
-  const { cream, forest, charcoal } = brand.palette;
+  const { cream, courtGreen, ink } = brand.palette;
   return (
     <html lang="en">
       <body
         style={{
           background: cream,
-          color: charcoal,
+          color: ink,
           fontFamily: "system-ui, sans-serif",
           minHeight: "100vh",
           display: "flex",
@@ -29,7 +29,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
           margin: 0,
         }}
       >
-        <h1 style={{ color: forest, fontSize: "2rem", fontWeight: 700 }}>
+        <h1 style={{ color: courtGreen, fontSize: "2rem", fontWeight: 700 }}>
           {brand.identity.name} hit a snag
         </h1>
         <p style={{ maxWidth: "28rem", opacity: 0.8 }}>
@@ -39,7 +39,7 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
           type="button"
           onClick={reset}
           style={{
-            background: forest,
+            background: courtGreen,
             color: "#fff",
             border: 0,
             borderRadius: "9999px",

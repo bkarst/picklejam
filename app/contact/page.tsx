@@ -50,7 +50,7 @@ export function generateMetadata(): Metadata {
     title: `Contact ${NAME}`,
     description: `Get in touch with the ${NAME} team. Send us a message, email ${SUPPORT}, or find us on social.`,
     path: contactPath(),
-    keywords: ["contact pickleloko", "pickleball app support"],
+    keywords: [`contact ${NAME.toLowerCase()}`, "pickleball app support"],
   });
 }
 

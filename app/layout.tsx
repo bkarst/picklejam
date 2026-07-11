@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Inter } from "next/font/google";
+import { Archivo, Montserrat } from "next/font/google";
 import "./globals.css";
 import { brand } from "@/brand.config";
 import { Providers } from "./providers";
@@ -16,15 +16,17 @@ import { HelpButton } from "@/components/layout/HelpButton";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/jsonld";
 
-const fredoka = Fredoka({
-  variable: "--font-fredoka",
+// Display face — Archivo (variable). Headings use Bold (700) via globals.css:
+// heavy and sporty, but a clear step lighter than the ultra-heavy "Archivo Black" cut.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+// Body / UI — Montserrat variable font (all weights on one axis).
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
   display: "swap",
 });
@@ -51,7 +53,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: brand.palette.cream },
-    { media: "(prefers-color-scheme: dark)", color: "#141310" },
+    { media: "(prefers-color-scheme: dark)", color: brand.palette.ink },
   ],
   colorScheme: "light dark",
 };
@@ -104,7 +106,7 @@ export default async function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fredoka.variable} ${inter.variable} h-full antialiased`}
+      className={`${archivo.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
         {/* Consent Mode v2 default (DENIED) — must run before any ad/analytics tag. */}

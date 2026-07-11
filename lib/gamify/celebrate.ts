@@ -12,6 +12,7 @@
  */
 
 import type { GamifyBlock } from "./block";
+import { brand } from "@/brand.config";
 
 /**
  * Earn rules that mark a once-ever / first-time milestone (see lib/gamify/earn-rules):
@@ -21,7 +22,7 @@ import type { GamifyBlock } from "./block";
 const FIRST_TIME_RULES: Record<string, { title: string; subtitle: string }> = {
   E4: { title: "Trailblazer!", subtitle: "First-ever check-in at this court" },
   E5: { title: "First review!", subtitle: "Thanks for helping the community" },
-  E24: { title: "Welcome!", subtitle: "Your PickleLoko journey begins" },
+  E24: { title: "Welcome!", subtitle: `Your ${brand.identity.name} journey begins` },
   E25: { title: "First check-in!", subtitle: "You're on the board" },
 };
 

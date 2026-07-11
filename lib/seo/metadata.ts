@@ -7,8 +7,8 @@
  * root layout, every URL field here is RELATIVE (the origin is composed in).
  *
  * Title patterns are the §3.3 helpers below; they return the BARE title. The
- * root layout's `title.template` (`%s | PickleLoko`) appends the brand suffix,
- * so the helpers must NOT include " | PickleLoko" themselves — §3.3 shows the
+ * root layout's `title.template` (`%s | Pickle Jam`) appends the brand suffix,
+ * so the helpers must NOT include " | Pickle Jam" themselves — §3.3 shows the
  * suffix, but that suffix comes from the template, not from these functions.
  *
  * Follows next-conventions.md §7 (canonical = `alternates.canonical`,
@@ -30,7 +30,7 @@ export type OpenGraphType = "website" | "article" | "profile";
 export const DEFAULT_OG_IMAGE = "/opengraph-image";
 
 export interface BuildMetadataOptions {
-  /** Bare page title (no brand suffix — the layout template adds " | PickleLoko"). */
+  /** Bare page title (no brand suffix — the layout template adds " | Pickle Jam"). */
   title?: string;
   /** Meta description; falls back to the brand default. */
   description?: string;
@@ -65,7 +65,7 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
   const image = ogImage ?? DEFAULT_OG_IMAGE;
 
   return {
-    // Bare title — the root layout `title.template` appends " | PickleLoko".
+    // Bare title — the root layout `title.template` appends " | Pickle Jam".
     ...(title !== undefined ? { title } : {}),
     description: desc,
     ...(keywords !== undefined ? { keywords } : {}),
@@ -91,7 +91,7 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
 
 // ────────────────────────────────────────────────────────────────────────────
 // §3.3 title-pattern helpers — pure functions returning the BARE title.
-// The " | PickleLoko" suffix is added by the root layout's title.template.
+// The " | Pickle Jam" suffix is added by the root layout's title.template.
 // ────────────────────────────────────────────────────────────────────────────
 
 /**

@@ -112,7 +112,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <nav ref={navRef} aria-label="Primary" className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4">
-        <Link href="/" className="mr-2 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <Link href="/" className="mr-2 inline-flex items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <Logo />
         </Link>
 

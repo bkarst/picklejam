@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { primaryNav } from "@/lib/nav";
+import { brand } from "@/brand.config";
 
 export const metadata: Metadata = {
   title: "Page not found",
@@ -22,7 +23,7 @@ export default function NotFound() {
         href="/search"
         className="inline-flex h-12 items-center gap-2 rounded-full bg-accent px-6 font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
-        Search PickleLoko
+        Search {brand.identity.name}
       </Link>
       <ul className="flex flex-wrap items-center justify-center gap-2">
         {popular.map((l) => (

@@ -36,7 +36,7 @@ type MapboxModule = (typeof import("mapbox-gl"))["default"];
 type MapInstance = import("mapbox-gl").Map;
 type MapMarker = import("mapbox-gl").Marker;
 
-const PIN_COLOR = palette.forest; // brand Forest (§2.3 single source of truth)
+const PIN_COLOR = palette.courtGreen; // brand Court Green (§2.3 single source of truth)
 const PIN_DOT = palette.lime; // brand Lime
 
 const DEFAULT_RADIUS_MI = Math.round(DEFAULT_NEAR_RADIUS_M / MILES_TO_METERS); // 15

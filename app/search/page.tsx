@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 
 export default function SearchPage() {
   return (
-    <main id="main" className="flex-1">
+    // White page surface (overrides the app's cream canvas) for the map utility.
+    <main id="main" className="flex-1 bg-surface">
       <MapFinder />
     </main>
   );

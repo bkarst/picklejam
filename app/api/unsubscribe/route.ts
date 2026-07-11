@@ -71,12 +71,12 @@ function htmlPage(heading: string, message: string, status: number): Response {
     <meta name="robots" content="noindex" />
     <title>${esc(heading)} · ${esc(identity.name)}</title>
   </head>
-  <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${palette.cream};font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${palette.charcoal};">
+  <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${palette.cream};font-family:Montserrat,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:${palette.ink};">
     <main style="max-width:440px;margin:24px;padding:32px;background:${palette.white};border:1px solid ${border};border-radius:16px;text-align:center;">
-      <div style="font-size:18px;font-weight:700;color:${palette.forest};margin-bottom:16px;">${esc(identity.name)}</div>
+      <div style="font-size:18px;font-weight:700;color:${palette.courtGreen};margin-bottom:16px;">${esc(identity.name)}</div>
       <h1 style="font-size:22px;margin:0 0 12px;">${esc(heading)}</h1>
       <p style="font-size:15px;line-height:1.6;color:${muted};margin:0 0 24px;">${esc(message)}</p>
-      <a href="${esc(siteUrl)}/account/alerts" style="display:inline-block;background:${palette.forest};color:${palette.white};text-decoration:none;font-weight:600;padding:12px 22px;border-radius:9999px;">Manage alerts</a>
+      <a href="${esc(siteUrl)}/account/alerts" style="display:inline-block;background:${palette.courtGreen};color:${palette.white};text-decoration:none;font-weight:600;padding:12px 22px;border-radius:9999px;">Manage alerts</a>
     </main>
   </body>
 </html>`;

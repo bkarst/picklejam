@@ -32,12 +32,12 @@ The project's **Firebase web config** (these are public client values — safe i
 
 | `.env.local` key | value |
 | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyCfhYmsxyAc9yvYQcfyizJOHx77zJyytJQ` |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `pickleloko.firebaseapp.com` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `pickleloko` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `pickleloko.firebasestorage.app` |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `148926446922` |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:148926446922:web:6a4b47951dfddb4dd415b3` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyCUL78-gcLtOmaItvVjT91VoCSl8eaDhP0` |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `pickle-jam.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `pickle-jam` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `pickle-jam.firebasestorage.app` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `571115269721` |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:571115269721:web:6a28a3fcf0662e27ec0b48` |
 
 ---
 

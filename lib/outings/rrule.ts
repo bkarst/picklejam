@@ -230,11 +230,11 @@ function escapeIcsText(text: string): string {
 /** Render a single-event `.ics` document (CRLF line endings, per spec). */
 export function toIcs(o: IcsEvent): string {
   const dtStart = toIcsDate(o.startTs);
-  const uid = o.uid ?? `${dtStart}-${escapeIcsText(o.title)}@pickleloko`;
+  const uid = o.uid ?? `${dtStart}-${escapeIcsText(o.title)}@picklejam`;
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//PickleLoko//Outings//EN",
+    "PRODID:-//Pickle Jam//Outings//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

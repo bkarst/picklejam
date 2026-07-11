@@ -38,7 +38,7 @@ export async function GET(
     // A recurring series carries its RRULE so subscribers import every occurrence (M25).
     ...(outing.rrule ? { rrule: outing.rrule } : {}),
     url: `${brand.siteUrl}${outingPath(id)}`,
-    uid: `${outing.outingId}@pickleloko`,
+    uid: `${outing.outingId}@picklejam`,
   });
 
   return new Response(ics, {

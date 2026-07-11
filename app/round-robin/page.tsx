@@ -9,7 +9,8 @@ import {
 } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { FaqAccordion } from "@/components/ui/FaqAccordion";
+import { HubHero, HubSteps, HubFaq, Overline, hubButtonClass, type HubAction } from "@/components/hub";
+import { RotationMotif } from "@/components/hub/motifs";
 import { FormatCard, RR_FORMATS } from "@/components/roundrobin";
 import { roundRobinNewPath, roundRobinQuizPath, roundRobinLanding } from "@/lib/urls";
 import { brand } from "@/brand.config";
@@ -50,6 +51,19 @@ const FAQS: { question: string; answer: string }[] = [
   },
 ];
 
+const STEPS = [
+  { title: "Add your players", body: "Type names or paste a whole list. Ratings are optional." },
+  { title: "Pick a format", body: "See a live preview of round 1 and the full schedule as you tweak." },
+  { title: "Share the link", body: "Everyone follows along; you tap in scores and standings update." },
+];
+
+const SparkleIcon = (
+  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 3v4M3 5h4M6 17v4M4 19h4" />
+    <path d="M13 3 15.5 9.5 22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5z" />
+  </svg>
+);
+
 export function generateMetadata(): Metadata {
   return buildMetadata({
     title: "Free Round Robin Generator for Pickleball",
@@ -68,6 +82,10 @@ export function generateMetadata(): Metadata {
 
 export default function RoundRobinLandingPage(): JSX.Element {
   const base = brand.siteUrl;
+  const actions: HubAction[] = [
+    { href: roundRobinNewPath(), label: "Create a round robin", variant: "primary", icon: SparkleIcon },
+    { href: roundRobinQuizPath(), label: "Which format? Take the quiz", variant: "outline" },
+  ];
   return (
     <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
       <JsonLd
@@ -83,61 +101,23 @@ export default function RoundRobinLandingPage(): JSX.Element {
 
       <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Round Robin" }]} />
 
-      {/* Hero */}
-      <section className="mt-6 flex flex-col items-start gap-5 rounded-3xl border border-border bg-surface p-6 sm:p-10">
-        <span className="inline-flex items-center gap-2 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-foreground">
-          <span className="inline-block size-2 rounded-full bg-success" aria-hidden="true" />
-          Free tool · No sign-up
-        </span>
-        <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
-          Free Round Robin Generator for Pickleball
-        </h1>
-        <p className="max-w-2xl text-lg text-muted">
-          Build a fair, balanced round robin, mixer, Swiss, or pool-play bracket in minutes —
-          then share one link so everyone at the courts sees the schedule, live scores, and standings.
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link
-            href={roundRobinNewPath()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-secondary px-7 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 3v4M3 5h4M6 17v4M4 19h4" /><path d="M13 3 15.5 9.5 22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5z" /></svg>
-            Create a round robin
-          </Link>
-          <Link
-            href={roundRobinQuizPath()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border px-7 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            Which format? Take the quiz
-          </Link>
-        </div>
-      </section>
+      <HubHero
+        overline="Free tool · No sign-up"
+        title="Free round robin generator for pickleball"
+        body="Build a fair, balanced round robin, mixer, Swiss, or pool-play bracket in minutes — then share one link so everyone at the courts sees the schedule, live scores, and standings."
+        actions={actions}
+        motif={<RotationMotif />}
+        motifTone="lime"
+      />
 
-      {/* How it works */}
-      <section className="mt-12">
-        <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">How it works</h2>
-        <ol className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
-            { n: 1, t: "Add your players", d: "Type names or paste a whole list. Ratings are optional." },
-            { n: 2, t: "Pick a format", d: "See a live preview of round 1 and the full schedule as you tweak." },
-            { n: 3, t: "Share the link", d: "Everyone follows along; you tap in scores and standings update." },
-          ].map((s) => (
-            <li key={s.n} className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5">
-              <span className="inline-flex size-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
-                {s.n}
-              </span>
-              <h3 className="font-display text-lg font-bold text-foreground">{s.t}</h3>
-              <p className="text-sm text-muted">{s.d}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <HubSteps steps={STEPS} />
 
       {/* Format gallery */}
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Pick your format</h2>
-        <p className="mt-2 max-w-2xl text-muted">
-          Five ways to play — from a fair everyone-plays-everyone round robin to a full pools-and-bracket tournament.
+        <Overline>Five ways to play</Overline>
+        <h2 className="mt-2 font-display text-3xl text-foreground">Pick your format</h2>
+        <p className="mt-3 max-w-2xl text-muted">
+          From a fair everyone-plays-everyone round robin to a full pools-and-bracket tournament.
         </p>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {RR_FORMATS.map((meta) => (
@@ -146,26 +126,16 @@ export default function RoundRobinLandingPage(): JSX.Element {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="mt-12">
-        <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Frequently asked questions</h2>
-        <div className="mt-5">
-          <FaqAccordion items={FAQS} />
-        </div>
-      </section>
+      <HubFaq faqs={FAQS} />
 
       {/* Final CTA */}
-      <section className="mt-12 flex flex-col items-center gap-4 rounded-3xl border border-secondary/40 bg-secondary/5 p-8 text-center">
-        <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
-          Ready to play more?
-        </h2>
+      <section className="pj-sticker mt-12 mb-4 flex flex-col items-center gap-4 rounded-[1.5rem] bg-brand-bubblegum p-8 text-center sm:p-10">
+        <h2 className="font-display text-3xl text-foreground">Ready to play more?</h2>
         <p className="max-w-xl text-muted">
           Set up your next round robin in a couple of minutes — free, no sign-up.
         </p>
-        <Link
-          href={roundRobinNewPath()}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-secondary px-7 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        >
+        <Link href={roundRobinNewPath()} className={hubButtonClass.primary}>
+          {SparkleIcon}
           Create a round robin
         </Link>
       </section>

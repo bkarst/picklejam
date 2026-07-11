@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
 import { publicEnv } from "@/lib/env";
-import Link from "next/link";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
+import { HubHero, HubSteps, HubFaq, type HubAction } from "@/components/hub";
+import { BracketMotif } from "@/components/hub/motifs";
 import { tournamentsHub, discoverPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
@@ -37,20 +38,20 @@ const FAQS = [
   },
 ];
 
-function Step({ n, title, body }: { n: number; title: string; body: string }): JSX.Element {
-  return (
-    <div className="rounded-2xl border border-border bg-surface p-5">
-      <span className="inline-flex size-9 items-center justify-center rounded-full bg-accent/10 font-display text-base font-bold text-accent">
-        {n}
-      </span>
-      <h3 className="mt-3 font-display text-lg font-bold text-foreground">{title}</h3>
-      <p className="mt-1 text-sm text-muted">{body}</p>
-    </div>
-  );
-}
+const STEPS = [
+  { title: "Create your event", body: "Set dates, venue, divisions, and entry fees in a few minutes." },
+  { title: "Connect payouts", body: "Link Stripe to accept registrations and get paid directly." },
+  { title: "Publish & play", body: "Share your page, take registrations, and run live brackets." },
+];
 
-export default function TournamentsHubPage() {
+export default function TournamentsHubPage(): JSX.Element {
   const base = brand.siteUrl;
+  const actions: HubAction[] = [
+    { href: discoverPath("tournaments"), label: "Find a tournament", variant: "primary" },
+    ...(publicEnv.paidEventsEnabled
+      ? [{ href: "/organize/tournaments/new", label: "Organize a tournament", variant: "outline" as const }]
+      : []),
+  ];
   return (
     <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
       <JsonLd
@@ -65,55 +66,18 @@ export default function TournamentsHubPage() {
 
       <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Tournaments" }]} />
 
-      {/* Hero */}
-      <section className="mt-4 overflow-hidden rounded-3xl border border-border bg-surface p-6 sm:p-10">
-        <h1 className="max-w-2xl font-display text-3xl font-bold text-foreground sm:text-5xl">
-          Pickleball tournaments, made easy
-        </h1>
-        <p className="mt-3 max-w-xl text-muted">
-          Find and register for tournaments near you, or organize your own — collect entry fees,
-          manage divisions, and share live brackets.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href={discoverPath("tournaments")}
-            className="inline-flex h-12 items-center rounded-full bg-secondary px-6 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            Find a tournament
-          </Link>
-          {publicEnv.paidEventsEnabled && (
-            <Link
-              href="/organize/tournaments/new"
-              className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
-              Organize a tournament
-            </Link>
-          )}
-        </div>
-      </section>
+      <HubHero
+        overline="Compete · This season"
+        title="Pickleball tournaments, made easy"
+        body="Find and register for tournaments near you, or organize your own — collect entry fees, manage divisions, and share live brackets."
+        actions={actions}
+        motif={<BracketMotif />}
+        motifTone="lime"
+      />
 
-      {/* How it works */}
-      <section className="mt-10">
-        <h2 className="font-display text-2xl font-bold text-foreground">How it works</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Step n={1} title="Create your event" body="Set dates, venue, divisions, and entry fees in a few minutes." />
-          <Step n={2} title="Connect payouts" body="Link Stripe to accept registrations and get paid directly." />
-          <Step n={3} title="Publish & play" body="Share your page, take registrations, and run live brackets." />
-        </div>
-      </section>
+      <HubSteps steps={STEPS} />
 
-      {/* FAQ */}
-      <section className="mt-10">
-        <h2 className="font-display text-2xl font-bold text-foreground">Frequently asked questions</h2>
-        <dl className="mt-4 divide-y divide-border rounded-2xl border border-border bg-surface">
-          {FAQS.map((f) => (
-            <div key={f.question} className="p-5">
-              <dt className="font-display text-base font-bold text-foreground">{f.question}</dt>
-              <dd className="mt-1 text-sm text-muted">{f.answer}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      <HubFaq faqs={FAQS} />
     </main>
   );
 }

@@ -42,6 +42,7 @@ import {
   isValidRatingValue,
 } from "./ratings";
 import type { RatingItem, RatingSystem, UserProfileItem, Visibility } from "@/lib/db/types";
+import { brand } from "@/brand.config";
 
 const INPUT_CLS =
   "h-11 w-full rounded-xl border border-border bg-field px-4 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
@@ -507,7 +508,7 @@ function DuprRow({ rating }: { rating: RatingItem | undefined }): JSX.Element {
         <div>
           <p className="font-semibold text-foreground">DUPR</p>
           <p className="text-xs text-muted">
-            Read-only — PickleLoko imports your rating; we never submit scores to DUPR.
+            Read-only — {brand.identity.name} imports your rating; we never submit scores to DUPR.
           </p>
         </div>
         {!connecting && (

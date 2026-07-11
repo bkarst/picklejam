@@ -1,21 +1,18 @@
 /**
- * Logo — the PickleLoko lockup (brand board §01/§02). Two-tone Fredoka wordmark
- * ("Pickle" forest + "Loko" hot pink) beside the pickleball mark. Brand name comes
- * from brand.config (never hardcode "PickleLoko" text elsewhere).
+ * Logo — the Pickle Jam lockup (brand guide §01/§02). Two-tone Archivo Black
+ * wordmark ("PICKLE" court-green + "JAM" hot-pink) with the brand's sporty skew,
+ * beside the pickleball mark. Brand name comes from brand.config (never hardcode
+ * "Pickle Jam" text elsewhere).
+ *
+ * The wordmark is live text (not an <img>) so it stays theme-adaptive: `text-accent`
+ * resolves to court green in light mode and lime in dark mode, `text-secondary` to
+ * hot pink in both — matching the brand guide on cream and on the dark court-green.
  */
 
 import { brand } from "@/brand.config";
 
-/** The pickleball mark — lime ball, forest ring, cream holes (brand board). */
+/** The pickleball mark — lime ball, court-green ring (brand guide). */
 function BallMark({ size = 32 }: { size?: number }) {
-  const holes: [number, number, number][] = [
-    [16, 8, 2.1],
-    [22.5, 12, 1.9],
-    [22, 19, 1.9],
-    [15.5, 22, 2.1],
-    [9.5, 18.5, 1.8],
-    [10.5, 11.5, 1.8],
-  ];
   return (
     <svg
       width={size}
@@ -24,10 +21,7 @@ function BallMark({ size = 32 }: { size?: number }) {
       aria-hidden="true"
       className="shrink-0"
     >
-      <circle cx="16" cy="16" r="14" fill={brand.palette.lime} stroke={brand.palette.forest} strokeWidth="2.5" />
-      {holes.map(([cx, cy, r], i) => (
-        <circle key={i} cx={cx} cy={cy} r={r} fill={brand.palette.cream} />
-      ))}
+      <circle cx="16" cy="16" r="13.5" fill={brand.palette.lime} stroke={brand.palette.courtGreen} strokeWidth="2.25" />
     </svg>
   );
 }
@@ -39,10 +33,10 @@ export function Logo({
   variant?: "lockup" | "wordmark" | "mark";
   className?: string;
 }) {
-  const name = brand.identity.name; // "PickleLoko"
-  const split = name.indexOf("Loko");
+  const name = brand.identity.name; // "Pickle Jam"
+  const split = name.indexOf(" ");
   const first = split > 0 ? name.slice(0, split) : name;
-  const second = split > 0 ? name.slice(split) : "";
+  const second = split > 0 ? name.slice(split + 1) : "";
 
   if (variant === "mark") {
     return (
@@ -57,9 +51,19 @@ export function Logo({
     // text-contrast rule); the automated axe contrast scan excludes it.
     <span className={`inline-flex items-center gap-2 ${className ?? ""}`} role="img" aria-label={name} data-logo>
       {variant === "lockup" && <BallMark />}
-      <span className="font-display text-xl font-bold leading-none tracking-tight">
+      {/* Archivo Black is a single heavy weight — no font-bold. skewX gives the
+          brand's "sticker" slant. */}
+      <span
+        className="font-display text-xl font-black uppercase leading-none tracking-tight"
+        style={{ transform: "skewX(-6deg)" }}
+      >
         <span className="text-accent">{first}</span>
-        <span className="text-secondary">{second}</span>
+        {second && (
+          <>
+            {" "}
+            <span className="text-secondary">{second}</span>
+          </>
+        )}
       </span>
     </span>
   );

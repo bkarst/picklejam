@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { Button } from "@heroui/react";
 import { useConsent } from "./ConsentProvider";
+import { brand } from "@/brand.config";
 
 export function ConsentBanner() {
   const { decided, accept, reject } = useConsent();
@@ -25,7 +26,7 @@ export function ConsentBanner() {
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-surface-foreground">
-          We use cookies for analytics and ads to improve PickleLoko. You can accept or
+          We use cookies for analytics and ads to improve {brand.identity.name}. You can accept or
           keep only what&rsquo;s essential.{" "}
           <Link href="/legal/cookies" className="font-medium text-accent underline">
             Learn more

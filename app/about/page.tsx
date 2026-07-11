@@ -55,7 +55,7 @@ export function generateMetadata(): Metadata {
     title: `About ${NAME}`,
     description: `${NAME}'s mission, story, and the people behind it. We help you find pickleball courts, games, and players near you — then play more.`,
     path: aboutPath(),
-    keywords: ["about pickleloko", "pickleball app", "pickleball court finder"],
+    keywords: [`about ${NAME.toLowerCase()}`, "pickleball app", "pickleball court finder"],
   });
 }
 

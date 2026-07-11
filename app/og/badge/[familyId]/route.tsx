@@ -7,6 +7,7 @@
 import type { NextRequest } from "next/server";
 import { renderOgImage } from "@/lib/seo/og";
 import { BADGE_FAMILY_BY_ID, SPECIAL_BADGES, TIER_NAMES } from "@/lib/gamify/badges";
+import { brand } from "@/brand.config";
 
 export function GET(req: NextRequest, ctx: { params: Promise<{ familyId: string }> }): Promise<Response> {
   return ctx.params.then(({ familyId }) => {
@@ -16,7 +17,7 @@ export function GET(req: NextRequest, ctx: { params: Promise<{ familyId: string 
     const tierName = TIER_NAMES[tier] ?? "";
 
     if (!family && !special) {
-      return renderOgImage({ eyebrow: "Rally Points", title: "PickleLoko Badge", subtitle: "Earned on the courts" });
+      return renderOgImage({ eyebrow: "Rally Points", title: `${brand.identity.name} Badge`, subtitle: "Earned on the courts" });
     }
     const name = family?.name ?? special!.name;
     const flavor = family?.flavor ?? special!.flavor;

@@ -44,10 +44,10 @@ export default async function Home() {
           id="main"
           className="mx-auto flex w-full max-w-7xl flex-col items-center px-4 py-16 text-center"
         >
-          <p className="text-sm font-semibold uppercase tracking-wide text-muted">
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary">
             {brand.identity.taglineMarketing}
           </p>
-          <h1 className="mt-2 max-w-3xl font-display text-4xl font-bold text-accent sm:text-5xl">
+          <h1 className="mt-2 max-w-3xl font-display text-4xl font-bold normal-case text-accent sm:text-5xl">
             Find pickleball near you
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-muted">{brand.identity.description}</p>
