@@ -1,0 +1,25 @@
+/* ── Pickle Jam effects: shadows, borders, motion ───────────────────────
+   The brand leans on a chunky "outlined sticker" look: dark green outlines
+   and offset solid drop shadows rather than soft blurry ones. */
+:root {
+  /* Outlined-sticker shadows: hard, offset, dark-green */
+  --shadow-sticker-sm: 2px 2px 0 var(--pj-green-900);
+  --shadow-sticker:    4px 4px 0 var(--pj-green-900);
+  --shadow-sticker-lg: 6px 6px 0 var(--pj-green-900);
+
+  /* Soft elevation for cards on light surfaces */
+  --shadow-card: 0 4px 16px rgba(15, 61, 46, 0.10);
+  --shadow-card-hover: 0 8px 28px rgba(15, 61, 46, 0.16);
+  --shadow-pop: 0 12px 40px rgba(15, 61, 46, 0.22);
+
+  /* Outlines */
+  --outline-ink: 2px solid var(--pj-green-900); /* @kind other */
+  --outline-ink-thick: 3px solid var(--pj-green-900); /* @kind other */
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+  --dur-fast: 120ms; /* @kind other */
+  --dur: 200ms; /* @kind other */
+  --dur-slow: 320ms; /* @kind other */
+}

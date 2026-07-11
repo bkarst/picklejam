@@ -1,0 +1,49 @@
+/* ── Pickle Jam color system ────────────────────────────────────────────
+   Base palette straight from the brand guide, then semantic aliases. */
+:root {
+  /* Base palette */
+  --pj-green-900: #0F3D2E;   /* dark court green — primary ink */
+  --pj-green-800: #164B39;   /* hover / pressed green */
+  --pj-lime-500:  #C6F045;   /* electric lime — energy accent */
+  --pj-lime-600:  #B2DE2E;   /* lime hover */
+  --pj-pink-500:  #FF4FA3;   /* hot pink — primary action */
+  --pj-pink-600:  #F0338F;   /* pink hover */
+  --pj-pink-200:  #FFD6E6;   /* soft pink — tints / backgrounds */
+  --pj-cream-100: #FFF7E6;   /* cream — warm surface */
+  --pj-gray-200:  #E6E6E6;   /* light gray — borders / dividers */
+  --pj-gray-500:  #8A8F8C;   /* muted text on light */
+  --pj-white:     #FFFFFF;
+  --pj-black:     #0A2019;   /* near-black green for deepest ink */
+
+  /* Semantic — text */
+  --text-strong:  var(--pj-green-900);
+  --text-body:    #24403A;
+  --text-muted:   var(--pj-gray-500);
+  --text-invert:  var(--pj-cream-100);
+  --text-accent:  var(--pj-pink-500);
+
+  /* Semantic — surfaces */
+  --surface-page:    var(--pj-cream-100);
+  --surface-card:    var(--pj-white);
+  --surface-ink:     var(--pj-green-900);   /* dark sections / headers */
+  --surface-tint:    var(--pj-pink-200);
+  --surface-lime:    var(--pj-lime-500);
+
+  /* Semantic — actions */
+  --action-primary:        var(--pj-pink-500);
+  --action-primary-hover:  var(--pj-pink-600);
+  --action-primary-text:   var(--pj-white);
+  --action-accent:         var(--pj-lime-500);
+  --action-accent-hover:   var(--pj-lime-600);
+  --action-accent-text:    var(--pj-green-900);
+  --action-ink:            var(--pj-green-900);
+
+  /* Borders & dividers */
+  --border-subtle:  var(--pj-gray-200);
+  --border-ink:     var(--pj-green-900);
+
+  /* Status */
+  --status-live:     var(--pj-pink-500);
+  --status-success:  #2FA36B;
+  --status-warning:  #E8A63D;
+}

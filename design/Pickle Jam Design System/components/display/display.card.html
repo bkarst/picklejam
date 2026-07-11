@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Cards, Badges & Stats" subtitle="Story cards, status badges, tags, stats, avatars" -->
+<!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<body style="margin:0;background:var(--surface-page);font-family:var(--font-body)">
+<div id="root" style="padding:24px"></div>
+<script type="text/babel">
+const { Card, Badge, Tag, Stat, Avatar, StoryCard, Icon } = window.PickleJamDesignSystem_26eda6;
+const Row = ({children, gap=12}) => <div style={{display:"flex",gap,alignItems:"center",flexWrap:"wrap"}}>{children}</div>;
+function Demo(){
+  const ball = <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--pj-lime-500)"}}><img src="../../assets/pickleball.svg" width="72"/></div>;
+  return (
+    <div style={{display:"flex",gap:24,alignItems:"flex-start"}}>
+      <div style={{width:230}}>
+        <StoryCard variant="sticker" badge="Top Story" title="New Champs Crowned in Austin" meta="News · 2h ago" media={ball}/>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:16,flex:1}}>
+        <Row><Badge variant="pink">Top Story</Badge><Badge variant="lime" dot>Live</Badge><Badge variant="ink">New</Badge><Badge variant="cream">Recap</Badge></Row>
+        <Row><Tag active iconLeft={<Icon name="newspaper" size={15}/>}>News</Tag><Tag iconLeft={<Icon name="trophy" size={15}/>}>Tournaments</Tag><Tag iconLeft={<Icon name="users" size={15}/>}>Players</Tag></Row>
+        <Card variant="flat" pad={16}>
+          <Row gap={28}>
+            <Stat value="11–9" label="Final score" accent="pink"/>
+            <Stat value="128" label="Aces" accent="lime"/>
+            <Row gap={8}><Avatar name="Anna Leigh"/><Avatar name="Ben Johns"/><Avatar name="Catherine Parenteau"/></Row>
+          </Row>
+        </Card>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script>
+</body>

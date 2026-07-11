@@ -1,0 +1,14 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pickleball">
+  <circle cx="90" cy="90" r="72" fill="#C6F045" stroke="#0F3D2E" stroke-width="7"></circle>
+  <g fill="#0F3D2E">
+    <circle cx="90" cy="42" r="8"></circle>
+    <circle cx="58" cy="56" r="8"></circle>
+    <circle cx="122" cy="56" r="8"></circle>
+    <circle cx="44" cy="88" r="8"></circle>
+    <circle cx="90" cy="82" r="8"></circle>
+    <circle cx="136" cy="88" r="8"></circle>
+    <circle cx="62" cy="114" r="8"></circle>
+    <circle cx="118" cy="114" r="8"></circle>
+    <circle cx="90" cy="126" r="8"></circle>
+  </g>
+</svg>

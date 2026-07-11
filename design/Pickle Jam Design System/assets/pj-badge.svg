@@ -1,0 +1,14 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PJ badge">
+  <circle cx="80" cy="80" r="76" fill="#C6F045" stroke="#0F3D2E" stroke-width="6"></circle>
+  
+  <g stroke="#0F3D2E" stroke-width="2.4">
+    <rect x="40" y="34" width="80" height="30" rx="2" fill="#FFF7E6"></rect>
+    <line x1="40" y1="44" x2="120" y2="44"></line>
+    <line x1="40" y1="54" x2="120" y2="54"></line>
+    <line x1="58" y1="34" x2="58" y2="64"></line>
+    <line x1="76" y1="34" x2="76" y2="64"></line>
+    <line x1="94" y1="34" x2="94" y2="64"></line>
+    <line x1="112" y1="34" x2="112" y2="64"></line>
+  </g>
+  <text x="80" y="128" font-family="&#39;Archivo Black&#39;,&#39;Arial Black&#39;,sans-serif" font-size="58" fill="#0F3D2E" text-anchor="middle" transform="skewX(-6)" style="transform-origin:80px 100px">PJ</text>
+</svg>
