@@ -74,7 +74,7 @@ export function FacilityRating({
               cy="18"
               r="15.9155"
               fill="none"
-              className="stroke-success"
+              className="stroke-foreground"
               strokeWidth="3"
               strokeLinecap="round"
               strokeDasharray={`${pct} 100`}

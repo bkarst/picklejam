@@ -88,16 +88,18 @@ export function ReviewsModule({
 
   return (
     <section aria-labelledby="reviews-heading" className="flex flex-col gap-5">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5">
         {/* Average + histogram */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex flex-col items-center gap-1 sm:items-start">
             <h2 id="reviews-heading" className="sr-only">
               Reviews
             </h2>
-            <span className="font-display text-4xl font-bold text-foreground">
-              {reviewCount > 0 ? ratingAvg.toFixed(1) : "—"}
-            </span>
+            {reviewCount > 0 && (
+              <span className="font-display text-4xl font-bold text-foreground">
+                {ratingAvg.toFixed(1)}
+              </span>
+            )}
             {reviewCount > 0 ? (
               <StarsDisplay rating={ratingAvg} size="md" />
             ) : (
@@ -117,7 +119,7 @@ export function ReviewsModule({
         <button
           type="button"
           onClick={openComposer}
-          className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="inline-flex h-11 shrink-0 items-center justify-center self-start rounded-full bg-secondary px-5 text-sm font-semibold text-secondary-foreground transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           {effectiveMine ? "Edit your review" : "Write a review"}
         </button>

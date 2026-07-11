@@ -5,15 +5,11 @@ import { getCourtBySlug, getNearbyCourts, courtFacilityScore } from "@/lib/data/
 import { getCity, getState } from "@/lib/data/geo";
 import { getCourtCheckinsToday } from "@/lib/data/checkins";
 import { getCourtReviews } from "@/lib/data/reviews";
-import { getCourtGames } from "@/lib/data/outings";
 import { getGroupsAtCourt } from "@/lib/data/groups";
-import { getCourtCrew, getCourtStatus } from "@/lib/data/gamify-crew";
+import { getCourtStatus } from "@/lib/data/gamify-crew";
 import { hydrateReviewAuthors } from "@/lib/data/gamify-reviews";
-import { getCourtBoard } from "@/lib/data/gamify-boards";
 import { CourtStatusLine } from "@/components/gamify/CourtStatusLine";
-import { CourtCrewSection } from "@/components/gamify/CourtCrewSection";
-import { courtLocalDay, nowMs } from "@/lib/directory/court-local-day";
-import { UpcomingGamesGrid } from "@/components/outings/UpcomingGamesGrid";
+import { courtLocalDay } from "@/lib/directory/court-local-day";
 import { GroupsRail } from "@/components/groups";
 import { buildMetadata, courtTitle } from "@/lib/seo/metadata";
 import { courtJsonLd, faqPageJsonLd, breadcrumbListJsonLd, reviewJsonLd } from "@/lib/seo/jsonld";
@@ -67,32 +63,19 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
 
   const today = courtLocalDay(courtItem);
   const boardMonth = today.slice(0, 6);
-  const [cityItem, stateItem, nearbyCourts, checkinsToday, reviewsPage, courtGames, groupsHere, crew, courtBoard, courtStatus] =
+  const [cityItem, stateItem, nearbyCourts, checkinsToday, reviewsPage, groupsHere, courtStatus] =
     await Promise.all([
       getCity(country, state, city),
       getState(country, state),
       getNearbyCourts(courtItem),
       getCourtCheckinsToday(courtItem.courtId, today),
       getCourtReviews(courtItem.courtId, { sort: "recent", limit: 20 }),
-      getCourtGames(courtItem.courtId),
       // PUBLIC groups whose home/play court is this venue (§9.5 #28) — private
       // groups are filtered out server-side, so the rail is safe on a public page.
       getGroupsAtCourt(courtItem.courtId),
-      // Gamification social proof (§G12.1): Court Crew, this-month board, status line.
-      getCourtCrew(courtItem.courtId, boardMonth),
-      getCourtBoard(courtItem.courtId, boardMonth),
+      // Gamification social proof (§G12.1): the court status line.
       getCourtStatus(courtItem),
     ]);
-  // Bucket upcoming games into a Today→+6d week grid (court-local days).
-  const DAY_MS = 86_400_000;
-  const startMs = nowMs();
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const day = courtLocalDay(courtItem, startMs + i * DAY_MS);
-    return {
-      date: day,
-      games: courtGames.filter((g) => courtLocalDay(courtItem, Date.parse(g.startTs)) === day),
-    };
-  });
   const cityName = cityItem?.name ?? court;
   const st = stateAbbr(state);
   const base = brand.siteUrl;
@@ -155,9 +138,9 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
       {/* Hero (design 4.5) — identity + review CTA + Location & Contact, compact photo */}
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-5 lg:col-span-2">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            {/* Compact photo — deliberately small so the identity + review CTA lead */}
-            <div className="relative aspect-[4/3] w-full max-w-64 shrink-0 overflow-hidden rounded-2xl bg-surface-secondary sm:w-64">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-stretch lg:flex-1">
+            {/* Photo — matches the height of the identity block / action card beside it */}
+            <div className="relative aspect-[4/3] w-full max-w-64 shrink-0 overflow-hidden rounded-2xl bg-surface-secondary sm:aspect-auto sm:min-h-64 sm:w-80 sm:max-w-none lg:w-96">
               {hero ? (
                 <Image src={hero.url} alt={courtItem.name} fill className="object-cover" sizes="256px" />
               ) : (
@@ -215,10 +198,6 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
 
           {/* Status line (§G12.1-I1) — Captain + Trailblazer, JS-off complete */}
           <CourtStatusLine status={courtStatus} />
-          {/* Checked in today (day-fresh, no live polling) */}
-          {checkinsToday.length > 0 && (
-            <CheckedInTodayList checkins={checkinsToday} count={checkinsToday.length} />
-          )}
         </div>
 
         {/* Action panel (no title) — facility rating + reviews + Check In / Write a review / Follow (§4.5) */}
@@ -260,6 +239,11 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             </section>
           )}
 
+          {/* Checked in today (day-fresh, no live polling) — anonymous, rating-only (§6.2) */}
+          {checkinsToday.length > 0 && (
+            <CheckedInTodayList checkins={checkinsToday} count={checkinsToday.length} />
+          )}
+
           {(courtItem.openPlay?.length ?? 0) > 0 ? (
             <section>
               <h2 className="font-display text-xl font-bold text-foreground">Open-play schedule</h2>
@@ -281,14 +265,6 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             )
           )}
 
-          {/* Upcoming Games — weekly grid + "+ add a game" on-ramp (§6.7) */}
-          <section>
-            <h2 className="font-display text-xl font-bold text-foreground">Upcoming games</h2>
-            <div className="mt-3">
-              <UpcomingGamesGrid days={weekDays} courtId={courtItem.courtId} />
-            </div>
-          </section>
-
           {/* Groups that play here — PUBLIC groups only; self-hides when empty (§6.9) */}
           <GroupsRail
             groups={groupsHere}
@@ -297,14 +273,6 @@ export default async function CourtDetailPage({ params }: { params: Params }) {
             courtNames={{ [courtItem.courtId]: courtItem.name }}
             seeAllHref={groupsCityPath(country, state, city)}
             seeAllLabel={`All groups in ${cityName}`}
-          />
-
-          {/* Court Crew (§G12.1-I2) — local credibility directly above the reviews it boosts */}
-          <CourtCrewSection
-            courtId={courtItem.courtId}
-            crew={crew}
-            board={courtBoard}
-            leaderboardHref={`${courtUrl(courtItem)}/leaderboard`}
           />
 
           {/* Reviews — crawlable server-rendered list + client composer (§6.4).

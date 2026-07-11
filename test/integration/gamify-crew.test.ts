@@ -19,7 +19,7 @@ import {
 import { tallyCourtCheckin } from "@/lib/data/gamify-boards";
 import { earnCheckin } from "@/lib/data/gamify-earn";
 import { ensureGamifyProfile } from "@/lib/data/gamify";
-import { buildProfileItem } from "@/lib/data/users";
+import { buildProfileItem, buildRatingItem, upsertRating } from "@/lib/data/users";
 import { getItem, putItem } from "@/lib/db/client";
 import { courtKeys, gamifyKeys } from "@/lib/db/keys";
 import type { CourtItem, BadgeAwardItem, NotificationItem } from "@/lib/db/types";
@@ -136,10 +136,15 @@ d("Court Crew roster (DynamoDB Local)", () => {
     await tallyDays(c, month, privD, 6);
     await tallyDays(c, month, hiddenE, 6);
 
+    await upsertRating(buildRatingItem({ uid: crewA, system: "SELF", value: 3.5, verified: false }));
+
     const crew = await getCourtCrew(c, month);
     expect(crew.map((m) => m.uid)).toEqual([crewA, crewB]); // sorted by days desc, privates gone
     expect(crew[0].days).toBe(5);
-    expect(crew[0].displayName).toBe("Ada");
+    // Anonymous (§6.2): a member carries at most a headline rating, never identity.
+    expect(crew[0].rating).toBe(3.5);
+    expect(crew[1].rating).toBeUndefined();
+    expect(Object.keys(crew[0]).sort()).toEqual(["days", "rating", "uid"]);
   });
 
   it("counts the rolling current + previous month toward the ≥4 threshold", async () => {
@@ -219,10 +224,14 @@ d("Court Captain crowning (DynamoDB Local)", () => {
 });
 
 d("Court status line & captain history (DynamoDB Local)", () => {
-  it("getCourtStatus hydrates the Captain + Trailblazer, suppressing a private name", async () => {
+  it("getCourtStatus is anonymous: Captain + Trailblazer carry only a rating", async () => {
     const capUid = uid();
     const tbUid = uid();
-    await Promise.all([seedUser(capUid, { name: "Cappy" }), seedUser(tbUid, { visibility: "private", name: "Secret" })]);
+    await Promise.all([seedUser(capUid, { name: "Cappy" }), seedUser(tbUid, { name: "Blazer" })]);
+    await Promise.all([
+      upsertRating(buildRatingItem({ uid: capUid, system: "SELF", value: 3.5, verified: false })),
+      upsertRating(buildRatingItem({ uid: tbUid, system: "SELF", value: 4.0, verified: false })),
+    ]);
 
     const status = await getCourtStatus({
       captainUid: capUid,
@@ -230,28 +239,30 @@ d("Court status line & captain history (DynamoDB Local)", () => {
       trailblazerUid: tbUid,
       trailblazerAt: "2026-03-05T12:00:00.000Z",
     });
-    expect(status.captain?.displayName).toBe("Cappy");
-    expect(status.captain?.username).toBe(`crew-${capUid}`);
-    expect(status.captain?.month).toBe("202606");
-    // Private trailblazer → name suppressed, no link.
-    expect(status.trailblazer?.displayName).toBe("A player");
-    expect(status.trailblazer?.username).toBeUndefined();
-    expect(status.trailblazer?.at).toBe("2026-03-05T12:00:00.000Z");
+    // Check-ins are anonymous (§6.2): even public profiles carry no identity — rating only.
+    expect(status.captain).toEqual({ rating: 3.5, month: "202606" });
+    expect(status.trailblazer).toEqual({ rating: 4.0, at: "2026-03-05T12:00:00.000Z" });
   });
 
-  it("crownCaptain records into the board meta, and getCaptainHistory reads recent months", async () => {
+  it("getCourtStatus trailblazer omits the rating when the player has none", async () => {
+    const tbUid = uid();
+    await seedUser(tbUid, { visibility: "private", name: "Secret" });
+    const status = await getCourtStatus({ trailblazerUid: tbUid, trailblazerAt: "2026-03-05T12:00:00.000Z" });
+    expect(status.trailblazer).toEqual({ at: "2026-03-05T12:00:00.000Z" });
+  });
+
+  it("crownCaptain records into the board meta, and getCaptainHistory reads recent months anonymously", async () => {
     const c = court("hist");
     const capUid = uid();
     await seedUser(capUid, { name: "Historic" });
+    await upsertRating(buildRatingItem({ uid: capUid, system: "SELF", value: 4.5, verified: false }));
     await tallyDays(c, "202606", capUid, 8);
     await crownCaptain(c, "202606");
 
     const history = await getCaptainHistory(c, "202607", 6); // current + back 5 covers 202606
     expect(history.map((h) => h.month)).toContain("202606");
-    const entry = history.find((h) => h.month === "202606");
-    expect(entry?.uid).toBe(capUid);
-    expect(entry?.displayName).toBe("Historic");
-    expect(entry?.username).toBe(`crew-${capUid}`);
+    // Anonymous (§6.2): month + headline rating only — no uid, name, or link data.
+    expect(history.find((h) => h.month === "202606")).toEqual({ month: "202606", rating: 4.5 });
   });
 
   it("getCourtStatus returns {} when the court has neither fact", async () => {

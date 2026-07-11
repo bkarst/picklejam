@@ -277,7 +277,13 @@ export function SearchTypeahead({
           )}
         </div>
         {showSubmitButton && (
-          <Button type="button" variant="primary" size="lg" onPress={() => submitSearch(q)}>
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onPress={() => submitSearch(q)}
+            className="h-12 rounded-full border-2 border-accent bg-brand-lime font-semibold text-accent hover:bg-brand-lime/90"
+          >
             {submitLabel}
           </Button>
         )}

@@ -1,26 +1,16 @@
 /**
  * CourtStatusLine — the court-detail status line (§G12.1-I1): one muted line carrying up to
- * two facts, the current Court Captain (`🏆 June Captain: @maria`) and the Trailblazer
- * (`First check-in: @sam · Mar 2026`). Server-rendered and JS-off complete, from the
- * court-meta denormalized fields (privacy already applied in `getCourtStatus` — a suppressed
- * name arrives as "A player" with no username, so it renders plain and unlinked). Each fact
- * omits independently; renders nothing when both are unset. Wraps to two lines at 390px.
+ * two facts, the current Court Captain (`🏆 June Captain: 4.0 player`) and the Trailblazer
+ * (`First check-in: 4.0 player · Mar 2026`). Server-rendered and JS-off complete, from the
+ * court-meta denormalized fields. Both facts derive from check-ins and check-ins are
+ * anonymous (§6.2) — `getCourtStatus` supplies at most a headline rating, never identity,
+ * so nothing here links or names. Each fact omits independently; renders nothing when both
+ * are unset. Wraps at 390px.
  */
 
-import Link from "next/link";
 import { monthName, monthYearLabel } from "@/lib/gamify/time";
-import type { CourtStatus, CourtStatusPerson } from "@/lib/data/gamify-crew";
-
-function PersonName({ p }: { p: CourtStatusPerson }) {
-  if (p.username) {
-    return (
-      <Link href={`/players/${p.username}`} className="font-medium text-accent hover:underline">
-        {p.displayName}
-      </Link>
-    );
-  }
-  return <span className="font-medium text-foreground">{p.displayName}</span>;
-}
+import { anonPlayerLabel } from "./AnonPlayer";
+import type { CourtStatus } from "@/lib/data/gamify-crew";
 
 /** ISO timestamp → `yyyymm` (locale-free). */
 function isoMonth(iso: string): string {
@@ -33,12 +23,14 @@ export function CourtStatusLine({ status }: { status: CourtStatus }) {
     <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
       {status.captain && (
         <span className="inline-flex items-center gap-1">
-          <span aria-hidden="true">🏆</span> {monthName(status.captain.month)} Captain: <PersonName p={status.captain} />
+          <span aria-hidden="true">🏆</span> {monthName(status.captain.month)} Captain:{" "}
+          <span className="font-medium text-foreground">{anonPlayerLabel(status.captain.rating)}</span>
         </span>
       )}
       {status.trailblazer && (
         <span className="inline-flex items-center gap-1">
-          First check-in: <PersonName p={status.trailblazer} />
+          First check-in:{" "}
+          <span className="font-medium text-foreground">{anonPlayerLabel(status.trailblazer.rating)}</span>
           {status.trailblazer.at && <span>· {monthYearLabel(isoMonth(status.trailblazer.at))}</span>}
         </span>
       )}

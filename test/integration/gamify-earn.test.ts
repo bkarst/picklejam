@@ -347,8 +347,9 @@ d("leaderboards (§G13.6 · DynamoDB Local)", async () => {
     for (let i = 0; i < 4; i++) await tallyCourtCheckin(court, month, priv); // Priv 4 (private)
 
     const board = await getCourtBoard(court, month);
-    const names = board.map((r) => r.displayName);
-    expect(names).toEqual(["Alice", "Bob"]); // ranked; hidden + private excluded
+    expect(board.map((r) => r.uid)).toEqual([a, b]); // ranked; hidden + private excluded
+    // Anonymous (§6.2): a board row never carries identity fields.
+    expect(board[0]).not.toHaveProperty("displayName");
     expect(board[0].value).toBe(3);
     expect(board[0].rank).toBe(1);
     expect(await getMyCourtTally(court, month, hank)).toBe(5); // hidden still self-ranks
@@ -366,7 +367,7 @@ d("leaderboards (§G13.6 · DynamoDB Local)", async () => {
     for (let i = 0; i < 5; i++) await tallyCourtCheckin(court, "202607", a);
     await tallyCourtCheckin(court, "202607", b);
     const board = await getCourtBoard(court, "202607");
-    expect(board.find((r) => r.displayName === "A")).toMatchObject({ rank: 1, movement: 1 }); // 2 → 1
-    expect(board.find((r) => r.displayName === "B")).toMatchObject({ rank: 2, movement: -1 }); // 1 → 2
+    expect(board.find((r) => r.uid === a)).toMatchObject({ rank: 1, movement: 1 }); // 2 → 1
+    expect(board.find((r) => r.uid === b)).toMatchObject({ rank: 2, movement: -1 }); // 1 → 2
   });
 });

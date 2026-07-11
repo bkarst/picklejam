@@ -1,24 +1,29 @@
 /**
  * BoardTable — a leaderboard as a native, read-only `<table>` (§G12.0). Per the Stage-5
  * hydration lesson we hand-roll the table rather than use the HeroUI client `Table`, so it
- * server-renders and is JS-off complete. Columns: rank · player (avatar + profile link +
- * `LevelChip sm`) · value · movement vs prior month. Movement never relies on color alone —
- * a ▲/▼ glyph carries the meaning. The viewer's own row is highlighted when `highlightUid`
- * matches. Rows come from `RANK#` projections (public, `leaderboards≠hidden` only).
+ * server-renders and is JS-off complete. Columns: rank · player · value · movement vs prior
+ * month. A row WITH `displayName` renders identified (avatar + profile link + `LevelChip sm`
+ * — RP boards); a row WITHOUT renders anonymous (`AnonPlayerDot` + "4.0 player" — check-in
+ * boards, §6.2). Movement never relies on color alone — a ▲/▼ glyph carries the meaning.
+ * The viewer's own row is highlighted when `highlightUid` matches.
  */
 
 import Link from "next/link";
 import { LevelChip } from "./LevelChip";
 import { GamifyAvatar } from "./GamifyAvatar";
+import { AnonPlayerDot, anonPlayerLabel } from "./AnonPlayer";
 import type { LbRankItem } from "@/lib/db/types";
 
 export interface BoardRow {
   rank: number;
   uid: string;
   username?: string;
-  displayName: string;
+  /** Absent ⇒ the row renders anonymous (check-in boards, §6.2). */
+  displayName?: string;
   avatarUrl?: string;
   level?: number;
+  /** Headline rating, for anonymous rows. */
+  rating?: number;
   value: number;
   movement?: number;
 }
@@ -80,15 +85,24 @@ export function BoardTable({
                 <td className="py-2.5 pr-2 font-semibold tabular-nums text-muted">{r.rank}</td>
                 <td className="py-2.5 pr-2">
                   <div className="flex items-center gap-2">
-                    <GamifyAvatar name={r.displayName} avatarUrl={r.avatarUrl} className="size-7 shrink-0 text-[10px]" />
-                    {r.username ? (
-                      <Link href={`/players/${r.username}`} className="truncate font-medium text-foreground hover:text-accent hover:underline">
-                        {r.displayName}
-                      </Link>
+                    {r.displayName ? (
+                      <>
+                        <GamifyAvatar name={r.displayName} avatarUrl={r.avatarUrl} className="size-7 shrink-0 text-[10px]" />
+                        {r.username ? (
+                          <Link href={`/players/${r.username}`} className="truncate font-medium text-foreground hover:text-accent hover:underline">
+                            {r.displayName}
+                          </Link>
+                        ) : (
+                          <span className="truncate font-medium text-foreground">{r.displayName}</span>
+                        )}
+                        {r.level != null && <LevelChip level={r.level} size="sm" className="hidden sm:inline-flex" />}
+                      </>
                     ) : (
-                      <span className="truncate font-medium text-foreground">{r.displayName}</span>
+                      <>
+                        <AnonPlayerDot rating={r.rating} className="size-7 text-[10px]" />
+                        <span className="truncate font-medium text-foreground">{anonPlayerLabel(r.rating)}</span>
+                      </>
                     )}
-                    {r.level != null && <LevelChip level={r.level} size="sm" className="hidden sm:inline-flex" />}
                   </div>
                 </td>
                 <td className="py-2.5 pr-2 text-right font-semibold tabular-nums text-foreground">{r.value.toLocaleString()}</td>

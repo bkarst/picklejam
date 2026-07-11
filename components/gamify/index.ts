@@ -8,7 +8,7 @@ export { QuestRow } from "./QuestRow";
 export { BadgeTile } from "./BadgeTile";
 export { BadgeDetailSheet } from "./BadgeDetailSheet";
 export { GamifyAvatar, nameInitials } from "./GamifyAvatar";
-export { CrewChip } from "./CrewChip";
+export { AnonPlayerDot, anonPlayerLabel } from "./AnonPlayer";
 export { BoardTable, type BoardRow, toBoardRows } from "./BoardTable";
 export { MonthStatsPanel } from "./MonthStatsPanel";
 export { GamifyToaster } from "./GamifyToaster";

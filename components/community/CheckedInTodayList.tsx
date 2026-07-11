@@ -3,12 +3,14 @@
  * (design 4.5). Presentational + server-renderable; NO live polling (§6.2 — a
  * durable day-bucketed count, not real-time presence).
  *
- * Privacy (§6.2, CLAUDE.md/HIG): a `CheckinItem` deliberately carries no identity,
- * so anonymous AND identified check-ins render as neutral avatars — anonymous ones
- * are announced as "A player", and we never surface identity here.
+ * Privacy (§6.2, CLAUDE.md/HIG): check-ins are anonymous — we never surface identity
+ * here, for anonymous OR signed-in check-ins alike. The only per-player fact shown is
+ * the skill rating declared on the check-in (when given), rendered inside the avatar
+ * dot; without one the dot is a neutral person glyph announced as "A player".
  */
 
 import type { JSX } from "react";
+import { AnonPlayerDot, anonPlayerLabel } from "@/components/gamify/AnonPlayer";
 import type { CheckinItem } from "@/lib/db/types";
 
 const MAX_AVATARS = 5;
@@ -21,24 +23,9 @@ function formatTime(iso: string | undefined): string {
 }
 
 function label(c: CheckinItem): string {
-  const who = c.anonymous ? "A player" : "Player";
+  const who = anonPlayerLabel(c.skill);
   const time = formatTime(c.createdAt);
   return time ? `${who} · checked in at ${time}` : who;
-}
-
-function AvatarDot({ anonymous }: { anonymous: boolean }): JSX.Element {
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex size-8 items-center justify-center rounded-full ring-2 ring-surface ${
-        anonymous ? "bg-surface-secondary text-muted" : "bg-accent/15 text-accent"
-      }`}
-    >
-      <svg viewBox="0 0 24 24" className="size-4" fill="currentColor">
-        <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.7-8 6v2h16v-2c0-3.3-3.6-6-8-6z" />
-      </svg>
-    </span>
-  );
 }
 
 export function CheckedInTodayList({
@@ -68,7 +55,7 @@ export function CheckedInTodayList({
         <ul className="flex items-center -space-x-2" aria-label="Recent check-ins">
           {shown.map((c) => (
             <li key={c.sk || `${c.courtId}-${c.createdAt}`} title={label(c)}>
-              <AvatarDot anonymous={c.anonymous} />
+              <AnonPlayerDot rating={c.skill} className="size-8 text-[11px] ring-2 ring-surface" />
               <span className="sr-only">{label(c)}</span>
             </li>
           ))}

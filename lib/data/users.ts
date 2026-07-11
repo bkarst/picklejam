@@ -9,6 +9,7 @@
  */
 
 import {
+  batchGet,
   getItem,
   query,
   putItem,
@@ -19,6 +20,7 @@ import {
   txDelete,
   type TransactItem,
 } from "@/lib/db/client";
+import { primaryRating } from "@/components/account/ratings";
 import { GSI } from "@/lib/db/table";
 import { userKeys, usernameKey } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
@@ -62,6 +64,28 @@ export async function getUserRatings(uid: string): Promise<RatingItem[]> {
     skBeginsWith: userKeys.ratingPrefix(),
   });
   return items;
+}
+
+/**
+ * uid → headline rating value, for the anonymous check-in surfaces (§6.2: a check-in
+ * display shows at most the player's rating, never identity). Picks each player's
+ * default-source rating, else first verified, else first (`primaryRating`). One profile
+ * BatchGet + one ratings Query per uid; a uid with no ratings is absent from the map.
+ */
+export async function getHeadlineRatings(uids: string[]): Promise<Map<string, number>> {
+  const unique = [...new Set(uids)];
+  if (unique.length === 0) return new Map();
+  const [profiles, ratings] = await Promise.all([
+    batchGet<UserProfileItem>(unique.map((u) => userKeys.profile(u))),
+    Promise.all(unique.map((u) => getUserRatings(u))),
+  ]);
+  const profileBy = new Map(profiles.map((p) => [p.uid, p]));
+  const out = new Map<string, number>();
+  unique.forEach((u, i) => {
+    const r = primaryRating(ratings[i], profileBy.get(u)?.defaultRatingSource);
+    if (r) out.set(u, r.value);
+  });
+  return out;
 }
 
 // ── username uniqueness ──────────────────────────────────────────────────────

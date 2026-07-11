@@ -15,6 +15,7 @@ import "server-only";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { batchGet, getItem, query, queryAll, transactWrite, txPut, txDelete, txUpdate, updateItem } from "@/lib/db/client";
 import { boardKeys, userKeys, gamifyKeys } from "@/lib/db/keys";
+import { getHeadlineRatings } from "./users";
 import { userLocalMonth } from "@/lib/gamify/time";
 import type {
   LbTallyItem,
@@ -216,12 +217,34 @@ export async function tallyCityRp(cityKey: string, month: string, uid: string, r
 
 // ── Reads (patterns 32/33) ──────────────────────────────────────────────────
 
-export async function getCourtBoard(courtId: string, yyyymm: string): Promise<LbRankItem[]> {
+export interface AnonBoardRow {
+  rank: number;
+  uid: string;
+  /** Headline rating — the only per-player fact a check-in board shows (§6.2). */
+  rating?: number;
+  value: number;
+  movement?: number;
+}
+
+/**
+ * The court board — check-in days. Check-ins are anonymous (§6.2): the denormalized
+ * identity on the RANK rows is deliberately NOT surfaced; each row carries only rank,
+ * value, movement, and the player's headline rating. (`uid` stays for the viewer's
+ * own-row highlight — it is never rendered.)
+ */
+export async function getCourtBoard(courtId: string, yyyymm: string): Promise<AnonBoardRow[]> {
   const { items } = await query<LbRankItem>({
     pk: boardKeys.courtBoardPk(courtId, yyyymm),
     skBeginsWith: boardKeys.rankPrefix(),
   });
-  return items;
+  const ratings = await getHeadlineRatings(items.map((r) => r.uid));
+  return items.map((r) => ({
+    rank: r.rank,
+    uid: r.uid,
+    value: r.value,
+    ...(ratings.has(r.uid) ? { rating: ratings.get(r.uid) } : {}),
+    ...(r.movement !== undefined ? { movement: r.movement } : {}),
+  }));
 }
 
 export async function getCityBoard(cityKey: string, yyyymm: string): Promise<LbRankItem[]> {

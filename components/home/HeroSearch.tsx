@@ -23,7 +23,7 @@ export function HeroSearch({
         prepopulateNearby
         showSubmitButton
         submitLabel="Search"
-        inputClassName="h-12 w-full rounded-full border border-border bg-field px-5 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        inputClassName="h-12 w-full rounded-full border border-brand-lime bg-brand-lime/50 px-5 text-field-foreground placeholder:text-field-placeholder focus-visible:outline-none"
       />
     </div>
   );

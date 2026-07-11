@@ -130,7 +130,7 @@ export function CourtCard({
 
   return (
     <div
-      className={`group relative flex overflow-hidden rounded-2xl border border-border bg-surface transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${
+      className={`group relative flex h-full overflow-hidden rounded-2xl border border-border bg-surface transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${
         isList ? "flex-row" : "flex-col"
       }`}
     >

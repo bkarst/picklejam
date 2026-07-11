@@ -14,6 +14,7 @@ import { batchGet, getItem, queryAll, updateItem } from "@/lib/db/client";
 import { boardKeys, courtKeys, userKeys, gamifyKeys } from "@/lib/db/keys";
 import { prevMonth } from "./gamify-boards";
 import { awardSpecialBadge } from "./gamify-badges";
+import { getHeadlineRatings } from "./users";
 import type { CourtItem, LbTallyItem, LbBoardMetaItem, UserProfileItem, GamifyProfileItem } from "@/lib/db/types";
 
 const CREW_THRESHOLD = 4;
@@ -75,29 +76,35 @@ export async function getCrewUids(courtId: string, curMonth: string): Promise<Se
 export interface CrewMember {
   uid: string;
   days: number;
-  displayName: string;
-  username: string;
-  avatarUrl?: string;
-  level: number;
+  /** Headline rating — the only per-player fact a check-in surface shows (§6.2). */
+  rating?: number;
 }
 
-/** The Court Crew — public, checkin-visible members with ≥4 check-in days in the window (§G7.1). */
+/**
+ * The Court Crew — members with ≥4 check-in days in the window (§G7.1). Check-ins are
+ * anonymous (§6.2), so members carry no identity — at most a headline rating. The
+ * visibility/checkinVisibility opt-outs still exclude entirely (an explicit "don't show
+ * my check-ins" removes even the anonymous dot).
+ */
 export async function getCourtCrew(courtId: string, curMonth: string, limit = 12): Promise<CrewMember[]> {
   const days = await checkinDaysByUser(courtId, curMonth);
   const crewUids = [...days.entries()].filter(([, d]) => d >= CREW_THRESHOLD).map(([u]) => u);
   if (crewUids.length === 0) return [];
 
-  const [users, gamifies] = await Promise.all([
-    batchGet<UserProfileItem>(crewUids.map((u) => userKeys.profile(u))),
-    batchGet<GamifyProfileItem>(crewUids.map((u) => gamifyKeys.profile(u))),
-  ]);
+  const users = await batchGet<UserProfileItem>(crewUids.map((u) => userKeys.profile(u)));
   const userBy = new Map(users.map((u) => [u.uid, u]));
-  const gamifyBy = new Map(gamifies.map((g) => [g.uid, g]));
+  const eligible = crewUids.filter((uid) => {
+    const u = userBy.get(uid);
+    return u && u.visibility === "public" && u.checkinVisibility !== "private";
+  });
+  const ratings = await getHeadlineRatings(eligible);
 
-  return crewUids
-    .map((uid) => ({ uid, u: userBy.get(uid), g: gamifyBy.get(uid), days: days.get(uid) ?? 0 }))
-    .filter(({ u }) => u && u.visibility === "public" && u.checkinVisibility !== "private")
-    .map(({ uid, u, g, days: d }) => ({ uid, days: d, displayName: u!.displayName, username: u!.username, avatarUrl: u!.avatarUrl, level: g?.level ?? 1 }))
+  return eligible
+    .map((uid) => ({
+      uid,
+      days: days.get(uid) ?? 0,
+      ...(ratings.has(uid) ? { rating: ratings.get(uid) } : {}),
+    }))
     .sort((a, b) => b.days - a.days)
     .slice(0, limit);
 }
@@ -171,54 +178,52 @@ export async function crownCaptain(courtId: string, month: string): Promise<stri
 
 // ── Court status line & captain history (reads for §G12.1 / §G12.3) ──────────
 
-export interface CourtStatusPerson {
-  uid: string;
-  displayName: string;
-  /** Absent when the name is suppressed (private profile) — render plain, unlinked. */
-  username?: string;
-}
 export interface CourtStatus {
-  captain?: CourtStatusPerson & { month: string };
-  trailblazer?: CourtStatusPerson & { at?: string };
+  /** Check-in-derived facts are anonymous (§6.2): at most a headline rating, never identity. */
+  captain?: { rating?: number; month: string };
+  trailblazer?: { rating?: number; at?: string };
 }
 
 /**
- * The court status-line facts (§G12.1-I1): the current Captain + the Trailblazer, hydrated
- * from the court-meta denormalized uids with privacy suppression (a non-public profile
- * renders as "A player" — uid retained, name/link withheld). At most one BatchGet.
+ * The court status-line facts (§G12.1-I1): the current Captain + the Trailblazer, from the
+ * court-meta denormalized uids. Both derive from check-ins and check-ins are anonymous
+ * (§6.2), so neither carries identity — only the player's headline rating, when they have
+ * one. One profile BatchGet + one ratings Query per fact.
  */
 export async function getCourtStatus(
   court: Pick<CourtItem, "captainUid" | "captainMonth" | "trailblazerUid" | "trailblazerAt">,
 ): Promise<CourtStatus> {
   const uids = [...new Set([court.captainUid, court.trailblazerUid].filter((x): x is string => !!x))];
   if (uids.length === 0) return {};
-  const users = await batchGet<UserProfileItem>(uids.map((u) => userKeys.profile(u)));
-  const by = new Map(users.map((u) => [u.uid, u]));
-
-  const person = (uid?: string): CourtStatusPerson | undefined => {
-    if (!uid) return undefined;
-    const u = by.get(uid);
-    if (!u || u.visibility !== "public") return { uid, displayName: "A player" }; // suppress name
-    return { uid, displayName: u.displayName, username: u.username };
-  };
+  const ratings = await getHeadlineRatings(uids);
 
   const status: CourtStatus = {};
-  const cap = person(court.captainUid);
-  if (cap && court.captainMonth) status.captain = { ...cap, month: court.captainMonth };
-  const tb = person(court.trailblazerUid);
-  if (tb) status.trailblazer = { ...tb, ...(court.trailblazerAt ? { at: court.trailblazerAt } : {}) };
+  if (court.captainUid && court.captainMonth) {
+    status.captain = {
+      ...(ratings.has(court.captainUid) ? { rating: ratings.get(court.captainUid) } : {}),
+      month: court.captainMonth,
+    };
+  }
+  if (court.trailblazerUid) {
+    status.trailblazer = {
+      ...(ratings.has(court.trailblazerUid) ? { rating: ratings.get(court.trailblazerUid) } : {}),
+      ...(court.trailblazerAt ? { at: court.trailblazerAt } : {}),
+    };
+  }
   return status;
 }
 
 export interface CaptainHistoryEntry {
   month: string;
-  uid: string;
-  displayName: string;
-  username: string;
-  avatarUrl?: string;
+  /** Headline rating — check-ins are anonymous (§6.2), so a past Captain shows at most this. */
+  rating?: number;
 }
 
-/** The last `count` months' Captains for a court (§G12.3 item 5), from frozen board metas. */
+/**
+ * The last `count` months' Captains for a court (§G12.3 item 5), from frozen board metas.
+ * Anonymous (§6.2): the denormalized captain name/avatar on the meta is deliberately NOT
+ * surfaced — each entry carries only the month and the player's headline rating.
+ */
 export async function getCaptainHistory(courtId: string, curMonth: string, count = 6): Promise<CaptainHistoryEntry[]> {
   const months: string[] = [];
   let m = curMonth;
@@ -228,18 +233,13 @@ export async function getCaptainHistory(courtId: string, curMonth: string, count
   }
   const metas = await batchGet<LbBoardMetaItem>(months.map((mm) => boardKeys.meta(boardKeys.courtBoardPk(courtId, mm))));
   const byMonth = new Map(metas.map((x) => [x.month, x]));
-  const out: CaptainHistoryEntry[] = [];
-  for (const mm of months) {
-    const meta = byMonth.get(mm);
-    if (meta?.captainUid && meta.captainName && meta.captainUsername) {
-      out.push({
-        month: mm,
-        uid: meta.captainUid,
-        displayName: meta.captainName,
-        username: meta.captainUsername,
-        ...(meta.captainAvatarUrl ? { avatarUrl: meta.captainAvatarUrl } : {}),
-      });
-    }
-  }
-  return out;
+  const withCaptain = months
+    .map((mm) => ({ month: mm, captainUid: byMonth.get(mm)?.captainUid }))
+    .filter((x): x is { month: string; captainUid: string } => !!x.captainUid);
+  if (withCaptain.length === 0) return [];
+  const ratings = await getHeadlineRatings(withCaptain.map((x) => x.captainUid));
+  return withCaptain.map(({ month, captainUid }) => ({
+    month,
+    ...(ratings.has(captainUid) ? { rating: ratings.get(captainUid) } : {}),
+  }));
 }

@@ -8,7 +8,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
 import { ArticleCard, NewsletterSignup } from "@/components/content";
 import { categoryMeta } from "@/components/content/categories";
-import { getContentByCategory, getAuthor, listCategories } from "@/lib/data/content";
+import { getContentByCategory, getAuthor, listCategories, CONTENT_CATEGORIES } from "@/lib/data/content";
 import { learnHub, learnCategoryPath, articlePath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 import type { ContentItem } from "@/lib/db/types";
@@ -53,12 +53,17 @@ export default async function LearnCategoryPage({
   ]);
 
   const known = categories.some((c) => c.category === category);
+  // A curated category slug (e.g. "gear") is "defined" even before it has any
+  // content — it's in the taxonomy and linked from nav, so it earns a
+  // "Coming soon" page rather than a 404.
+  const isDefinedCategory = (CONTENT_CATEGORIES as readonly string[]).includes(category);
   const articles = rawArticles
     .filter((a) => a.status === "published")
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
-  // Unknown category with no content is a real 404 (avoid thin/empty pages).
-  if (!known && articles.length === 0) notFound();
+  // Genuinely unknown category with no content is a real 404 (avoid thin/empty
+  // pages). A defined-but-empty category falls through to the "Coming soon" body.
+  if (!known && !isDefinedCategory && articles.length === 0) notFound();
 
   const meta = categoryMeta(category);
   const avatars = await avatarMap(articles);
@@ -136,9 +141,20 @@ export default async function LearnCategoryPage({
               ))}
             </ul>
           ) : (
-            <p className="rounded-2xl border border-border bg-surface p-8 text-center text-muted">
-              No {meta.label.toLowerCase()} articles yet — check back soon.
-            </p>
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface px-6 py-16 text-center">
+              <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </span>
+              <div>
+                <h2 className="font-display text-2xl font-bold text-foreground">Coming soon</h2>
+                <p className="mx-auto mt-2 max-w-md text-muted">
+                  Our {meta.label.toLowerCase()} guides are on the way — check back soon.
+                </p>
+              </div>
+            </div>
           )}
         </div>
 

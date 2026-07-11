@@ -20,7 +20,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { BoardTable, toBoardRows } from "@/components/gamify/BoardTable";
+import { BoardTable } from "@/components/gamify/BoardTable";
 import { CourtYourRow } from "@/components/gamify/LeaderboardYourRow";
 import { LeaderboardMonthPicker } from "@/components/gamify/LeaderboardMonthPicker";
 import { CaptainHistoryStrip } from "@/components/gamify/CaptainHistoryStrip";
@@ -90,7 +90,7 @@ export default async function CourtLeaderboardPage({ params, searchParams }: { p
   const cityName = cityItem?.name ?? city;
   const base = brand.siteUrl;
   const courtHref = courtUrl(courtItem);
-  const rows = toBoardRows(board);
+  const rows = board;
   const rankedUids = rows.map((r) => r.uid);
   const isCurrent = month === currentMonth;
 
