@@ -29,7 +29,7 @@ export function ConsentBanner() {
           We use cookies for analytics and ads to improve {brand.identity.name}. You can accept or
           keep only what&rsquo;s essential.{" "}
           <Link href="/legal/cookies" className="font-medium text-accent underline">
-            Learn more
+            Learn more about our cookie policy
           </Link>
           .
         </p>
