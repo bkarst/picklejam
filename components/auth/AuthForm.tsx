@@ -10,8 +10,12 @@
 import { useState } from "react";
 import { Button } from "@heroui/react";
 import { useAuth, type AuthTab } from "./AuthProvider";
+import { useUpdateProfile } from "@/lib/api/profile";
 
 type Mode = AuthTab | "forgot";
+
+/** Matches the server's MAX_DISPLAY_NAME (PUT /api/account/profile). */
+const MAX_NAME = 80;
 
 /** Official multi-color Google "G" mark, per Google's brand guidelines. */
 function GoogleIcon({ className }: { className?: string }) {
@@ -46,6 +50,7 @@ export function AuthForm({
   onSuccess?: () => void;
 }) {
   const auth = useAuth();
+  const updateProfile = useUpdateProfile();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -60,8 +65,19 @@ export function AuthForm({
     setBusy(true);
     try {
       if (mode === "login") await auth.signInWithEmail(email, password);
-      else if (mode === "signup") await auth.signUpWithEmail(email, password, name);
-      else {
+      else if (mode === "signup") {
+        await auth.signUpWithEmail(email, password, name);
+        // Persist the entered name to the profile's Display name. The profile is
+        // auto-created (with a fallback name) the instant we sign in, before Firebase's
+        // updated displayName reaches the ID token — so we write it explicitly here.
+        // The request body carries the name regardless of token state, and the mutation
+        // invalidates ['me'] so the header shows the corrected name. Best-effort: a
+        // failure here never blocks the successful sign-up.
+        const displayName = name.trim();
+        if (displayName) {
+          await updateProfile.mutateAsync({ displayName }).catch(() => {});
+        }
+      } else {
         await auth.sendPasswordReset(email);
         setNotice("If an account exists for that email, a reset link is on its way.");
         setBusy(false);
@@ -111,7 +127,7 @@ export function AuthForm({
         {mode === "signup" && (
           <div>
             <label htmlFor="auth-name" className="mb-1 block text-sm font-medium text-foreground">Name</label>
-            <input id="auth-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+            <input id="auth-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required maxLength={MAX_NAME} autoComplete="name" />
           </div>
         )}
         <div>

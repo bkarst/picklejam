@@ -133,7 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "firebase/auth"
       );
       const cred = await createUserWithEmailAndPassword(fbAuthRef.current!, email, password);
-      if (name) await updateProfile(cred.user, { displayName: name });
+      if (name) {
+        await updateProfile(cred.user, { displayName: name });
+        // Refresh the ID token so its `name` claim reflects the just-set displayName.
+        // `updateProfile` does NOT refresh the token, so without this the first authed
+        // call (the header's profile GET, fired the instant we sign in) auto-creates the
+        // profile from a name-less token and the entered name is lost (AuthForm also
+        // persists it explicitly as a race-proof backstop).
+        await cred.user.getIdToken(true);
+      }
       await sendEmailVerification(cred.user).catch(() => {});
     },
     [isDev, devSignIn],
