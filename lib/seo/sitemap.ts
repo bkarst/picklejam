@@ -503,18 +503,50 @@ export function staticRoutes(): MetadataRoute.Sitemap {
 }
 
 /**
- * Absolute URLs of every generated segment sitemap (+ the `static` segment and
- * the Google-News sitemap).
+ * Absolute URLs of every generated SEGMENT sitemap (each `/sitemap/<id>.xml`,
+ * including the `static` segment). This is the exact set the sitemap INDEX lists.
  *
  * `app/sitemap.ts` uses `generateSitemaps`, so Next 16 emits each segment at
- * `/sitemap/<id>.xml` and does NOT produce a `/sitemap.xml` index (and reserves
- * that path). `robots.txt` (§3.7) therefore enumerates these directly — the
- * sitemaps protocol + Google both support multiple `Sitemap:` entries. The
- * Google-News sitemap ({@link NEWS_SITEMAP_PATH}) is listed alongside them.
+ * `/sitemap/<id>.xml` and does NOT itself produce an index. We fill that gap with
+ * a hand-built index ({@link sitemapIndexXml}) served at {@link SITEMAP_INDEX_PATH}
+ * so there is ONE submittable entry point. (It can't live at the conventional
+ * `/sitemap.xml` — Next reserves that path for the metadata convention, so a route
+ * handler there is a build-time "Conflicting route and metadata" error.)
+ *
+ * Deliberately EXCLUDES the Google-News sitemap ({@link NEWS_SITEMAP_PATH}): it's
+ * a distinct `<news:news>` feed (48h window, submitted to Google News on its own),
+ * not a general-crawl sitemap, so it does not belong in the crawl index.
  */
-export function sitemapUrls(): string[] {
+export function segmentSitemapUrls(): string[] {
   const ids = [...Object.keys(sitemapSegments), "static"];
-  return [...ids.map((id) => `${siteUrl}/sitemap/${id}.xml`), `${siteUrl}${NEWS_SITEMAP_PATH}`];
+  return ids.map((id) => `${siteUrl}/sitemap/${id}.xml`);
+}
+
+/** Public path of the single sitemap INDEX — the one submittable entry point. */
+export const SITEMAP_INDEX_PATH = "/sitemap-index.xml";
+
+/** Absolute URL of the sitemap index — what `robots.txt` advertises (§3.7). */
+export function sitemapIndexUrl(): string {
+  return `${siteUrl}${SITEMAP_INDEX_PATH}`;
+}
+
+/**
+ * Build the sitemap INDEX document: a `<sitemapindex>` listing every segment
+ * sitemap ({@link segmentSitemapUrls}). `<lastmod>` is intentionally omitted —
+ * the segments have no single natural mod time, and a build-timestamp would churn
+ * the sitewide signal on every deploy (same rule as the static/marketing entries).
+ */
+export function sitemapIndexXml(): string {
+  const entries = segmentSitemapUrls()
+    .map((loc) => `  <sitemap>\n    <loc>${xmlEscape(loc)}</loc>\n  </sitemap>`)
+    .join("\n");
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    entries,
+    "</sitemapindex>",
+    "",
+  ].join("\n");
 }
 
 // ── Google News sitemap (§6.6) ───────────────────────────────────────────────

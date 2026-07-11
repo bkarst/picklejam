@@ -6,7 +6,13 @@ import {
   faqPageJsonLd,
 } from "@/lib/seo/jsonld";
 import { buildMetadata, cityTitle, courtTitle } from "@/lib/seo/metadata";
-import { brand } from "@/brand.config";
+import {
+  segmentSitemapUrls,
+  sitemapIndexUrl,
+  sitemapIndexXml,
+  sitemapSegments,
+} from "@/lib/seo/sitemap";
+import { brand, siteUrl } from "@/brand.config";
 
 describe("JSON-LD builders (§3.4)", () => {
   it("Organization is brand-sourced and well-formed", () => {
@@ -68,5 +74,37 @@ describe("segmented sitemap route (§3.7)", () => {
     expect(typeof mod.revalidate).toBe("number");
     expect(Number.isFinite(mod.revalidate as number)).toBe(true);
     expect(mod.revalidate as number).toBeGreaterThan(0);
+  });
+});
+
+describe("sitemap index (§3.7)", () => {
+  it("lists every segment sitemap plus the `static` segment", () => {
+    const urls = segmentSitemapUrls();
+    const expected = [...Object.keys(sitemapSegments), "static"].map(
+      (id) => `${siteUrl}/sitemap/${id}.xml`,
+    );
+    expect(urls).toEqual(expected);
+    // one <loc> per segment, and the `static` segment is present.
+    expect(urls).toContain(`${siteUrl}/sitemap/static.xml`);
+    expect(urls).toContain(`${siteUrl}/sitemap/courts.xml`);
+  });
+
+  it("does NOT list the Google-News sitemap (separate 48h feed)", () => {
+    expect(segmentSitemapUrls().some((u) => u.includes("news-sitemap.xml"))).toBe(false);
+  });
+
+  it("renders a well-formed <sitemapindex> with one <sitemap> per segment", () => {
+    const xml = sitemapIndexXml();
+    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+    expect(xml).toContain(
+      '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    );
+    const locCount = (xml.match(/<loc>/g) ?? []).length;
+    expect(locCount).toBe(segmentSitemapUrls().length);
+    expect(xml).toContain(`<loc>${siteUrl}/sitemap/static.xml</loc>`);
+  });
+
+  it("advertises `/sitemap-index.xml` as the single submittable index", () => {
+    expect(sitemapIndexUrl()).toBe(`${siteUrl}/sitemap-index.xml`);
   });
 });

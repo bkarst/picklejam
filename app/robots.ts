@@ -15,15 +15,18 @@
  * Base `/search` is left crawlable-but-`noindex` (canonical traffic goes to the
  * static city pages); only the infinite parameter space is disallowed.
  *
- * Sitemaps: `app/sitemap.ts` uses `generateSitemaps`, which in Next 16 emits
- * each segment at `/sitemap/<id>.xml` and produces NO `/sitemap.xml` index
- * (that path is reserved by the metadata convention). We therefore list every
- * segment sitemap here via `sitemapUrls()` (multiple `Sitemap:` lines are valid).
+ * Sitemaps: `app/sitemap.ts` uses `generateSitemaps`, so Next 16 emits each
+ * segment at `/sitemap/<id>.xml` and produces NO index of its own.
+ * `app/sitemap-index.xml/route.ts` serves a hand-built `<sitemapindex>` over all
+ * segments, so we advertise that ONE index URL here (`sitemapIndexUrl()`) — the
+ * single submittable entry point; crawlers discover every segment through it.
+ * (The index can't sit at `/sitemap.xml`: Next reserves it for the metadata
+ * convention, so a route handler there is a "Conflicting route and metadata" error.)
  */
 
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/brand.config";
-import { sitemapUrls } from "@/lib/seo/sitemap";
+import { sitemapIndexUrl } from "@/lib/seo/sitemap";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -40,7 +43,7 @@ export default function robots(): MetadataRoute.Robots {
         "/leagues/*/register",
       ],
     },
-    sitemap: sitemapUrls(),
+    sitemap: sitemapIndexUrl(),
     host: siteUrl,
   };
 }

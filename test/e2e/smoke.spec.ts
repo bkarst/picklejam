@@ -15,14 +15,22 @@ test.describe("walking skeleton", () => {
     await expect(page.getByRole("contentinfo")).toBeVisible();
   });
 
-  test("robots.txt serves with disallows + segment sitemaps", async ({ request }) => {
+  test("robots.txt serves with disallows + the sitemap index", async ({ request }) => {
     const res = await request.get("/robots.txt");
     expect(res.status()).toBe(200);
     const body = await res.text();
     expect(body).toMatch(/Disallow/i);
-    // Next 16 generateSitemaps emits per-segment sitemaps (no /sitemap.xml index);
-    // robots enumerates them via multiple Sitemap: lines (§3.7).
-    expect(body).toMatch(/Sitemap:.*\/sitemap\//i);
+    // §3.7: robots advertises the single sitemap INDEX (/sitemap-index.xml);
+    // crawlers discover every /sitemap/<id>.xml segment transitively through it.
+    expect(body).toMatch(/Sitemap:.*\/sitemap-index\.xml/i);
+  });
+
+  test("/sitemap-index.xml serves the sitemap index over the segments", async ({ request }) => {
+    const res = await request.get("/sitemap-index.xml");
+    expect(res.status()).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("<sitemapindex");
+    expect(body).toContain("/sitemap/static.xml");
   });
 
   test("a segment sitemap serves valid XML", async ({ request }) => {
