@@ -195,7 +195,7 @@ export const identity = {
   positioning: "Find pickleball near you — then play more of it.",
   description:
     "Pickle Jam helps you find pickleball courts and organize pickleball groups near you.",
-  supportEmail: "hello@picklejam.com", // TODO: confirm mailbox
+  supportEmail: "support@picklejam.net",
   socials: {
     twitter: "@picklejam", // TODO: confirm handles
     instagram: "@picklejam",
@@ -209,7 +209,7 @@ export const identity = {
 
 /** Canonical site origin. Configurable per-env; falls back to production domain. */
 export const siteUrl = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://picklejam.com"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.picklejam.net"
 ).replace(/\/$/, "");
 
 // ────────────────────────────────────────────────────────────────────────────

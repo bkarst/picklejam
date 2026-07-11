@@ -25,7 +25,7 @@ export const APP_ENV: AppEnvironment = resolveAppEnv();
 
 /** Public (client-safe) env — only `NEXT_PUBLIC_*` values belong here. */
 export const publicEnv = {
-  siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://picklejam.com").replace(/\/$/, ""),
+  siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.picklejam.net").replace(/\/$/, ""),
   adsensePublisherId: process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID ?? "",
   firebase: {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",

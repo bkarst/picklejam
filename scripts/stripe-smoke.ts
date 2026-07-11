@@ -21,8 +21,8 @@ async function main() {
   console.log("connect account:", acct.accountId.slice(0, 10) + "…", "status:", acct.status, "charges:", acct.chargesEnabled);
 
   const link = await g.createOnboardingLink(acct.accountId, {
-    refreshUrl: "https://picklejam.com/organize?refresh",
-    returnUrl: "https://picklejam.com/organize?done",
+    refreshUrl: "https://www.picklejam.net/organize?refresh",
+    returnUrl: "https://www.picklejam.net/organize?done",
   });
   console.log("onboarding link:", link.url.startsWith("https://") ? "OK (hosted url returned)" : "MISSING");
 
