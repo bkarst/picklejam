@@ -19,6 +19,7 @@ import { Skeleton } from "@heroui/react";
 import { useGroup } from "@/lib/api/groups";
 import { MembershipButton } from "@/components/groups/MembershipButton";
 import { MemberStatusList } from "@/components/groups/MemberStatusList";
+import { GroupAvatar } from "@/components/groups/GroupAvatar";
 import { OutingCard } from "@/components/outings/OutingCard";
 import { visibilityMeta, memberCountLabel } from "@/components/groups/format";
 import { groupManagePath, groupsHub } from "@/lib/urls";
@@ -93,7 +94,10 @@ export function PrivateGroupView({ groupId, joinPolicy }: PrivateGroupViewProps)
           <span className="text-xs font-medium uppercase tracking-wide text-muted">Group</span>
         </div>
 
-        <h1 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">{group.name}</h1>
+        <div className="mt-3 flex items-center gap-4">
+          <GroupAvatar name={group.name} avatarUrl={group.avatarUrl} className="size-16 sm:size-20" />
+          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">{group.name}</h1>
+        </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted">
           <span className="flex items-center gap-1.5">

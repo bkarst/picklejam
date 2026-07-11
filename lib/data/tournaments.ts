@@ -46,7 +46,7 @@ import { GSI } from "@/lib/db/table";
 import { tourneyKeys, userKeys } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
 import { publicEnv } from "@/lib/env";
-import { computeFees, money, type Money, type FeeConfig, type FeeMode } from "@/lib/money";
+import { computeFees, money, PLATFORM_FEE, type Money, type FeeConfig, type FeeMode } from "@/lib/money";
 import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, refundPayment, getMyPayments } from "@/lib/data/payments";
@@ -117,8 +117,9 @@ export interface CreateTournamentInput {
   courtId?: string;
   venueName?: string;
   description?: string;
+  avatarUrl?: string;
   currency?: string; // default "usd"
-  /** Platform fee model applied to every division (default absorb / 0 / 0). */
+  /** Platform fee model applied to every division (default absorb + PLATFORM_FEE). */
   feeMode?: FeeMode;
   feePercentBps?: number;
   feeFixed?: number;
@@ -132,7 +133,8 @@ export interface CreateTournamentInput {
 /**
  * Create a DRAFT tournament (§7.1). Only the organizer GSI1 is projected up-front
  * — the city finder (GSI2) + slug resolver (GSI3) are projected on `publish`, so a
- * draft never leaks into public reads. Fee config defaults to absorb/0/0.
+ * draft never leaks into public reads. Fee defaults to absorb + the canonical
+ * PLATFORM_FEE (7% + $0.30); only feeMode is organizer-configurable.
  */
 export async function createTournament(input: CreateTournamentInput): Promise<TourneyItem> {
   const now = input.now ?? Date.now();
@@ -156,10 +158,15 @@ export async function createTournament(input: CreateTournamentInput): Promise<To
     startDate: input.startDate,
     ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
     ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
     currency,
     feeMode: input.feeMode ?? "absorb",
-    feePercentBps: input.feePercentBps ?? 0,
-    feeFixed: input.feeFixed ?? 0,
+    // The platform fee is server-authoritative (§10): callers that omit it get the
+    // canonical PLATFORM_FEE. The create route never forwards a client value, so an
+    // organizer can only choose feeMode, not zero out the fee. Tests/seeds may still
+    // override it for fee-math coverage.
+    feePercentBps: input.feePercentBps ?? PLATFORM_FEE.percentBps,
+    feeFixed: input.feeFixed ?? PLATFORM_FEE.fixed,
     connectedAccountId: null,
     elim: input.elim ?? "single",
     createdAt: iso,
@@ -264,6 +271,33 @@ export async function publishTournament(tid: string): Promise<TourneyItem> {
       ":u": iso,
     },
   });
+  return attrs as unknown as TourneyItem;
+}
+
+/**
+ * Set or clear a tournament's photo (organizer only). `avatarUrl: null` REMOVEs it.
+ * Only the `avatarUrl` attribute is touched, so it's safe against concurrent writes.
+ */
+export async function updateTournamentAvatar(
+  tid: string,
+  actorUid: string,
+  avatarUrl: string | null,
+): Promise<TourneyItem> {
+  const tourney = await getTournamentMeta(tid);
+  if (!tourney) notFound(`Tournament not found: ${tid}`);
+  if (tourney!.organizerId !== actorUid) forbidden("Only the organizer can edit this tournament");
+  const iso = new Date().toISOString();
+  const attrs = avatarUrl
+    ? await updateItem({
+        key: tourneyKeys.meta(tid),
+        update: "SET avatarUrl = :a, updatedAt = :u",
+        values: { ":a": avatarUrl, ":u": iso },
+      })
+    : await updateItem({
+        key: tourneyKeys.meta(tid),
+        update: "SET updatedAt = :u REMOVE avatarUrl",
+        values: { ":u": iso },
+      });
   return attrs as unknown as TourneyItem;
 }
 

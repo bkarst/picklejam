@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import { getCity, getCitiesByKeys } from "@/lib/data/geo";
 import { getLaddersInCity } from "@/lib/data/ladders";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -39,6 +41,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 export default async function CityLaddersPage({ params }: { params: Params }) {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   const { country, state, city } = await params;
   const cityItem = await getCity(country, state, city);
   if (!cityItem) notFound();
@@ -102,6 +105,7 @@ export default async function CityLaddersPage({ params }: { params: Params }) {
                     title={l.title}
                     status={l.status}
                     kind="ladder"
+                    avatarUrl={l.avatarUrl}
                     dateLabel={`Starts ${formatDateRange(l.startDate)} · Ongoing`}
                     meta={`${playModeLabel(l.playMode)} · Challenge ±${l.challengeRange}`}
                     place={l.venueName ? `${l.venueName} · ${cityLabel}` : cityLabel}

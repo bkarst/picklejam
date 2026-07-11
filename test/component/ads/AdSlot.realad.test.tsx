@@ -34,11 +34,14 @@ describe("<AdSlot> — real ad (publisher configured)", () => {
 
     const { AdSlot } = await import("@/components/ads/AdSlot");
     const { ConsentProvider } = await import("@/components/consent/ConsentProvider");
+    const { AdsFlagProvider } = await import("@/components/ads/AdsFlagProvider");
 
     render(
-      <ConsentProvider>
-        <AdSlot kind="in-feed" slot="1234567890" />
-      </ConsentProvider>,
+      <AdsFlagProvider value={true}>
+        <ConsentProvider>
+          <AdSlot kind="in-feed" slot="1234567890" />
+        </ConsentProvider>
+      </AdsFlagProvider>,
     );
 
     const box = await screen.findByRole("complementary", { name: "Advertisement" });
@@ -53,11 +56,14 @@ describe("<AdSlot> — real ad (publisher configured)", () => {
   it("still shows the house ad when publisher is set but consent is NOT granted", async () => {
     const { AdSlot } = await import("@/components/ads/AdSlot");
     const { ConsentProvider } = await import("@/components/consent/ConsentProvider");
+    const { AdsFlagProvider } = await import("@/components/ads/AdsFlagProvider");
 
     const { container } = render(
-      <ConsentProvider>
-        <AdSlot kind="in-feed" />
-      </ConsentProvider>,
+      <AdsFlagProvider value={true}>
+        <ConsentProvider>
+          <AdSlot kind="in-feed" />
+        </ConsentProvider>
+      </AdsFlagProvider>,
     );
 
     expect(container.querySelector("ins.adsbygoogle")).toBeNull();

@@ -32,6 +32,9 @@ vi.mock("@/lib/api/profile", () => ({
   useUpsertRating: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteRating: () => ({ mutate: vi.fn(), isPending: false }),
   useConnectDupr: () => ({ mutate: vi.fn(), isPending: false }),
+  useUploadAvatar: () => vi.fn(async () => "https://example.com/avatar.png"),
+  AVATAR_PHOTO_TYPES: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  AVATAR_MAX_BYTES: 8 * 1024 * 1024,
 }));
 vi.mock("@/components/account/CityPicker", () => ({
   CityPicker: () => <div data-testid="city-picker" />,

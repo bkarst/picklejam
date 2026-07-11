@@ -245,8 +245,30 @@ export function buildProfileItem(input: ProfileInput): UserProfileItem {
   };
 }
 
-function randomSuffix(): string {
-  return Math.random().toString(36).slice(2, 7);
+/**
+ * Anonymous usernames — new players get a fun, pickleball-flavored handle that
+ * does NOT leak their real name (the username doubles as the public /players
+ * URL slug). Shape: `<adjective>-<noun>-<3 digits>`, e.g. `clutch-dinker-482`.
+ * They can always change it in the profile editor / onboarding.
+ */
+const ANON_ADJECTIVES = [
+  "clutch", "swift", "sunny", "lucky", "nimble", "zesty", "breezy", "spry",
+  "jolly", "mellow", "brisk", "plucky", "cosmic", "dapper", "frosty", "gutsy",
+  "chipper", "snappy", "witty", "zippy", "sneaky", "mighty", "quick", "bold",
+];
+const ANON_NOUNS = [
+  "dinker", "paddle", "volley", "rally", "smasher", "ace", "topspin", "pickle",
+  "dink", "stacker", "poacher", "server", "banger", "slicer", "lobber", "netter",
+  "spinner", "kitchen", "backhand", "forehand", "champ", "lobster",
+];
+
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** Generate a random anonymous, pickleball-themed username (not name-derived). */
+export function anonUsername(): string {
+  return `${pick(ANON_ADJECTIVES)}-${pick(ANON_NOUNS)}-${100 + Math.floor(Math.random() * 900)}`;
 }
 
 /** Find a free username starting from `base`, appending `-2`, `-3`, … as needed. */
@@ -264,8 +286,10 @@ export async function generateUniqueUsername(base: string): Promise<string> {
 
 /**
  * Fetch the caller's profile, creating a minimal public one on first access
- * (§13.8): a unique username derived from the token name/email, displayName from
- * the token, visibility `public`, `onboarded:false`.
+ * (§13.8): a random ANONYMOUS username (never derived from the player's real
+ * name — the username is the public /players URL slug), displayName from the
+ * token, visibility `public`, `onboarded:false`. The player can rename their
+ * handle in onboarding / the profile editor.
  */
 export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileItem> {
   const existing = await getUserProfile(user.uid);
@@ -285,12 +309,10 @@ export async function getOrCreateProfile(user: AuthedUser): Promise<UserProfileI
     return existing;
   }
 
-  const base = user.name ?? user.email?.split("@")[0] ?? "player";
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const username =
-      attempt === 0
-        ? await generateUniqueUsername(base)
-        : `${slugify(base) || "player"}-${randomSuffix()}`;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    // Anonymous, name-free handle. On the rare collision the create-transaction's
+    // reservation conditional fails → we loop and try a fresh random one.
+    const username = anonUsername();
     const profile = buildProfileItem({
       uid: user.uid,
       username,

@@ -8,6 +8,8 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { Breadcrumbs } from "@/components/directory";
 import { RegisterPanel } from "@/components/tournaments";
 import { tournamentPath, tournamentRegisterPath, tournamentsHub } from "@/lib/urls";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import type { FeeConfig } from "@/lib/money";
 
 // A payment surface that reads ?division — render dynamically per request (no ISR)
@@ -37,6 +39,7 @@ export default async function TournamentRegisterPage({
   params: Params;
   searchParams: Search;
 }) {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   const { id } = await params;
   const { division } = await searchParams;
   const data = await getTournament(id);

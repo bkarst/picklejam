@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { roundRobinLanding, leaguesHub, laddersHub, tournamentsHub } from "@/lib/urls";
+import { publicEnv } from "@/lib/env";
 
 /* ------------------------------------------------------------------ *
  * Home-page feature sections — Round Robin, Leagues, Tournaments.
@@ -322,6 +323,8 @@ export function PlayFeatures(): JSX.Element {
         card={<RoundRobinCard />}
       />
 
+      {publicEnv.paidEventsEnabled && (
+      <>
       <FeatureSection
         reverse
         theme={THEMES.leagues}
@@ -353,6 +356,8 @@ export function PlayFeatures(): JSX.Element {
         photo={{ src: "/images/home/tournaments-action.jpg", alt: "A player lunging to return a shot during a competitive pickleball match" }}
         card={<TournamentsCard />}
       />
+      </>
+      )}
     </div>
   );
 }

@@ -75,6 +75,8 @@ jobs:
       NEXT_PUBLIC_SITE_URL: https://pickleloko.com
       # Non-prod dev auth for deterministic J8 (no live Firebase in CI).
       ALLOW_DEV_AUTH: "1"
+      # The J5/J6 specs exercise paid tournaments; enable them for E2E (inlined at build).
+      NEXT_PUBLIC_PAID_EVENTS_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -16,6 +16,7 @@ import { Skeleton } from "@heroui/react";
 import { addMoney, formatMoney, money, subMoney, type Money } from "@/lib/money";
 import { useTournament, useRefundRegistration } from "@/lib/api/tournaments";
 import { tournamentPath, tournamentBracketPath } from "@/lib/urls";
+import { EditableEntityAvatar } from "@/components/ui/EditableEntityAvatar";
 import type { DivisionItem, RegistrationItem } from "@/lib/db/types";
 import type { PaymentStatus } from "@/lib/stripe/types";
 import { eventTypeFull, formatDateRange, statusMeta } from "./format";
@@ -110,15 +111,27 @@ export function OrganizerDashboard({ tid }: { tid: string }): JSX.Element {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{tourney.title}</h1>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <EditableEntityAvatar
+            name={tourney.title}
+            avatarUrl={tourney.avatarUrl}
+            organizerId={tourney.organizerId}
+            patchUrl={`/api/tournaments/${tid}`}
+            fallback={
+              <svg viewBox="0 0 24 24" className="h-1/2 w-1/2 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
+            }
+            className="size-11"
+          />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate font-display text-2xl font-bold text-foreground sm:text-3xl">{tourney.title}</h1>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+            </div>
+            <p className="mt-1 text-sm text-muted">
+              {tourney.venueName ? `${tourney.venueName} · ` : ""}
+              {formatDateRange(tourney.startDate, tourney.endDate)}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-muted">
-            {tourney.venueName ? `${tourney.venueName} · ` : ""}
-            {formatDateRange(tourney.startDate, tourney.endDate)}
-          </p>
         </div>
         <Link
           href={tournamentPath(tid)}

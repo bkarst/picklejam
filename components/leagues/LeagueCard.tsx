@@ -13,6 +13,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import { formatMoney, type Money } from "@/lib/money";
 import type { LeagueStatus } from "@/lib/db/types";
+import { EntityAvatar } from "@/components/ui/EntityAvatar";
 import { statusMeta } from "./format";
 
 function TeamIcon(): JSX.Element {
@@ -36,6 +37,8 @@ export interface LeagueCardProps {
   title: string;
   status: LeagueStatus;
   kind: "league" | "ladder";
+  /** The league/ladder's photo (falls back to the kind's glyph). */
+  avatarUrl?: string;
   /** e.g. "May 12 – Jun 30, 2025" or "Starts May 5 · Ongoing". */
   dateLabel: string;
   /** e.g. "8 weeks · Doubles · Skill 3.0–4.5". */
@@ -52,6 +55,7 @@ export function LeagueCard({
   title,
   status,
   kind,
+  avatarUrl,
   dateLabel,
   meta,
   place,
@@ -65,9 +69,12 @@ export function LeagueCard({
       className="group flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent/50 hover:bg-surface-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-          {kind === "ladder" ? <LadderIcon /> : <TeamIcon />}
-        </span>
+        <EntityAvatar
+          name={title}
+          avatarUrl={avatarUrl}
+          fallback={kind === "ladder" ? <LadderIcon /> : <TeamIcon />}
+          className="mt-0.5 size-10"
+        />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.tone}`}>{s.label}</span>

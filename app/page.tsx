@@ -7,9 +7,8 @@ import { faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { PlayFeatures } from "@/components/home/PlayFeatures";
-import { StatLine } from "@/components/directory";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { countryPath } from "@/lib/urls";
+import { countryPath, groupNewPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 3600;
@@ -29,12 +28,22 @@ const HOME_FAQ = [
 export default async function Home() {
   const us = await getCountry("us");
 
+  const courtCount = us?.counts?.courts;
+  const cityCount = us?.counts?.cities;
+  const searchPlaceholder =
+    courtCount && cityCount
+      ? `Search ${courtCount.toLocaleString("en-US")} courts and ${cityCount.toLocaleString("en-US")} cities…`
+      : "Search courts or cities…";
+
   return (
     <>
       <JsonLd data={faqPageJsonLd(HOME_FAQ)} />
       {/* Hero */}
       <section className="border-b border-border bg-surface">
-        <main id="main" className="mx-auto w-full max-w-7xl px-4 py-16">
+        <main
+          id="main"
+          className="mx-auto flex w-full max-w-7xl flex-col items-center px-4 py-16 text-center"
+        >
           <p className="text-sm font-semibold uppercase tracking-wide text-muted">
             {brand.identity.taglineMarketing}
           </p>
@@ -42,20 +51,31 @@ export default async function Home() {
             Find pickleball near you
           </h1>
           <p className="mt-3 max-w-2xl text-lg text-muted">{brand.identity.description}</p>
-          <div className="mt-6">
-            <HeroSearch />
+          <div className="mt-6 w-full max-w-xl">
+            <HeroSearch placeholder={searchPlaceholder} />
           </div>
-          {us && (
-            <div className="mt-4">
-              <StatLine
-                items={[
-                  { value: us.counts?.locations ?? 0, label: "Locations" },
-                  { value: us.counts?.courts ?? 0, label: "Courts" },
-                  { value: us.counts?.cities ?? 0, label: "Cities" },
-                ]}
-              />
-            </div>
-          )}
+          {/* Secondary CTA — organize a group */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-muted">
+            <span>Running a club or crew?</span>
+            <Link
+              href={groupNewPath()}
+              className="inline-flex h-11 items-center gap-1.5 rounded-full border border-border bg-surface px-4 font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Start a group
+            </Link>
+          </div>
         </main>
       </section>
 

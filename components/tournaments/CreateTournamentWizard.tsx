@@ -16,7 +16,7 @@ import { useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useRouter } from "next/navigation";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { moneyFromMajor, type FeeConfig, type FeeMode } from "@/lib/money";
+import { moneyFromMajor, PLATFORM_FEE, type FeeConfig, type FeeMode } from "@/lib/money";
 import { useAuthedFetch } from "@/lib/api/authed";
 import {
   useCreateTournament,
@@ -29,9 +29,9 @@ import type { ElimFormat } from "@/lib/db/types";
 import { ConnectGate } from "./ConnectGate";
 import { FeePreview } from "./FeePreview";
 import { eventTypeFull } from "./format";
-
-/** Default platform fee (§10) applied to previews until the server confirms. */
-const DEFAULT_FEE: Omit<FeeConfig, "mode"> = { percentBps: 500, fixed: 30 };
+import { PhotoDropzone } from "@/components/ui/PhotoDropzone";
+import { useUploadAvatar, AVATAR_PHOTO_TYPES, AVATAR_MAX_BYTES } from "@/lib/api/profile";
+import { cropAndCompressSquareMax } from "@/lib/image";
 
 type DraftDivision = {
   key: string;
@@ -77,6 +77,7 @@ export function CreateTournamentWizard(): JSX.Element {
   const router = useRouter();
   const authed = useAuthedFetch();
   const createMut = useCreateTournament();
+  const uploadAvatar = useUploadAvatar();
   const connect = useConnectStatus();
   const startConnect = useStartConnect();
   // useAddDivision / usePublishTournament are bound per-tid; the create flow only
@@ -92,6 +93,8 @@ export function CreateTournamentWizard(): JSX.Element {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [elim, setElim] = useState<ElimFormat>("single");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   // Divisions
   const [divisions, setDivisions] = useState<DraftDivision[]>([newDivision()]);
@@ -107,7 +110,7 @@ export function CreateTournamentWizard(): JSX.Element {
   const createdTidRef = useRef<string | null>(null);
   const createdDivisionsRef = useRef(0);
 
-  const feeConfig: FeeConfig = { mode: feeMode, ...DEFAULT_FEE };
+  const feeConfig: FeeConfig = { mode: feeMode, ...PLATFORM_FEE };
   const ready = connectIsComplete(connect.data);
 
   const validDivisions = useMemo(
@@ -138,7 +141,7 @@ export function CreateTournamentWizard(): JSX.Element {
   };
 
   const canAdvance = (i: number): boolean => {
-    if (i === 0) return title.trim().length > 0 && startDate.length > 0;
+    if (i === 0) return title.trim().length > 0 && startDate.length > 0 && !uploading;
     if (i === 1) return validDivisions.length > 0;
     return true;
   };
@@ -153,6 +156,7 @@ export function CreateTournamentWizard(): JSX.Element {
         const created = await createMut.mutateAsync({
           title: title.trim(),
           ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+          ...(avatarUrl.trim() ? { avatarUrl: avatarUrl.trim() } : {}),
           startDate,
           ...(endDate ? { endDate } : {}),
           elim,
@@ -218,6 +222,21 @@ export function CreateTournamentWizard(): JSX.Element {
                   <Field label="City">
                     <input className={FIELD} value={cityLabel} onChange={(e) => setCityLabel(e.target.value)} placeholder="City, ST" />
                   </Field>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-foreground">Tournament photo (optional)</span>
+                  <PhotoDropzone
+                    value={avatarUrl}
+                    onChange={setAvatarUrl}
+                    onUploadingChange={setUploading}
+                    upload={uploadAvatar}
+                    transform={cropAndCompressSquareMax}
+                    shape="square"
+                    types={AVATAR_PHOTO_TYPES}
+                    maxBytes={AVATAR_MAX_BYTES}
+                    idleLabel="Upload a photo"
+                  />
+                  <span className="text-xs text-muted">Square works best. PNG, JPG, WebP, or GIF, up to 8 MB.</span>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Start date">

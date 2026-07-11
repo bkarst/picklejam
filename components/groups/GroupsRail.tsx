@@ -60,6 +60,7 @@ export function GroupsRail({
               name={g.name}
               visibility={g.visibility}
               memberCount={g.memberCount}
+              avatarUrl={g.avatarUrl}
               cityLabel={cityLabel}
               homeCourtName={g.homeCourtId ? courtNames?.[g.homeCourtId] : undefined}
               description={g.description}

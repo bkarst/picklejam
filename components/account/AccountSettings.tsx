@@ -190,7 +190,7 @@ function SettingsInner({
           />
           <SettingRow
             title="Two-factor authentication"
-            description="Managed by your sign-in provider (Google, Apple, or email)."
+            description="Managed by your sign-in provider (Google or email)."
             control={<span className="text-sm text-muted">Provider-managed</span>}
           />
           <SettingRow

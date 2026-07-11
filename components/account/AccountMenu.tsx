@@ -17,6 +17,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, Skeleton } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useMyProfile } from "@/lib/api/profile";
 import { accountNav } from "@/lib/nav";
 import { GamifyMenuRow } from "@/components/account/GamifyMenuRow";
 
@@ -34,6 +35,10 @@ function initials(name: string | null, email: string | null): string {
 
 export function AccountMenu(): JSX.Element {
   const { user, loading, signOut, openAuth } = useAuth();
+  // Prefer the uploaded profile avatar; fall back to the OAuth photo, then initials.
+  // Cached under ['me','profile'] — shared with the profile editor, so a fresh upload
+  // (which invalidates that key) updates this avatar without a manual refresh.
+  const { data: profile } = useMyProfile();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -88,9 +93,11 @@ export function AccountMenu(): JSX.Element {
         className="inline-flex size-11 items-center justify-center rounded-full transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <Avatar className="size-9 text-sm">
-          {user.photoURL && <Avatar.Image src={user.photoURL} alt="" />}
+          {(profile?.avatarUrl || user.photoURL) && (
+            <Avatar.Image src={profile?.avatarUrl || user.photoURL || ""} alt="" />
+          )}
           <Avatar.Fallback className="bg-accent text-accent-foreground">
-            {initials(user.displayName, user.email)}
+            {initials(profile?.displayName ?? user.displayName, user.email)}
           </Avatar.Fallback>
         </Avatar>
       </button>

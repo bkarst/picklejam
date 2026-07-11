@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { tournamentEventJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
+import { EditableEntityAvatar } from "@/components/ui/EditableEntityAvatar";
 import { DivisionsTable } from "@/components/tournaments";
 import { priceFrom, formatDateRange, statusMeta } from "@/components/tournaments/format";
 import {
@@ -116,9 +117,21 @@ export default async function TournamentDetailPage({ params }: { params: Params 
         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`}>
           {status.label}
         </span>
-        <h1 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">
-          {tourney.title}
-        </h1>
+        <div className="mt-3 flex items-center gap-4">
+          <EditableEntityAvatar
+            name={tourney.title}
+            avatarUrl={tourney.avatarUrl}
+            organizerId={tourney.organizerId}
+            patchUrl={`/api/tournaments/${tourney.tid}`}
+            fallback={
+              <svg viewBox="0 0 24 24" className="h-1/2 w-1/2 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
+            }
+            className="size-16 sm:size-20"
+          />
+          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+            {tourney.title}
+          </h1>
+        </div>
         <div className="mt-3 flex flex-col gap-1.5 text-sm text-muted">
           <span className="flex items-center gap-2">
             <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>

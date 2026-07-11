@@ -55,6 +55,7 @@ export interface CreateLeagueInput {
   endDate?: string;
   seasonWeeks: number;
   description?: string;
+  avatarUrl?: string;
   playMode: "singles" | "doubles" | "team";
   feeMode: FeeMode;
   currency?: string;

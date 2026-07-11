@@ -34,6 +34,8 @@ export interface DiscoverItem {
   cityKey: string;
   /** Human city label, e.g. "Lawrence, KS". */
   cityLabel: string;
+  /** Organizer/group photo URL, if one was uploaded. */
+  avatarUrl?: string;
   /** members (groups) · registered players (leagues/tournaments) · rungs (ladders). */
   size: number;
   /** Average DUPR across participants who have a DUPR rating; `undefined` if none. */

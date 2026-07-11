@@ -17,7 +17,7 @@ import { useMemo, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useRouter } from "next/navigation";
 import { ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { moneyFromMajor, type FeeConfig, type FeeMode } from "@/lib/money";
+import { moneyFromMajor, PLATFORM_FEE, type FeeConfig, type FeeMode } from "@/lib/money";
 import { useAuthedFetch } from "@/lib/api/authed";
 import { useCreateLeague } from "@/lib/api/leagues";
 import { useCreateLadder } from "@/lib/api/ladders";
@@ -27,10 +27,12 @@ import type { LeagueItem, LadderItem } from "@/lib/db/types";
 import { ConnectGate } from "@/components/tournaments/ConnectGate";
 import { FeePreview } from "@/components/tournaments/FeePreview";
 import { CityPicker, type CitySelection } from "@/components/leagues/CityPicker";
+import { PhotoDropzone } from "@/components/ui/PhotoDropzone";
+import { useUploadAvatar, AVATAR_PHOTO_TYPES, AVATAR_MAX_BYTES } from "@/lib/api/profile";
+import { cropAndCompressSquareMax } from "@/lib/image";
 
 type Format = "league" | "ladder";
 
-const DEFAULT_FEE: Omit<FeeConfig, "mode"> = { percentBps: 500, fixed: 30 };
 const STEPS = ["Format", "Details", "Review"] as const;
 
 const FIELD =
@@ -79,6 +81,7 @@ export function CreateLeagueWizard(): JSX.Element {
   const authed = useAuthedFetch();
   const createLeague = useCreateLeague();
   const createLadder = useCreateLadder();
+  const uploadAvatar = useUploadAvatar();
   const connect = useConnectStatus();
   const startConnect = useStartConnect();
 
@@ -91,6 +94,8 @@ export function CreateLeagueWizard(): JSX.Element {
   // A picked city carries its structured `cityKey` (required by the API + city finder).
   const [city, setCity] = useState<CitySelection | null>(null);
   const [startDate, setStartDate] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   // League
   const [seasonWeeks, setSeasonWeeks] = useState("8");
@@ -115,7 +120,7 @@ export function CreateLeagueWizard(): JSX.Element {
   const createdIdRef = useRef<string | null>(null);
   const createdDivisionsRef = useRef(0);
 
-  const feeConfig: FeeConfig = { mode: feeMode, ...DEFAULT_FEE };
+  const feeConfig: FeeConfig = { mode: feeMode, ...PLATFORM_FEE };
   const ready = connectIsComplete(connect.data);
 
   const validDivisions = useMemo(() => divisions.filter((d) => d.name.trim()), [divisions]);
@@ -135,6 +140,8 @@ export function CreateLeagueWizard(): JSX.Element {
   const canAdvance = (i: number): boolean => {
     if (i === 0) return true;
     if (i === 1) {
+      // Don't let a click advance while the photo is still uploading (avatarUrl not yet set).
+      if (uploading) return false;
       // A structured city is required — the create API rejects a blank cityKey and the
       // league/ladder would otherwise never surface in its city finder.
       if (!title.trim() || !startDate || !city) return false;
@@ -158,6 +165,7 @@ export function CreateLeagueWizard(): JSX.Element {
             title: title.trim(),
             cityKey: city!.cityKey,
             ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+            ...(avatarUrl.trim() ? { avatarUrl: avatarUrl.trim() } : {}),
             startDate,
             seasonWeeks: Number(seasonWeeks) || 8,
             playMode: leaguePlayMode,
@@ -194,6 +202,7 @@ export function CreateLeagueWizard(): JSX.Element {
             title: title.trim(),
             cityKey: city!.cityKey,
             ...(venueName.trim() ? { venueName: venueName.trim() } : {}),
+            ...(avatarUrl.trim() ? { avatarUrl: avatarUrl.trim() } : {}),
             startDate,
             playMode: ladderPlayMode,
             price: moneyFromMajor(ladderPrice || "0", "usd"),
@@ -310,6 +319,24 @@ export function CreateLeagueWizard(): JSX.Element {
                     <Field label="City" hint="Places it in the city finder.">
                       <CityPicker selected={city} onSelect={setCity} onClear={() => setCity(null)} />
                     </Field>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-sm font-medium text-foreground">
+                      {format === "ladder" ? "Ladder" : "League"} photo (optional)
+                    </span>
+                    <PhotoDropzone
+                      value={avatarUrl}
+                      onChange={setAvatarUrl}
+                      onUploadingChange={setUploading}
+                      upload={uploadAvatar}
+                      transform={cropAndCompressSquareMax}
+                      shape="square"
+                      types={AVATAR_PHOTO_TYPES}
+                      maxBytes={AVATAR_MAX_BYTES}
+                      idleLabel="Upload a photo"
+                    />
+                    <span className="text-xs text-muted">Square works best. PNG, JPG, WebP, or GIF, up to 8 MB.</span>
                   </div>
 
                   {format === "league" ? (

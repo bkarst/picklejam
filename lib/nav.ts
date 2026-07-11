@@ -8,6 +8,10 @@
 
 import { LEGAL_DOC_SLUGS, legalDocs } from "@/lib/legal/docs";
 import { legalPath, discoverPath } from "@/lib/urls";
+import { publicEnv } from "@/lib/env";
+
+/** Paid events (tournaments/leagues/ladders) are hidden until Stripe is approved. */
+const PAID = publicEnv.paidEventsEnabled;
 
 export interface NavLink {
   label: string;
@@ -41,9 +45,13 @@ export const primaryNav: NavColumn[] = [
     label: "Compete",
     intent: "Events (free tool → paid)",
     links: [
-      { label: "Tournaments", href: "/tournaments", description: "Find & register" },
-      { label: "Leagues", href: "/leagues", description: "Multi-week seasons" },
-      { label: "Ladders", href: "/ladders", description: "Challenge play" },
+      ...(PAID
+        ? [
+            { label: "Tournaments", href: "/tournaments", description: "Find & register" },
+            { label: "Leagues", href: "/leagues", description: "Multi-week seasons" },
+            { label: "Ladders", href: "/ladders", description: "Challenge play" },
+          ]
+        : []),
       { label: "Round Robin Tool", href: "/round-robin", description: "Free generator" },
     ],
   },
@@ -61,9 +69,13 @@ export const primaryNav: NavColumn[] = [
     intent: "Organizer funnel",
     links: [
       { label: "Host a Round Robin", href: "/round-robin/new", description: "No account needed" },
-      { label: "Run a Tournament", href: "/organize/tournaments/new", description: "Paid registration" },
-      { label: "Run a League", href: "/organize/leagues/new", description: "Seasons on autopilot" },
-      { label: "Run a Ladder", href: "/organize/leagues/new", description: "Continuous challenges" },
+      ...(PAID
+        ? [
+            { label: "Run a Tournament", href: "/organize/tournaments/new", description: "Paid registration" },
+            { label: "Run a League", href: "/organize/leagues/new", description: "Seasons on autopilot" },
+            { label: "Run a Ladder", href: "/organize/leagues/new", description: "Continuous challenges" },
+          ]
+        : []),
     ],
   },
 ];
@@ -105,6 +117,6 @@ export const accountNav: NavLink[] = [
   { label: "My Registrations", href: "/account/registrations" },
   { label: "Saved Courts", href: "/account/courts" },
   { label: "Alerts", href: "/account/alerts" },
-  { label: "Organize", href: "/organize" },
+  ...(PAID ? [{ label: "Organize", href: "/organize" }] : []),
   { label: "Settings", href: "/account/settings" },
 ];

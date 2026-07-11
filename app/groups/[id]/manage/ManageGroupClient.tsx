@@ -16,15 +16,20 @@
 import { useState } from "react";
 import type { JSX } from "react";
 import Link from "next/link";
-import { Skeleton, ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { useRouter } from "next/navigation";
+import { Button, Skeleton, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useGroup, useUpdateGroup } from "@/lib/api/groups";
+import { useGroup, useUpdateGroup, useDeleteGroup } from "@/lib/api/groups";
 import { useCreateOuting, type CreateOutingInput } from "@/lib/api/outings";
+import { useUploadAvatar, AVATAR_PHOTO_TYPES, AVATAR_MAX_BYTES } from "@/lib/api/profile";
+import { cropAndCompressSquareMax } from "@/lib/image";
+import { PhotoDropzone } from "@/components/ui/PhotoDropzone";
 import { browserTimeZone } from "@/components/outings/format";
 import {
   InvitePanel,
   RosterManager,
   CourtSearch,
+  GroupAvatar,
   cityFromCourtUrl,
   type PickedCourt,
 } from "@/components/groups";
@@ -71,7 +76,10 @@ const JOIN: { id: GroupJoinPolicy; label: string }[] = [
 
 function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }): JSX.Element {
   const updateMut = useUpdateGroup(group.groupId);
+  const uploadAvatar = useUploadAvatar();
   const [name, setName] = useState(group.name);
+  const [avatarUrl, setAvatarUrl] = useState(group.avatarUrl ?? "");
+  const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState(group.description ?? "");
   const [visibility, setVisibility] = useState<GroupVisibility>(group.visibility);
   const [joinPolicy, setJoinPolicy] = useState<GroupJoinPolicy>(group.joinPolicy);
@@ -95,6 +103,7 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
     try {
       await updateMut.mutateAsync({
         name: name.trim() || group.name,
+        avatarUrl,
         description: description.trim(),
         visibility,
         joinPolicy,
@@ -119,6 +128,22 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
           <span className="text-sm font-medium text-foreground">Group name</span>
           <input type="text" value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} className={FIELD} />
         </label>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-foreground">Group photo</span>
+          <PhotoDropzone
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            onUploadingChange={setUploading}
+            upload={uploadAvatar}
+            transform={cropAndCompressSquareMax}
+            shape="square"
+            types={AVATAR_PHOTO_TYPES}
+            maxBytes={AVATAR_MAX_BYTES}
+            idleLabel="Upload a group photo"
+            hint="Square works best. PNG, JPG, WebP, or GIF, up to 8 MB."
+          />
+        </div>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-foreground">Description</span>
@@ -199,10 +224,10 @@ function SettingsForm({ group, courts }: { group: GroupItem; courts: CourtRefs }
           <button
             type="button"
             onClick={save}
-            disabled={updateMut.isPending}
+            disabled={updateMut.isPending || uploading}
             className="inline-flex h-11 items-center rounded-full bg-secondary px-6 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
-            {updateMut.isPending ? "Saving…" : "Save changes"}
+            {updateMut.isPending ? "Saving…" : uploading ? "Uploading…" : "Save changes"}
           </button>
           {saved && (
             <span role="status" className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -342,6 +367,60 @@ function MeetupScheduler({ group }: { group: GroupItem }): JSX.Element {
   );
 }
 
+// ── Danger zone ──────────────────────────────────────────────────────────────
+
+/** Owner-only permanent delete, gated behind typing the group's name (mirrors the
+ * account "Delete account" danger zone). On success, routes to "My groups". */
+function DangerZone({ group }: { group: GroupItem }): JSX.Element {
+  const router = useRouter();
+  const deleteMut = useDeleteGroup(group.groupId);
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const canDelete = confirm.trim().toLowerCase() === group.name.trim().toLowerCase();
+
+  const doDelete = async () => {
+    if (!canDelete) return;
+    setError(null);
+    try {
+      await deleteMut.mutateAsync();
+      router.push("/account/groups");
+    } catch {
+      setError("Couldn't delete the group. Please try again.");
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-danger/40 bg-surface p-5 sm:p-6">
+      <h2 className="font-display text-base font-bold text-danger">Delete group</h2>
+      <p className="mt-1 text-sm text-muted">
+        Permanently removes <span className="font-medium text-foreground">{group.name}</span>, its members, and its
+        meet-up links. This can&apos;t be undone.
+      </p>
+      <div className="mt-4 flex flex-col gap-3">
+        <label className="text-sm">
+          <span className="mb-1 block font-medium text-foreground">
+            Type the group name <span className="font-mono text-danger">{group.name}</span> to confirm
+          </span>
+          <input
+            className="h-11 w-full max-w-xs rounded-xl border border-border bg-field px-4 text-field-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </label>
+        <div>
+          <Button variant="danger" isDisabled={!canDelete || deleteMut.isPending} onPress={doDelete}>
+            {deleteMut.isPending ? "Deleting…" : "Delete this group"}
+          </Button>
+        </div>
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      </div>
+    </section>
+  );
+}
+
 // ── Console ──────────────────────────────────────────────────────────────────
 
 function ConsoleSkeleton(): JSX.Element {
@@ -383,7 +462,10 @@ export function ManageGroupClient({ groupId }: { groupId: string }): JSX.Element
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Manage {group.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          <GroupAvatar name={group.name} avatarUrl={group.avatarUrl} className="size-11" />
+          <h1 className="truncate font-display text-2xl font-bold text-foreground sm:text-3xl">Manage {group.name}</h1>
+        </div>
         <Link
           href={groupPath(groupId)}
           className="inline-flex h-11 items-center rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -406,6 +488,8 @@ export function ManageGroupClient({ groupId }: { groupId: string }): JSX.Element
       <section className="rounded-2xl border border-border bg-surface p-5">
         <RosterManager groupId={groupId} members={data.members} />
       </section>
+
+      {membership?.role === "owner" && <DangerZone group={group} />}
     </div>
   );
 }

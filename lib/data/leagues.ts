@@ -24,7 +24,7 @@ import { GSI } from "@/lib/db/table";
 import { leagueKeys, userKeys } from "@/lib/db/keys";
 import { slugify } from "@/lib/util/slug";
 import { publicEnv } from "@/lib/env";
-import { computeFees, money, type Money, type FeeConfig, type FeeMode } from "@/lib/money";
+import { computeFees, money, PLATFORM_FEE, type Money, type FeeConfig, type FeeMode } from "@/lib/money";
 import { getGateway } from "@/lib/stripe";
 import { getConnectAccount } from "@/lib/data/connect";
 import { writePayment, refundPayment, getMyPayments } from "@/lib/data/payments";
@@ -104,6 +104,7 @@ export interface CreateLeagueInput {
   courtId?: string;
   venueName?: string;
   description?: string;
+  avatarUrl?: string;
   currency?: string; // default "usd"
   feeMode?: FeeMode;
   feePercentBps?: number;
@@ -118,7 +119,8 @@ export interface CreateLeagueInput {
 /**
  * Create a DRAFT league (§7.2). Only the organizer GSI1 is projected up-front —
  * the city finder (GSI2) + slug resolver (GSI3) are projected on `publish`, so a
- * draft never leaks into public reads. Fee config defaults to absorb/0/0.
+ * draft never leaks into public reads. Fee defaults to absorb + the canonical
+ * PLATFORM_FEE (7% + $0.30); only feeMode is organizer-configurable.
  */
 export async function createLeague(input: CreateLeagueInput): Promise<LeagueItem> {
   const now = input.now ?? Date.now();
@@ -143,10 +145,12 @@ export async function createLeague(input: CreateLeagueInput): Promise<LeagueItem
     ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
     seasonWeeks: input.seasonWeeks ?? 6,
     ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
     currency,
     feeMode: input.feeMode ?? "absorb",
-    feePercentBps: input.feePercentBps ?? 0,
-    feeFixed: input.feeFixed ?? 0,
+    // Server-authoritative platform fee (§10) — see createTournament for the rationale.
+    feePercentBps: input.feePercentBps ?? PLATFORM_FEE.percentBps,
+    feeFixed: input.feeFixed ?? PLATFORM_FEE.fixed,
     connectedAccountId: null,
     playMode: input.playMode ?? "singles",
     createdAt: iso,
@@ -250,6 +254,33 @@ export async function publishLeague(lid: string): Promise<LeagueItem> {
       ":u": iso,
     },
   });
+  return attrs as unknown as LeagueItem;
+}
+
+/**
+ * Set or clear a league's photo (organizer only). `avatarUrl: null` REMOVEs it.
+ * Only the `avatarUrl` attribute is touched, so it's safe against concurrent writes.
+ */
+export async function updateLeagueAvatar(
+  lid: string,
+  actorUid: string,
+  avatarUrl: string | null,
+): Promise<LeagueItem> {
+  const league = await getLeagueMeta(lid);
+  if (!league) notFound(`League not found: ${lid}`);
+  if (league!.organizerId !== actorUid) forbidden("Only the organizer can edit this league");
+  const iso = new Date().toISOString();
+  const attrs = avatarUrl
+    ? await updateItem({
+        key: leagueKeys.meta(lid),
+        update: "SET avatarUrl = :a, updatedAt = :u",
+        values: { ":a": avatarUrl, ":u": iso },
+      })
+    : await updateItem({
+        key: leagueKeys.meta(lid),
+        update: "SET updatedAt = :u REMOVE avatarUrl",
+        values: { ":u": iso },
+      });
   return attrs as unknown as LeagueItem;
 }
 

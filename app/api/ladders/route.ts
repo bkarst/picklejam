@@ -8,6 +8,7 @@ import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { createLadder, type CreateLadderInput } from "@/lib/data/ladders";
 import { guarded, bad, jsonBody } from "@/app/api/_util";
+import { publicEnv } from "@/lib/env";
 import { MAX_TITLE, MAX_DESC, reqStr, optStr, optInt, reqPrice, ladderErr } from "@/app/api/ladders/_util";
 import type { FeeMode } from "@/lib/money";
 
@@ -18,6 +19,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function POST(req: NextRequest): Promise<Response> {
   return guarded(async () => {
+    if (!publicEnv.paidEventsEnabled) bad("Paid events are not available", 404);
     const user = await requireAuth(req);
     const body = await jsonBody(req);
 
@@ -42,10 +44,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       courtId: optStr(body, "courtId", 200),
       venueName: optStr(body, "venueName", 200),
       description: optStr(body, "description", MAX_DESC),
+      avatarUrl: optStr(body, "avatarUrl", 2000),
       currency,
+      // Only feeMode is organizer-configurable; the platform fee (PLATFORM_FEE) is
+      // server-authoritative, so we intentionally don't read feePercentBps/feeFixed.
       feeMode,
-      feePercentBps: optInt(body, "feePercentBps"),
-      feeFixed: optInt(body, "feeFixed"),
       ...(body.price !== undefined ? { price: reqPrice(body, currency) } : {}),
       challengeRange: optInt(body, "challengeRange"),
       responseWindowDays: optInt(body, "responseWindowDays"),

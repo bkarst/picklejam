@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import { CreateLeagueWizard } from "@/components/leagues";
 
 // Authoring + payment surface: never indexed, and NO ads (§2.2).
@@ -8,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function NewLeaguePage() {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   return (
     <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
       <p className="text-xs font-semibold uppercase tracking-wide text-secondary">Organize</p>

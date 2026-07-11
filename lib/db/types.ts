@@ -556,6 +556,8 @@ export interface TourneyItem extends BaseItem {
   startDate: string; // ISO date (yyyy-mm-dd) — drives GSI ordering
   endDate?: string;
   description?: string;
+  /** Organizer-uploaded photo/logo (cropped to an 800×800 square). */
+  avatarUrl?: string;
   currency: string;
   /** Platform fee model applied to every division (absorb vs pass-through). */
   feeMode: FeeMode;
@@ -710,6 +712,8 @@ export interface LeagueItem extends BaseItem {
   endDate?: string;
   seasonWeeks: number; // number of weekly rounds
   description?: string;
+  /** Organizer-uploaded photo/logo (cropped to an 800×800 square). */
+  avatarUrl?: string;
   currency: string;
   feeMode: FeeMode;
   feePercentBps: number;
@@ -839,6 +843,8 @@ export interface LadderItem extends BaseItem {
   status: LeagueStatus;
   startDate: string;
   description?: string;
+  /** Organizer-uploaded photo/logo (cropped to an 800×800 square). */
+  avatarUrl?: string;
   currency: string;
   feeMode: FeeMode;
   feePercentBps: number;

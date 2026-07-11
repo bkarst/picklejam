@@ -11,6 +11,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { leagueEventJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
+import { EditableEntityAvatar } from "@/components/ui/EditableEntityAvatar";
 import { ratingRange } from "@/components/tournaments/format";
 import {
   formatDateRange,
@@ -146,7 +147,19 @@ export default async function LeagueDetailPage({ params }: { params: Params }) {
           <span className="inline-flex rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-foreground">
             {registerable ? "Registering" : league.status === "cancelled" ? "Cancelled" : league.status === "complete" ? "Complete" : "Draft"}
           </span>
-          <h1 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">{league.title}</h1>
+          <div className="mt-3 flex items-center gap-4">
+            <EditableEntityAvatar
+              name={league.title}
+              avatarUrl={league.avatarUrl}
+              organizerId={league.organizerId}
+              patchUrl={`/api/leagues/${league.lid}`}
+              fallback={
+                <svg viewBox="0 0 24 24" className="h-1/2 w-1/2 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              }
+              className="size-16 sm:size-20"
+            />
+            <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">{league.title}</h1>
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted">
             <span className="flex items-center gap-1.5">
               <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>

@@ -190,7 +190,7 @@ export const identity = {
   /** One-line positioning (PRD §1). */
   positioning: "Find pickleball near you — then play more of it.",
   description:
-    "PickleLoko helps you find pickleball courts, games, and tournaments near you — then check in, meet players, and organize games, round robins, leagues, and ladders.",
+    "PickleLoko helps you find pickleball courts and organize pickleball groups near you.",
   supportEmail: "hello@pickleloko.com", // TODO: confirm mailbox
   socials: {
     twitter: "@pickleloko", // TODO: confirm handles

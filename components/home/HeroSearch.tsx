@@ -10,11 +10,15 @@
 
 import { SearchTypeahead } from "@/components/search/SearchTypeahead";
 
-export function HeroSearch() {
+export function HeroSearch({
+  placeholder = "Search courts or cities…",
+}: {
+  placeholder?: string;
+} = {}) {
   return (
     <div className="w-full max-w-xl">
       <SearchTypeahead
-        placeholder="Search courts or cities…"
+        placeholder={placeholder}
         ariaLabel="Search courts or cities"
         prepopulateNearby
         showSubmitButton

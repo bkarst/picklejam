@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicEnv } from "@/lib/env";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
@@ -70,9 +71,11 @@ export default function LaddersHubPage() {
           <Link href={discoverPath("ladders")} className="inline-flex h-12 items-center rounded-full bg-secondary px-6 text-base font-semibold text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             Find a ladder
           </Link>
-          <Link href={organizeLeagueNew()} className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            Run a ladder
-          </Link>
+          {publicEnv.paidEventsEnabled && (
+            <Link href={organizeLeagueNew()} className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              Run a ladder
+            </Link>
+          )}
           <Link href={leaguesHub()} className="inline-flex h-12 items-center rounded-full px-2 text-base font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             Prefer teams? Explore leagues →
           </Link>

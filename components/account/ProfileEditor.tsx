@@ -4,7 +4,7 @@
  * ProfileEditor — edit identity + ratings (UI §13.6, PRD §6.3).
  *
  * Identity form: displayName, username (live availability), gender, home city,
- * home court, avatar URL, visibility, default rating source. A dirty-save bar
+ * home court, avatar (photo upload), visibility, default rating source. A dirty-save bar
  * appears only when something changed (Save/Discard). Saving is optimistic — the
  * form already reflects your edits and the mutation updates the cache optimistically
  * and rolls back on error (we surface the error and keep your edits so you can retry).
@@ -16,7 +16,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import type { JSX, ReactNode } from "react";
 import Link from "next/link";
-import { Button, Label, ListBox, Select, Skeleton, Switch } from "@heroui/react";
+import { Button, ListBox, Select, Skeleton, Switch } from "@heroui/react";
 import {
   useMyProfile,
   useUpdateProfile,
@@ -25,8 +25,13 @@ import {
   useUpsertRating,
   useDeleteRating,
   useConnectDupr,
+  useUploadAvatar,
+  AVATAR_PHOTO_TYPES,
+  AVATAR_MAX_BYTES,
   type ProfileUpdate,
 } from "@/lib/api/profile";
+import { PhotoDropzone } from "@/components/ui/PhotoDropzone";
+import { cropAndCompressSquare } from "@/lib/image";
 import { isSlug } from "@/lib/util/slug";
 import { CityPicker } from "./CityPicker";
 import {
@@ -126,6 +131,11 @@ function ProfileEditorInner({ profile }: { profile: UserProfileItem }): JSX.Elem
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  // Avatar upload — the same presigned-S3 dropzone as review photos, but the file is
+  // cropped/compressed to a 500×500 square first. The URL flows into `form.avatarUrl`
+  // so the normal dirty-save bar persists it.
+  const uploadAvatar = useUploadAvatar();
 
   // Live username availability (debounced), only meaningful once it changed.
   const usernameChanged = form.username !== baseline.username;
@@ -304,15 +314,15 @@ function ProfileEditorInner({ profile }: { profile: UserProfileItem }): JSX.Elem
             />
           </Field>
 
-          <Field label="Avatar URL" htmlFor="pf-avatar" hint="Link to a square photo.">
-            <input
-              id="pf-avatar"
-              type="url"
-              className={INPUT_CLS}
+          <Field label="Avatar" hint="We'll crop &amp; resize it to a 500×500 square. PNG, JPG, WebP, or GIF, up to 8 MB.">
+            <PhotoDropzone
               value={form.avatarUrl}
-              onChange={(e) => set("avatarUrl", e.target.value)}
-              placeholder="https://…"
-              inputMode="url"
+              onChange={(url) => set("avatarUrl", url)}
+              upload={uploadAvatar}
+              transform={cropAndCompressSquare}
+              shape="circle"
+              types={AVATAR_PHOTO_TYPES}
+              maxBytes={AVATAR_MAX_BYTES}
             />
           </Field>
 

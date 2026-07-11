@@ -9,6 +9,7 @@
  * so the profile/ratings views re-fetch after a change.
  */
 
+import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAuthedFetch } from "@/lib/api/authed";
@@ -66,6 +67,36 @@ export function useUpdateProfile() {
       void qc.invalidateQueries({ queryKey: profileKeys.me });
     },
   });
+}
+
+/** Allowed avatar types + client-side size cap (mirrors the presign route). */
+export const AVATAR_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+export const AVATAR_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Upload a profile avatar: ask the server for a short-lived presigned S3 PUT URL,
+ * then PUT the bytes straight to S3 (not through our server) and return the public
+ * URL to store as the profile's `avatarUrl`. Same mechanism as review photos
+ * (`useUploadReviewPhoto`), namespaced under the `avatars/<uid>/` S3 prefix.
+ */
+export function useUploadAvatar() {
+  const authed = useAuthedFetch();
+  return useCallback(
+    async (file: File): Promise<string> => {
+      const { uploadUrl, publicUrl } = await authed<{ uploadUrl: string; publicUrl: string }>(
+        "/api/uploads/avatar",
+        { method: "POST", body: JSON.stringify({ contentType: file.type, size: file.size }) },
+      );
+      const put = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error("Upload failed — please try again.");
+      return publicUrl;
+    },
+    [authed],
+  );
 }
 
 /** Live username availability. Enabled only for a valid slug — debounce at call site. */

@@ -22,6 +22,7 @@ import { CityPicker } from "@/components/account/CityPicker";
 import { DiscoverCard } from "@/components/discover/DiscoverCard";
 import { useDiscover, useNearestCity } from "@/lib/api/discover";
 import { groupNewPath, organizeLeagueNew, organizeTournamentNew } from "@/lib/urls";
+import { publicEnv } from "@/lib/env";
 import {
   ACTIVITY_OPTIONS,
   activeDiscoverFilterCount,
@@ -105,9 +106,15 @@ const CREATE_CTA: Record<DiscoverEntityType, { href: string; label: string }> = 
   tournaments: { href: organizeTournamentNew(), label: "Run a tournament" },
 };
 
+// Paid entity types (leagues/ladders/tournaments) are hidden until Stripe is approved,
+// leaving a groups-only finder. Flip NEXT_PUBLIC_PAID_EVENTS_ENABLED to restore them.
+const AVAILABLE_TYPES = publicEnv.paidEventsEnabled
+  ? ENTITY_TYPES
+  : ENTITY_TYPES.filter((t) => t.id === "groups");
+
 export function DiscoverFinder(): JSX.Element {
   const params = useSearchParams();
-  const initialType = ENTITY_TYPES.find((t) => t.id === params.get("type"))?.id ?? "groups";
+  const initialType = AVAILABLE_TYPES.find((t) => t.id === params.get("type"))?.id ?? "groups";
 
   const [type, setType] = useState<DiscoverEntityType>(initialType);
   const [cityKey, setCityKey] = useState<string | undefined>(undefined);
@@ -192,24 +199,26 @@ export function DiscoverFinder(): JSX.Element {
         </p>
       </header>
 
-      {/* What to find */}
-      <ToggleButtonGroup
-        aria-label="What to find"
-        selectionMode="single"
-        disallowEmptySelection
-        selectedKeys={new Set([type])}
-        onSelectionChange={(keys) => {
-          const first = [...keys][0];
-          if (first) setType(first as DiscoverEntityType);
-        }}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-      >
-        {ENTITY_TYPES.map((t) => (
-          <ToggleButton key={t.id} id={t.id} className="h-11 rounded-xl text-sm font-semibold">
-            {t.label}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      {/* What to find — hidden entirely when only one entity type is available. */}
+      {AVAILABLE_TYPES.length > 1 && (
+        <ToggleButtonGroup
+          aria-label="What to find"
+          selectionMode="single"
+          disallowEmptySelection
+          selectedKeys={new Set([type])}
+          onSelectionChange={(keys) => {
+            const first = [...keys][0];
+            if (first) setType(first as DiscoverEntityType);
+          }}
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+        >
+          {AVAILABLE_TYPES.map((t) => (
+            <ToggleButton key={t.id} id={t.id} className="h-11 rounded-xl text-sm font-semibold">
+              {t.label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      )}
 
       {/* Location */}
       <div className="flex flex-col gap-2">

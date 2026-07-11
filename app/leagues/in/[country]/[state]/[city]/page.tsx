@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import { getCity, getCitiesByKeys } from "@/lib/data/geo";
 import { getLeaguesInCity } from "@/lib/data/leagues";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -38,6 +40,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 export default async function CityLeaguesPage({ params }: { params: Params }) {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   const { country, state, city } = await params;
   const cityItem = await getCity(country, state, city);
   if (!cityItem) notFound();
@@ -101,6 +104,7 @@ export default async function CityLeaguesPage({ params }: { params: Params }) {
                     title={l.title}
                     status={l.status}
                     kind="league"
+                    avatarUrl={l.avatarUrl}
                     dateLabel={formatDateRange(l.startDate, l.endDate)}
                     meta={`${seasonLabel(l.seasonWeeks)} · ${playModeLabel(l.playMode)}`}
                     place={l.venueName ? `${l.venueName} · ${cityLabel}` : cityLabel}

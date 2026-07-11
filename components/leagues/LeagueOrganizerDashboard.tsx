@@ -15,6 +15,7 @@ import { Skeleton } from "@heroui/react";
 import { addMoney, formatMoney, money, subMoney, type Money } from "@/lib/money";
 import { useLeague } from "@/lib/api/leagues";
 import { leaguePath, leagueStandingsPath } from "@/lib/urls";
+import { EditableEntityAvatar } from "@/components/ui/EditableEntityAvatar";
 import type { LeagueDivisionItem } from "@/lib/db/types";
 import type { PaymentStatus } from "@/lib/stripe/types";
 import { formatDateRange, statusMeta, playModeLabel } from "./format";
@@ -109,15 +110,27 @@ export function LeagueOrganizerDashboard({ lid }: { lid: string }): JSX.Element 
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">{league.title}</h1>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <EditableEntityAvatar
+            name={league.title}
+            avatarUrl={league.avatarUrl}
+            organizerId={league.organizerId}
+            patchUrl={`/api/leagues/${lid}`}
+            fallback={
+              <svg viewBox="0 0 24 24" className="h-1/2 w-1/2 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            }
+            className="size-11"
+          />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate font-display text-2xl font-bold text-foreground sm:text-3xl">{league.title}</h1>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+            </div>
+            <p className="mt-1 text-sm text-muted">
+              {league.venueName ? `${league.venueName} · ` : ""}
+              {formatDateRange(league.startDate, league.endDate)} · {playModeLabel(league.playMode)}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-muted">
-            {league.venueName ? `${league.venueName} · ` : ""}
-            {formatDateRange(league.startDate, league.endDate)} · {playModeLabel(league.playMode)}
-          </p>
         </div>
         <Link
           href={leaguePath(lid)}

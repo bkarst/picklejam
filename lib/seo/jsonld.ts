@@ -349,6 +349,7 @@ export function tournamentEventJsonLd(
     startDate: tournament.startDate,
     ...(tournament.endDate ? { endDate: tournament.endDate } : {}),
     ...(tournament.description ? { description: tournament.description } : {}),
+    ...(tournament.avatarUrl ? { image: tournament.avatarUrl } : {}),
     eventStatus:
       tournament.status === "cancelled"
         ? "https://schema.org/EventCancelled"
@@ -413,6 +414,7 @@ export function leagueEventJsonLd(
     startDate: league.startDate,
     ...(league.endDate ? { endDate: league.endDate } : {}),
     ...(league.description ? { description: league.description } : {}),
+    ...(league.avatarUrl ? { image: league.avatarUrl } : {}),
     eventStatus:
       league.status === "cancelled"
         ? "https://schema.org/EventCancelled"
@@ -458,6 +460,7 @@ export function ladderEventJsonLd(
     url: absoluteUrl,
     startDate: ladder.startDate,
     ...(ladder.description ? { description: ladder.description } : {}),
+    ...(ladder.avatarUrl ? { image: ladder.avatarUrl } : {}),
     eventStatus:
       ladder.status === "cancelled"
         ? "https://schema.org/EventCancelled"

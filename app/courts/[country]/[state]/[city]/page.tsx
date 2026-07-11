@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { publicEnv } from "@/lib/env";
 import { getCity, getState, getCitiesByKeys } from "@/lib/data/geo";
 import { getCourtsInCity, getCourt } from "@/lib/data/courts";
 import { getCityGames } from "@/lib/data/outings";
@@ -190,14 +191,16 @@ export default async function CityPage({ params }: { params: Params }) {
             )}
           </section>
 
-          {/* Tournaments & leagues — Stage 6/7 */}
-          <section className="rounded-2xl border border-border bg-surface p-4">
-            <h2 className="font-display text-lg font-bold text-foreground">Tournaments &amp; leagues in {cityItem.name}</h2>
-            <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p>
-            <Link href="/organize/tournaments/new" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
-              Run a tournament →
-            </Link>
-          </section>
+          {/* Tournaments & leagues — Stage 6/7 (hidden until paid events launch) */}
+          {publicEnv.paidEventsEnabled && (
+            <section className="rounded-2xl border border-border bg-surface p-4">
+              <h2 className="font-display text-lg font-bold text-foreground">Tournaments &amp; leagues in {cityItem.name}</h2>
+              <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p>
+              <Link href="/organize/tournaments/new" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+                Run a tournament →
+              </Link>
+            </section>
+          )}
 
           {/* Most active this month (§G12.8-I2) — hidden below 3 ranked players */}
           {cityBoard.length >= 3 && (

@@ -9,7 +9,8 @@
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { registerForDivision, type RegisterOptions } from "@/lib/data/tournaments";
-import { guarded, jsonBody } from "@/app/api/_util";
+import { guarded, bad, jsonBody } from "@/app/api/_util";
+import { publicEnv } from "@/lib/env";
 import { reqStr, tourneyErr } from "@/app/api/tournaments/_util";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   return guarded(async () => {
+    if (!publicEnv.paidEventsEnabled) bad("Paid events are not available", 404);
     const user = await requireAuth(req);
     const { id } = await ctx.params;
     const body = await jsonBody(req);

@@ -32,6 +32,13 @@ vi.mock("@/lib/api/groups", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/groups")>()),
   useGroup: () => ({ data: groupData, isLoading: false }),
   useUpdateGroup: () => ({ mutateAsync, isPending: false }),
+  useDeleteGroup: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
+// The owner-only DangerZone uses the app router; stub it (no router in jsdom).
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock("@/lib/api/outings", async (importOriginal) => ({

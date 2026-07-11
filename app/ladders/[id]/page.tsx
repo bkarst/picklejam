@@ -10,6 +10,7 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { ladderEventJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
+import { EditableEntityAvatar } from "@/components/ui/EditableEntityAvatar";
 import { LadderBoard } from "@/components/ladders";
 import { formatDateRange, playModeLabel } from "@/components/leagues/format";
 import {
@@ -92,7 +93,19 @@ export default async function LadderBoardPage({ params }: { params: Params }) {
           <span className="inline-flex rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-foreground">
             {registerable ? "Open to join" : ladder.status === "cancelled" ? "Cancelled" : ladder.status === "complete" ? "Complete" : "Draft"}
           </span>
-          <h1 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">{ladder.title}</h1>
+          <div className="mt-3 flex items-center gap-4">
+            <EditableEntityAvatar
+              name={ladder.title}
+              avatarUrl={ladder.avatarUrl}
+              organizerId={ladder.organizerId}
+              patchUrl={`/api/ladders/${ladder.lid}`}
+              fallback={
+                <svg viewBox="0 0 24 24" className="h-1/2 w-1/2 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10" /></svg>
+              }
+              className="size-16 sm:size-20"
+            />
+            <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">{ladder.title}</h1>
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted">
             <span>{playModeLabel(ladder.playMode)} ladder</span>
             <span>· Starts {formatDateRange(ladder.startDate)}</span>

@@ -21,9 +21,12 @@ describe("GamifyToaster (§G12.18)", () => {
         total: 25,
       });
     });
-    // One toast: the total + the FIRST label + "+1 more" (coalesced).
-    expect(screen.getByText(/\+25 RP/)).toBeInTheDocument();
-    expect(screen.getByText(/Check-in at Riverside \+1 more/)).toBeInTheDocument();
+    // One toast: the total + the FIRST label + "+1 more" (coalesced). The visible
+    // "+25 RP" is split across spans by the count-up animation, so assert the
+    // contiguous sr-only line the component renders for the same total.
+    expect(screen.getByText(/\+25 Rally Points/)).toBeInTheDocument();
+    // The coalesced label appears twice by design — visible (aria-hidden) + sr-only.
+    expect(screen.getAllByText(/Check-in at Riverside \+1 more/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/First time at this court/)).toBeNull();
   });
 
@@ -46,7 +49,9 @@ describe("GamifyToaster (§G12.18)", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(screen.getByText(/Level 2 — Dinker!/)).toBeInTheDocument();
+    // celebrate() renders the level as a "Level N" title + "{name}!" subtitle (separate nodes).
+    expect(screen.getByText("Level 2")).toBeInTheDocument();
+    expect(screen.getByText("Dinker!")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /keep playing/i })).toHaveFocus();
 
     act(() => fireEvent.keyDown(document, { key: "Escape" }));

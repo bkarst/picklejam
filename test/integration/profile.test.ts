@@ -17,8 +17,7 @@ import { updateNotifPrefs, addUnsubscribe } from "@/lib/data/notifications";
 import { verifyRequest } from "@/lib/auth/verify";
 import { encodeDevToken } from "@/lib/auth/dev";
 import { getDocClient } from "@/lib/db/table";
-import { usernameKey } from "@/lib/db/keys";
-import { slugify } from "@/lib/util/slug";
+import { userKeys } from "@/lib/db/keys";
 
 /**
  * Stage 2 profile & ratings spine integration against DynamoDB Local: §9.5
@@ -146,32 +145,37 @@ d("profile & ratings spine (DynamoDB Local)", () => {
 
   it("L14: two concurrent first-accesses for one uid don't orphan a username reservation", async () => {
     const uid = `user-itest-${RUN}-l14`;
-    const base = `L14 Racer ${RUN}`;
-    const root = slugify(base); // the username generateUniqueUsername settles on when free
-    const user = { uid, name: base, email: `l14-${RUN}@example.com` };
+    const user = { uid, name: `L14 Racer ${RUN}`, email: `l14-${RUN}@example.com` };
 
-    // Deterministically stage the race: intercept the OUTER getOrCreateProfile's reservation
-    // claim (the first PutCommand of its create transaction) and, right before it commits, run
-    // a SECOND getOrCreateProfile for the SAME uid to completion. Both generated `root` (it was
-    // free when each probed), so the inner call wins `root` and the outer's claim then fails.
+    // Usernames are now random + anonymous, so the two calls generate DIFFERENT handles — the
+    // race is on the deterministic PROFILE row (`USER#<uid>`), not a shared username. Stage it:
+    // intercept the OUTER getOrCreateProfile's profile-row create (guarded by attribute_not_exists,
+    // sent AFTER its reservation claim) and, right before it commits, run a SECOND
+    // getOrCreateProfile for the SAME uid to completion. The inner call creates the profile first,
+    // so the outer's profile create then fails and its whole transaction (incl. its reservation)
+    // rolls back — leaving no orphaned handle.
     const client = getDocClient();
     const originalSend = client.send.bind(client);
-    const rootResvPk = usernameKey(root).pk;
+    const profilePk = userKeys.profile(uid).pk;
     let injected = false;
     let innerUsername = "";
+    let outerReserved = ""; // the handle the OUTER claimed then had rolled back
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sendSpy = vi.spyOn(client, "send").mockImplementation(async (command: any) => {
       const input = command?.input ?? {};
-      const isRootClaim =
-        input.Item?.pk === rootResvPk &&
-        typeof input.ConditionExpression === "string" &&
-        input.ConditionExpression.includes("attribute_not_exists");
-      if (isRootClaim && !injected) {
+      const item = input.Item;
+      const cond = typeof input.ConditionExpression === "string" ? input.ConditionExpression : "";
+      // Capture the OUTER's reservation claim (fires before its profile-row create, injected still false).
+      if (!injected && item?.entity === "USERNAME" && cond.includes("attribute_not_exists")) {
+        outerReserved = item.username as string;
+      }
+      const isProfileCreate = item?.pk === profilePk && cond.includes("attribute_not_exists");
+      if (isProfileCreate && !injected) {
         injected = true;
         // The inner call's own writes re-enter this mock, but `injected` is set → they fall
-        // through to the real send (no recursion). It commits `root` + the profile first.
+        // through to the real send (no recursion). It commits its profile first.
         innerUsername = (await getOrCreateProfile(user)).username;
-        return originalSend(command); // now let the outer's `root` claim land → it fails
+        return originalSend(command); // now let the outer's profile create land → it fails
       }
       return originalSend(command);
     });
@@ -180,16 +184,20 @@ d("profile & ratings spine (DynamoDB Local)", () => {
     sendSpy.mockRestore();
 
     // Both calls resolve to the SAME profile — the concurrent winner's — with no second identity.
-    expect(innerUsername).toBe(root);
-    expect(outer.username).toBe(root); // pre-fix: `root-<rand>` (a second profile was created)
+    expect(innerUsername).toBeTruthy();
+    expect(outer.username).toBe(innerUsername); // pre-fix: a second profile with a second handle
 
-    // The invariant holds: the live profile's username is `root`, `root` is reserved for THIS
-    // uid, and the GSI3 slug pointer resolves back to it — no orphaned `root` reservation left
-    // behind (pre-fix the profile moved to `root-<rand>`, orphaning the `root` reservation).
+    // The invariant holds: the live profile's username is the winner's, it's reserved for THIS
+    // uid, and the GSI3 slug pointer resolves back to it.
     const finalProfile = await getUserProfile(uid);
-    expect(finalProfile?.username).toBe(root);
-    expect((await getUsernameReservation(root))?.uid).toBe(uid);
-    expect((await getUserByUsername(root))?.uid).toBe(uid);
+    expect(finalProfile?.username).toBe(innerUsername);
+    expect((await getUsernameReservation(innerUsername))?.uid).toBe(uid);
+    expect((await getUserByUsername(innerUsername))?.uid).toBe(uid);
+
+    // No orphaned reservation: the outer's rolled-back claim (a different random handle) is freed.
+    if (outerReserved && outerReserved !== innerUsername) {
+      expect(await getUsernameReservation(outerReserved)).toBeUndefined();
+    }
   });
 
   it("requireAuth path: verifyRequest rejects without a token, resolves a dev token", async () => {

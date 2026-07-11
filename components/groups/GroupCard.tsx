@@ -12,12 +12,15 @@ import type { JSX } from "react";
 import Link from "next/link";
 import type { GroupVisibility } from "@/lib/db/types";
 import { visibilityMeta, memberCountLabel } from "./format";
+import { GroupAvatar } from "./GroupAvatar";
 
 export interface GroupCardProps {
   href: string;
   name: string;
   visibility: GroupVisibility;
   memberCount: number;
+  /** The group's photo (falls back to a people-icon bubble). */
+  avatarUrl?: string;
   /** e.g. "Austin, TX". */
   cityLabel?: string;
   /** e.g. "Zilker Pickleball Club" (the group's home court). */
@@ -26,14 +29,6 @@ export interface GroupCardProps {
   description?: string;
   /** Optional membership status pill for "My groups" (e.g. "Owner", "Pending"). */
   membershipLabel?: string;
-}
-
-function PeopleIcon(): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
 }
 
 function LockIcon(): JSX.Element {
@@ -57,6 +52,7 @@ export function GroupCard({
   name,
   visibility,
   memberCount,
+  avatarUrl,
   cityLabel,
   homeCourtName,
   description,
@@ -71,9 +67,7 @@ export function GroupCard({
       className="group flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-accent/50 hover:bg-surface-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-          <PeopleIcon />
-        </span>
+        <GroupAvatar name={name} avatarUrl={avatarUrl} className="mt-0.5 size-10" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${vis.tone}`}>

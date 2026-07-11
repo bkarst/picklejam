@@ -8,7 +8,8 @@
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/verify";
 import { registerForLadder, type RegisterLadderOptions } from "@/lib/data/ladders";
-import { guarded, jsonBodyOptional } from "@/app/api/_util";
+import { guarded, bad, jsonBodyOptional } from "@/app/api/_util";
+import { publicEnv } from "@/lib/env";
 import { optNum, ladderErr } from "@/app/api/ladders/_util";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   return guarded(async () => {
+    if (!publicEnv.paidEventsEnabled) bad("Paid events are not available", 404);
     const user = await requireAuth(req);
     const { id } = await ctx.params;
     const body = await jsonBodyOptional(req);

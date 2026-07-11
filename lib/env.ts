@@ -39,6 +39,15 @@ export const publicEnv = {
   posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "",
   posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
   mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "",
+  /**
+   * Master switch for PAID events (tournaments / leagues / ladders). OFF by default
+   * — set `NEXT_PUBLIC_PAID_EVENTS_ENABLED=true` to turn them on once Stripe is
+   * approved. While off: the create/register routes 404, and every paid entry point
+   * (nav, hub/discover/city-finder CTAs) is hidden. The free app is unaffected.
+   * Flipping it takes effect on the next build/deploy (it's inlined into the client
+   * bundle like every NEXT_PUBLIC_* var).
+   */
+  paidEventsEnabled: process.env.NEXT_PUBLIC_PAID_EVENTS_ENABLED === "true",
 } as const;
 
 /** AWS / DynamoDB config (server). `dynamoEndpoint` set → talk to DynamoDB Local. */

@@ -100,6 +100,8 @@ export interface CreateGroupInput {
   visibility: GroupVisibility;
   joinPolicy: GroupJoinPolicy;
   description?: string;
+  /** Group photo URL from the avatar upload (omit for none). */
+  avatarUrl?: string;
   /** Active-member cap (server defaults to 40 when omitted). */
   maxMembers?: number;
 }
@@ -108,6 +110,8 @@ export interface CreateGroupInput {
 export interface UpdateGroupInput {
   name?: string;
   description?: string;
+  /** New group photo URL, or "" to clear it. */
+  avatarUrl?: string;
   visibility?: GroupVisibility;
   joinPolicy?: GroupJoinPolicy;
   homeCourtId?: string;
@@ -272,6 +276,19 @@ export function useUpdateGroup(groupId: string) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: groupKeys.group(groupId) });
+      void qc.invalidateQueries({ queryKey: groupKeys.myGroups });
+    },
+  });
+}
+
+/** Permanently delete a group (owner only) — DELETE /api/groups/[id]. */
+export function useDeleteGroup(groupId: string) {
+  const authed = useAuthedFetch();
+  const qc = useQueryClient();
+  return useMutation<{ ok: true }, Error, void>({
+    mutationFn: () => authed<{ ok: true }>(`/api/groups/${groupId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: groupKeys.group(groupId) });
       void qc.invalidateQueries({ queryKey: groupKeys.myGroups });
     },
   });

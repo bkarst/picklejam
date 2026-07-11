@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
+import { publicEnv } from "@/lib/env";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { organizationJsonLd, faqPageJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
@@ -149,12 +150,14 @@ export default function PricingPage(): JSX.Element {
           >
             Try the free round robin tool
           </Link>
-          <Link
-            href={organizeTournamentNew()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border px-7 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            Organize a paid event
-          </Link>
+          {publicEnv.paidEventsEnabled && (
+            <Link
+              href={organizeTournamentNew()}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border px-7 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              Organize a paid event
+            </Link>
+          )}
         </div>
       </section>
 

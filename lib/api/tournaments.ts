@@ -46,6 +46,7 @@ export interface CreateTournamentInput {
   startDate: string; // yyyy-mm-dd
   endDate?: string;
   description?: string;
+  avatarUrl?: string;
   elim: ElimFormat;
   feeMode: FeeMode;
   currency?: string;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
+import { publicEnv } from "@/lib/env";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
@@ -107,12 +108,14 @@ export default function LeaguesHubPage() {
             >
               Find a league
             </Link>
-            <Link
-              href={organizeLeagueNew()}
-              className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
-              Run a league
-            </Link>
+            {publicEnv.paidEventsEnabled && (
+              <Link
+                href={organizeLeagueNew()}
+                className="inline-flex h-12 items-center rounded-full border border-border px-6 text-base font-semibold text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                Run a league
+              </Link>
+            )}
           </div>
         </div>
 

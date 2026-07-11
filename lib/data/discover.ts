@@ -173,6 +173,7 @@ async function collectGroups(
         url: groupPath(g.groupId),
         cityKey: g.cityKey,
         cityLabel: labels.get(g.cityKey) ?? labelForCity(g.cityKey),
+        ...(g.avatarUrl ? { avatarUrl: g.avatarUrl } : {}),
         // Count the active MEMBER rows directly (exact, independent of the async
         // `memberCount` aggregator) — these are the same uids we average DUPR over.
         size: uids.length,
@@ -215,6 +216,7 @@ async function collectLeagues(
         url: leaguePath(l.lid),
         cityKey: l.cityKey,
         cityLabel: labels.get(l.cityKey) ?? labelForCity(l.cityKey),
+        ...(l.avatarUrl ? { avatarUrl: l.avatarUrl } : {}),
         size,
         gamesLastMonth: games,
         startDate: l.startDate,
@@ -253,6 +255,7 @@ async function collectLadders(
         url: ladderPath(l.lid),
         cityKey: l.cityKey,
         cityLabel: labels.get(l.cityKey) ?? labelForCity(l.cityKey),
+        ...(l.avatarUrl ? { avatarUrl: l.avatarUrl } : {}),
         size,
         gamesLastMonth: games,
         startDate: l.startDate,
@@ -291,6 +294,7 @@ async function collectTournaments(
         url: tournamentPath(t.tid),
         cityKey: t.cityKey,
         cityLabel: labels.get(t.cityKey) ?? labelForCity(t.cityKey),
+        ...(t.avatarUrl ? { avatarUrl: t.avatarUrl } : {}),
         size,
         startDate: t.startDate,
         // Tournaments are one-off events → no "games last month".

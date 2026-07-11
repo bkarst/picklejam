@@ -60,6 +60,7 @@ export default function MyGroupsPage(): JSX.Element {
                 name={g.group.name}
                 visibility={g.group.visibility}
                 memberCount={g.group.memberCount}
+                avatarUrl={g.group.avatarUrl}
                 description={g.group.description}
                 membershipLabel={membershipLabel(g)}
               />

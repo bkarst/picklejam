@@ -101,6 +101,7 @@ export default async function CityGroupsPage({ params }: { params: Params }) {
                     name={g.name}
                     visibility={g.visibility}
                     memberCount={g.memberCount}
+                    avatarUrl={g.avatarUrl}
                     cityLabel={cityLabel}
                     description={g.description}
                   />

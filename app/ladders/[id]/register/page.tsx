@@ -8,6 +8,8 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { Breadcrumbs } from "@/components/directory";
 import { LadderRegisterPanel } from "@/components/ladders";
 import { ladderPath, ladderRegisterPath, laddersHub } from "@/lib/urls";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import type { FeeConfig, Money } from "@/lib/money";
 
 // A payment surface — render dynamically per request (no ISR) and NO ads (§2.2).
@@ -29,6 +31,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 export default async function LadderRegisterPage({ params }: { params: Params }) {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   const { id } = await params;
   const data = await getLadder(id);
   if (!data) notFound();

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { publicEnv } from "@/lib/env";
+import { ComingSoon } from "@/components/ui/ComingSoon";
 import { getCity, getCitiesByKeys } from "@/lib/data/geo";
 import { getTournamentsInCity } from "@/lib/data/tournaments";
 import { buildMetadata, tournamentFinderTitle } from "@/lib/seo/metadata";
@@ -36,6 +38,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 export default async function CityTournamentsPage({ params }: { params: Params }) {
+  if (!publicEnv.paidEventsEnabled) return <ComingSoon />;
   const { country, state, city } = await params;
   const cityItem = await getCity(country, state, city);
   if (!cityItem) notFound();

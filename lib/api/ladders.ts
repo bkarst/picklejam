@@ -40,10 +40,9 @@ export interface CreateLadderInput {
   courtId?: string;
   venueName?: string;
   description?: string;
+  avatarUrl?: string;
   currency?: string;
   feeMode?: FeeMode;
-  feePercentBps?: number;
-  feeFixed?: number;
   price?: Money;
   /** How many rungs above yourself you may challenge (§7.4). */
   challengeRange?: number;

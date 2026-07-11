@@ -5,6 +5,7 @@
  */
 
 export { GroupCard, type GroupCardProps } from "./GroupCard";
+export { GroupAvatar, type GroupAvatarProps } from "./GroupAvatar";
 export { GroupsRail, type GroupsRailProps } from "./GroupsRail";
 export { MemberStatusList, type MemberStatusListProps } from "./MemberStatusList";
 export { MembershipButton, type MembershipButtonProps } from "./MembershipButton";

@@ -41,7 +41,6 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithApple: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string | null>;
@@ -140,16 +139,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [isDev, devSignIn],
   );
 
-  const oauth = useCallback(
-    async (provider: "google" | "apple") => {
-      if (isDev) return devSignIn(`${provider}.user@dev.local`, `${cap(provider)} User`);
-      const { signInWithPopup, GoogleAuthProvider, OAuthProvider } = await import("firebase/auth");
-      const p =
-        provider === "google" ? new GoogleAuthProvider() : new OAuthProvider("apple.com");
-      await signInWithPopup(fbAuthRef.current!, p);
-    },
-    [isDev, devSignIn],
-  );
+  const signInWithGoogle = useCallback(async () => {
+    if (isDev) return devSignIn("google.user@dev.local", "Google User");
+    const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth");
+    await signInWithPopup(fbAuthRef.current!, new GoogleAuthProvider());
+  }, [isDev, devSignIn]);
 
   const sendPasswordReset = useCallback(
     async (email: string) => {
@@ -228,15 +222,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isDev,
       signInWithEmail,
       signUpWithEmail,
-      signInWithGoogle: () => oauth("google"),
-      signInWithApple: () => oauth("apple"),
+      signInWithGoogle,
       sendPasswordReset,
       signOut,
       getToken,
       requireAuth,
       openAuth,
     }),
-    [user, loading, isDev, signInWithEmail, signUpWithEmail, oauth, sendPasswordReset, signOut, getToken, requireAuth, openAuth],
+    [user, loading, isDev, signInWithEmail, signUpWithEmail, signInWithGoogle, sendPasswordReset, signOut, getToken, requireAuth, openAuth],
   );
 
   return (
@@ -251,8 +244,4 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within <AuthProvider>");
   return ctx;
-}
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

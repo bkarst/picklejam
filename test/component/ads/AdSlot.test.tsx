@@ -4,13 +4,20 @@ import { render } from "@testing-library/react";
 import { axe } from "jest-axe";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { ConsentProvider } from "@/components/consent/ConsentProvider";
+import { AdsFlagProvider } from "@/components/ads/AdsFlagProvider";
 
 // AdSlot reads the current path (via useAdsAllowed) to apply the §2.2 boundary.
 const nav = vi.hoisted(() => ({ path: "/courts/us/kansas/lawrence" }));
 vi.mock("next/navigation", () => ({ usePathname: () => nav.path }));
 
+// The remote `ads_enabled` flag gates every AdSlot; enable it (default is off) so
+// eligibility/consent — not the master switch — is what these tests exercise.
 function renderSlot(ui: React.ReactNode) {
-  return render(<ConsentProvider>{ui}</ConsentProvider>);
+  return render(
+    <AdsFlagProvider value={true}>
+      <ConsentProvider>{ui}</ConsentProvider>
+    </AdsFlagProvider>,
+  );
 }
 
 describe("<AdSlot>", () => {

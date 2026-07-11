@@ -78,6 +78,16 @@ export interface FeeConfig {
   fixed: number;
 }
 
+/**
+ * The canonical platform fee applied to every paid registration (§10): 7% + $0.30.
+ * This is the single source of truth — the create data-layer functions default to
+ * it and the create wizards preview it, so what's shown always matches what's
+ * charged. The fee is NOT organizer-configurable (only `feeMode` — absorb vs
+ * pass-through — is); the create API deliberately ignores any client-supplied
+ * percent/fixed so an organizer can't zero out the platform's cut.
+ */
+export const PLATFORM_FEE: Omit<FeeConfig, "mode"> = { percentBps: 700, fixed: 30 };
+
 export interface FeeBreakdown {
   /** The organizer's list price for the division. */
   face: Money;
