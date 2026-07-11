@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { ConsentProvider } from "@/components/consent/ConsentProvider";
 import { ConsentBanner } from "@/components/consent/ConsentBanner";
 import { AnalyticsBootstrap } from "@/components/analytics/AnalyticsBootstrap";
+import { GtagLoader } from "@/components/analytics/GtagLoader";
 import { AdSenseLoader } from "@/components/ads/AdSlot";
 import { Header } from "@/components/layout/Header";
 import { PromoBanner } from "@/components/layout/PromoBanner";
@@ -126,6 +127,8 @@ export default async function RootLayout({
           <ConsentProvider>
             <AdsFlagProvider value={adsEnabled}>
               <AnalyticsBootstrap />
+              {/* GA4 gtag.js — consent-gated + only when a Measurement ID is set. */}
+              <GtagLoader />
               {/* AdSense library — consent-gated + only when a publisher id is set. */}
               <AdSenseLoader />
               <PromoBanner />

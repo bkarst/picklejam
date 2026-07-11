@@ -40,6 +40,13 @@ export const publicEnv = {
   posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com",
   mapboxToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "",
   /**
+   * GA4 Measurement ID (e.g. `G-XXXXXXXXXX`) for site-wide web analytics (PRD §2.1).
+   * "" = unset ⇒ the gtag.js tag never loads. Consent-gated + off the CWV critical
+   * path via {@link GtagLoader}. Inlined into the client bundle at build (a change
+   * needs a rebuild/deploy).
+   */
+  gaMeasurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "",
+  /**
    * Master switch for PAID events (tournaments / leagues / ladders). OFF by default
    * — set `NEXT_PUBLIC_PAID_EVENTS_ENABLED=true` to turn them on once Stripe is
    * approved. While off: the create/register routes 404, and every paid entry point
