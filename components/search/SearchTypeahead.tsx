@@ -220,7 +220,7 @@ export function SearchTypeahead({
             className={inputCls}
           />
           {dropdownOpen && (
-            <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-overlay py-1 shadow-overlay">
+            <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-overlay py-1 text-left shadow-overlay">
               {items.length > 0 ? (
                 <ul
                   id={listId}
