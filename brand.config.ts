@@ -187,10 +187,10 @@ export const identity = {
   name: "Pickle Jam",
   legalName: "Pickle Jam, Inc.", // TODO(legal): confirm registered entity name
   /** Product tagline (wordmark lockup). */
-  tagline: "Find courts. Find players. Play more.",
+  tagline: "Find Pickleball Courts. Form groups. Play more.",
   /** Marketing hook — staccato brand voice, describing what the app actually does.
    *  The homepage eyebrow renders the final sentence in hot pink. */
-  taglineMarketing: "Courts. Groups. Sessions. All things Pickleball.",
+  taglineMarketing: "Review Pickleball Courts. Form Groups. Get your Pickleball jam on.",
   /** One-line positioning (PRD §1). */
   positioning: "Find pickleball near you — then play more of it.",
   description:

@@ -21,8 +21,8 @@ import { join } from "node:path";
 import { brand } from "@/brand.config";
 
 export interface OgImageOptions {
-  /** The large headline (required). */
-  title: string;
+  /** The large headline. Omit for the default brand card (photo + lockup only). */
+  title?: string;
   /** Optional secondary line under the title. */
   subtitle?: string;
   /** Optional small uppercase eyebrow above the title. */
@@ -55,6 +55,10 @@ const TEXT_SHADOW = "0 2px 14px rgba(0,0,0,0.55)";
 export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): ImageResponse {
   const { palette, identity, og } = brand;
   const bg = backgroundImageUri();
+  // Default brand card = photo + lockup only (no headline). When a card DOES have
+  // a headline (badge/level share cards), pin it to the top and the lockup to the
+  // bottom; otherwise the lockup alone sits at the bottom.
+  const hasHeadline = Boolean(title || subtitle || eyebrow);
 
   return new ImageResponse(
     (
@@ -75,53 +79,58 @@ export function renderOgImage({ title, subtitle, eyebrow }: OgImageOptions): Ima
             : {}),
           color: palette.cream,
           padding: 80,
-          justifyContent: "space-between",
+          justifyContent: hasHeadline ? "space-between" : "flex-end",
           fontFamily: "sans-serif",
         }}
       >
-        {/* Headline block */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {eyebrow ? (
-            <div
-              style={{
-                display: "flex",
-                fontSize: 30,
-                fontWeight: 700,
-                letterSpacing: 4,
-                color: palette.hotPink,
-                marginBottom: 24,
-                textShadow: TEXT_SHADOW,
-              }}
-            >
-              {eyebrow.toUpperCase()}
-            </div>
-          ) : null}
-          <div
-            style={{
-              display: "flex",
-              fontSize: 76,
-              fontWeight: 800,
-              lineHeight: 1.05,
-              color: palette.cream,
-              textShadow: TEXT_SHADOW,
-            }}
-          >
-            {title}
+        {/* Headline block — omitted on the default brand card (redundant with the
+            lockup + the link-preview title/description). */}
+        {hasHeadline ? (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {eyebrow ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 30,
+                  fontWeight: 700,
+                  letterSpacing: 4,
+                  color: palette.hotPink,
+                  marginBottom: 24,
+                  textShadow: TEXT_SHADOW,
+                }}
+              >
+                {eyebrow.toUpperCase()}
+              </div>
+            ) : null}
+            {title ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 76,
+                  fontWeight: 800,
+                  lineHeight: 1.05,
+                  color: palette.cream,
+                  textShadow: TEXT_SHADOW,
+                }}
+              >
+                {title}
+              </div>
+            ) : null}
+            {subtitle ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 36,
+                  marginTop: 24,
+                  color: palette.cream,
+                  textShadow: TEXT_SHADOW,
+                }}
+              >
+                {subtitle}
+              </div>
+            ) : null}
           </div>
-          {subtitle ? (
-            <div
-              style={{
-                display: "flex",
-                fontSize: 36,
-                marginTop: 24,
-                color: palette.cream,
-                textShadow: TEXT_SHADOW,
-              }}
-            >
-              {subtitle}
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
         {/* Brand lockup: lime ball + wordmark + tagline */}
         <div style={{ display: "flex", alignItems: "center" }}>
