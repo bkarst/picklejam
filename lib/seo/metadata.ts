@@ -80,8 +80,6 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
     } as Metadata["openGraph"],
     twitter: {
       card: brand.og.twitterCard,
-      ...(title !== undefined ? { title } : {}),
-      description: desc,
       images: [image],
     },
     // Only override robots when noindexing; otherwise inherit the indexable root.
