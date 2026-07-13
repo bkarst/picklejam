@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="t d">
+  <title id="t">Pickleball net height, from the side</title>
+  <desc id="d">A side-view PickleJam diagram of a pickleball net: 36 inches high at the posts, sagging by design to 34 inches at the center, with the posts set 22 feet apart.</desc>
+  <defs>
+    <pattern id="mesh" width="15" height="15" patternUnits="userSpaceOnUse">
+      <path d="M15 0H0V15" fill="none" stroke="#ffffff" stroke-width="1" opacity=".38"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="675" rx="42" fill="#0f5a46"/>
+  <circle cx="1096" cy="90" r="112" fill="#d7ff3f" opacity=".9"/>
+  <circle cx="98" cy="600" r="118" fill="#ff3f8e" opacity=".9"/>
+
+  <text x="600" y="70" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE NET DIPS ON PURPOSE</text>
+  <text x="600" y="112" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="23" font-weight="700" text-anchor="middle">36 INCHES AT THE POSTS · 34 INCHES AT THE CENTER</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- ground -->
+    <line x1="140" y1="520" x2="1060" y2="520" stroke="#d7ff3f" stroke-width="4"/>
+    <!-- net body -->
+    <path d="M220 300 Q600 324 980 300 L980 516 L220 516 Z" fill="#0d7a5c"/>
+    <path d="M220 300 Q600 324 980 300 L980 516 L220 516 Z" fill="url(#mesh)"/>
+    <!-- top tape -->
+    <path d="M220 300 Q600 324 980 300" fill="none" stroke="#ffffff" stroke-width="6"/>
+    <!-- posts -->
+    <rect x="210" y="296" width="20" height="228" rx="7" fill="#0b3f31" stroke="#ffffff" stroke-width="2"/>
+    <rect x="970" y="296" width="20" height="228" rx="7" fill="#0b3f31" stroke="#ffffff" stroke-width="2"/>
+
+    <!-- 36 in at left post -->
+    <line x1="176" y1="300" x2="176" y2="520" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="166" y1="300" x2="186" y2="300" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="166" y1="520" x2="186" y2="520" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="152" y="410" fill="#ffffff" font-size="24" font-weight="800" transform="rotate(-90 152 410)" text-anchor="middle">36 IN</text>
+
+    <!-- 34 in at center -->
+    <line x1="600" y1="324" x2="600" y2="520" stroke="#ff3f8e" stroke-width="3"/>
+    <line x1="590" y1="324" x2="610" y2="324" stroke="#ff3f8e" stroke-width="3"/>
+    <line x1="590" y1="520" x2="610" y2="520" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="600" y="452" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle" transform="rotate(-90 600 452)">34 IN</text>
+
+    <!-- 22 ft between posts -->
+    <line x1="220" y1="566" x2="980" y2="566" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="220" y1="556" x2="220" y2="576" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="980" y1="556" x2="980" y2="576" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="600" y="600" fill="#ffffff" font-size="24" font-weight="800" text-anchor="middle">22 FT BETWEEN THE POSTS</text>
+  </g>
+
+  <text x="600" y="646" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">THAT 2-INCH SAG IS WHY THE BALL SITS LOWEST RIGHT DOWN THE MIDDLE</text>
+</svg>

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="t d">
+  <title id="t">Official pickleball court dimensions, top-down</title>
+  <desc id="d">A top-down PickleJam-branded diagram of a 20 by 44 foot pickleball court: the 7-foot non-volley zone (the kitchen) straddling the net, the 15 by 10 foot service courts split by the centerline, the baselines and sidelines, and the note that every line is 2 inches wide.</desc>
+  <rect width="1200" height="800" rx="42" fill="#0f5a46"/>
+  <circle cx="1092" cy="86" r="118" fill="#d7ff3f" opacity=".9"/>
+  <circle cx="104" cy="726" r="122" fill="#ff3f8e" opacity=".9"/>
+
+  <text x="600" y="66" fill="#ffffff" font-family="Arial, sans-serif" font-size="46" font-weight="800" text-anchor="middle">EVERY LINE ON A PICKLEBALL COURT</text>
+  <text x="600" y="108" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle">20 FT WIDE · 44 FT LONG · THE SAME COURT FOR SINGLES AND DOUBLES</text>
+
+  <!-- COURT -->
+  <g font-family="Arial, sans-serif">
+    <!-- playing surface -->
+    <rect x="182" y="210" width="836" height="380" fill="#0d7a5c" stroke="#ffffff" stroke-width="5"/>
+    <!-- non-volley zone (kitchen) -->
+    <rect x="467" y="210" width="266" height="380" fill="#ff3f8e" opacity=".92"/>
+    <!-- kitchen lines -->
+    <line x1="467" y1="210" x2="467" y2="590" stroke="#ffffff" stroke-width="5"/>
+    <line x1="733" y1="210" x2="733" y2="590" stroke="#ffffff" stroke-width="5"/>
+    <!-- centerlines (do not cross the kitchen) -->
+    <line x1="182" y1="400" x2="467" y2="400" stroke="#ffffff" stroke-width="5"/>
+    <line x1="733" y1="400" x2="1018" y2="400" stroke="#ffffff" stroke-width="5"/>
+    <!-- net -->
+    <line x1="600" y1="191" x2="600" y2="609" stroke="#0b3f31" stroke-width="9"/>
+    <line x1="600" y1="191" x2="600" y2="609" stroke="#ffffff" stroke-width="9" stroke-dasharray="2 7"/>
+    <circle cx="600" cy="191" r="8" fill="#d7ff3f"/>
+    <circle cx="600" cy="609" r="8" fill="#d7ff3f"/>
+
+    <!-- kitchen 7ft markers -->
+    <line x1="467" y1="252" x2="600" y2="252" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="467" y1="245" x2="467" y2="259" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="600" y1="245" x2="600" y2="259" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="533" y="242" fill="#ffffff" font-size="19" font-weight="800" text-anchor="middle">7 FT</text>
+    <line x1="600" y1="252" x2="733" y2="252" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="733" y1="245" x2="733" y2="259" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="667" y="242" fill="#ffffff" font-size="19" font-weight="800" text-anchor="middle">7 FT</text>
+    <text x="600" y="378" fill="#ffffff" font-size="30" font-weight="800" text-anchor="middle">THE KITCHEN</text>
+    <text x="600" y="404" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">NON-VOLLEY ZONE</text>
+
+    <!-- service court labels (top-left box) -->
+    <text x="324" y="470" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">SERVICE COURT</text>
+    <text x="324" y="496" fill="#d7ff3f" font-size="17" font-weight="700" text-anchor="middle">15 FT × 10 FT</text>
+    <!-- 15 ft dimension across top-left box -->
+    <line x1="182" y1="250" x2="467" y2="250" stroke="#d7ff3f" stroke-width="2.5"/>
+    <line x1="182" y1="243" x2="182" y2="257" stroke="#d7ff3f" stroke-width="2.5"/>
+    <line x1="467" y1="243" x2="467" y2="257" stroke="#d7ff3f" stroke-width="2.5"/>
+    <text x="324" y="242" fill="#d7ff3f" font-size="18" font-weight="800" text-anchor="middle">15 FT</text>
+    <!-- 10 ft dimension down left of top-left box -->
+    <line x1="212" y1="210" x2="212" y2="400" stroke="#d7ff3f" stroke-width="2.5"/>
+    <line x1="205" y1="210" x2="219" y2="210" stroke="#d7ff3f" stroke-width="2.5"/>
+    <line x1="205" y1="400" x2="219" y2="400" stroke="#d7ff3f" stroke-width="2.5"/>
+    <text x="228" y="311" fill="#d7ff3f" font-size="18" font-weight="800" transform="rotate(-90 228 311)" text-anchor="middle">10 FT</text>
+    <!-- centerline callout (right side) -->
+    <text x="875" y="392" fill="#ffffff" font-size="15" font-weight="700" text-anchor="middle">CENTERLINE</text>
+
+    <!-- NET callout -->
+    <text x="600" y="180" fill="#d7ff3f" font-size="17" font-weight="800" text-anchor="middle">NET</text>
+  </g>
+
+  <!-- OVERALL DIMENSIONS -->
+  <g font-family="Arial, sans-serif">
+    <!-- 44 ft along the bottom -->
+    <line x1="182" y1="648" x2="1018" y2="648" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="182" y1="638" x2="182" y2="658" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="1018" y1="638" x2="1018" y2="658" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="600" y="686" fill="#ffffff" font-size="26" font-weight="800" text-anchor="middle">44 FT (13.41 m) BASELINE TO BASELINE</text>
+    <!-- 20 ft down the left -->
+    <line x1="150" y1="210" x2="150" y2="590" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="140" y1="210" x2="160" y2="210" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="140" y1="590" x2="160" y2="590" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="126" y="400" fill="#ffffff" font-size="22" font-weight="800" transform="rotate(-90 126 400)" text-anchor="middle">20 FT (6.10 m)</text>
+  </g>
+
+  <text x="600" y="742" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">EVERY LINE IS 2 INCHES WIDE · THE NET IS 36 IN AT THE POSTS, 34 IN AT THE CENTER</text>
+</svg>

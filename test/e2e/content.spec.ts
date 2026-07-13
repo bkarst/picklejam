@@ -9,7 +9,7 @@ import { test, expect } from "@playwright/test";
 
 const ARTICLE = "/learn/guides/dinking-basics";
 const NEWS = "/news/mlp-announces-expanded-2026-season";
-const AUTHOR = "/learn/authors/jamie-reyes";
+const AUTHOR = "/learn/authors/jamie-green";
 
 test("Stage 9 — evergreen article: crawlable server HTML (JS-off) + Article/Person JSON-LD + related-local CTA", async ({ page, request }) => {
   // RAW server HTML (a plain fetch — no JS runs): the body + structured data must

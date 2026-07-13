@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+  <title id="t">Total space needed for a pickleball court</title>
+  <desc id="d">A PickleJam diagram showing the 20 by 44 foot pickleball court centered inside the minimum 30 by 60 foot playing area and the recommended 34 by 64 foot area, with buffers of at least 5 feet beyond each sideline and 8 feet behind each baseline.</desc>
+  <rect width="1200" height="720" rx="42" fill="#0f5a46"/>
+  <circle cx="1134" cy="52" r="84" fill="#d7ff3f" opacity=".9"/>
+  <circle cx="96" cy="636" r="118" fill="#ff3f8e" opacity=".9"/>
+
+  <text x="600" y="66" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE COURT IS NOT THE WHOLE STORY</text>
+  <text x="600" y="108" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">LEAVE ROOM TO CHASE THE BALL · MIN 30 × 60 FT, BETTER 34 × 64 FT</text>
+
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <!-- recommended 64 x 34 @10px/ft = 640 x 340 -->
+    <rect x="280" y="205" width="640" height="340" rx="10" fill="#0b4a3a" stroke="#ff3f8e" stroke-width="4" stroke-dasharray="10 8"/>
+    <text x="600" y="196" fill="#ff3f8e" font-size="20" font-weight="800">RECOMMENDED PLAYING AREA · 34 × 64 FT</text>
+
+    <!-- minimum 60 x 30 @10 = 600 x 300 -->
+    <rect x="300" y="225" width="600" height="300" rx="8" fill="#0c5643" stroke="#d7ff3f" stroke-width="4"/>
+    <text x="600" y="248" fill="#d7ff3f" font-size="19" font-weight="800">MINIMUM PLAYING AREA · 30 × 60 FT</text>
+
+    <!-- court 44 x 20 @10 = 440 x 200 -->
+    <rect x="380" y="275" width="440" height="200" rx="4" fill="#0d7a5c" stroke="#ffffff" stroke-width="5"/>
+    <line x1="547" y1="275" x2="547" y2="475" stroke="#ffffff" stroke-width="4"/>
+    <line x1="653" y1="275" x2="653" y2="475" stroke="#ffffff" stroke-width="4"/>
+    <rect x="547" y="275" width="106" height="200" fill="#ff3f8e" opacity=".85"/>
+    <line x1="600" y1="267" x2="600" y2="483" stroke="#ffffff" stroke-width="4" stroke-dasharray="2 6"/>
+    <text x="464" y="382" fill="#ffffff" font-size="19" font-weight="800">COURT</text>
+    <text x="464" y="404" fill="#d7ff3f" font-size="15" font-weight="700">20 × 44 FT</text>
+
+    <!-- buffer callouts -->
+    <text x="600" y="512" fill="#ffffff" font-size="16" font-weight="700">8 FT+ behind each baseline</text>
+    <text x="337" y="380" fill="#ffffff" font-size="14" font-weight="700" transform="rotate(-90 337 380)">5 FT+ beyond the sideline</text>
+  </g>
+
+  <text x="600" y="600" fill="#ffffff" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">A 20 × 44 court crammed against a fence plays smaller than a 20 × 44 court with room to run.</text>
+  <text x="600" y="656" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="800" text-anchor="middle">GIVE THE GAME ITS BREATHING ROOM.</text>
+</svg>
