@@ -50,3 +50,15 @@ Not feature flags despite the name: Stripe Connect `chargesEnabled`/`payoutsEnab
 
 - New migrations use **on-demand** capacity, never provisioned throughput.
 - For simple GSI creation, use the AWS CLI directly instead of writing a migration script.
+
+## Metadata quality (SEO & social) — a review criterion
+
+Treat metadata quality as a **review criterion** for any change that touches page metadata, a route's `generateMetadata`, `lib/seo/metadata.ts`, or published Content Hub articles. Every indexable page's `Metadata` (built via `buildMetadata`) and every published article must meet these limits — flag violations in review:
+
+- **Page `<title>` ≤ 60 chars.** Google truncates beyond ~60. The root layout's `title.template` appends `" | Pickle Jam"` (+13 chars), so keep the **bare `title` ≤ ~47 chars**.
+- **`og:title` ≤ 60 chars.** (X / LinkedIn truncate past ~60.)
+- **`description` / `og:description` ≤ ~155 chars.** Google truncates ~150–160; mobile social previews often show ~125. Front-load the key info.
+- **`og:image` must be 1.91:1 (1200×630).** Not 3:2 or 16:9 — social cards crop or letterbox otherwise. Keep it well under 1 MB.
+- **`og:site_name` present on every page** ("Pickle Jam"). `buildMetadata` re-emits `siteName`/`locale`/`twitter:site` because Next **replaces** (does not deep-merge) the nested `openGraph`/`twitter` objects — never drop those re-emits.
+
+For **published articles**, these map to the piece's `title` (→ H1 + `og:title`), `excerpt` (→ meta description + `og:description`), and hero (→ `coverImage`/`og:image`). They are set at publish time by the **`publish-to-picklejam`** skill — keep them within the limits above before shipping.

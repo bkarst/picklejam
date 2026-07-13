@@ -2,9 +2,12 @@
  * metadata.ts — the per-page Metadata factory (PRD §3.3).
  *
  * `buildMetadata()` COMPOSES with the root metadata in `app/layout.tsx`
- * (title template, metadataBase, openGraph.siteName, twitter.site) — it only
- * emits the per-page overrides. Because `metadataBase` is already set in the
- * root layout, every URL field here is RELATIVE (the origin is composed in).
+ * (title template, metadataBase) — it only emits the per-page overrides. Because
+ * `metadataBase` is already set in the root layout, every URL field here is
+ * RELATIVE (the origin is composed in). NOTE: Next REPLACES nested `openGraph`
+ * / `twitter` objects rather than deep-merging them, so identity fields the root
+ * sets there (`siteName`, `locale`, `twitter:site`) must be RE-EMITTED below or
+ * they vanish from every page that calls this — see the openGraph/twitter blocks.
  *
  * Title patterns are the §3.3 helpers below; they return the BARE title. The
  * root layout's `title.template` (`%s | Pickle Jam`) appends the brand suffix,
@@ -73,6 +76,11 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
     openGraph: {
       // Discriminated-union `type` requires a cast when the value is a variable.
       type: openGraphType,
+      // Re-emit siteName + locale: Next REPLACES (not deep-merges) the nested
+      // openGraph object, so the root layout's values are dropped from every
+      // page that calls buildMetadata (og:site_name would go missing otherwise).
+      siteName: brand.identity.name,
+      locale: brand.og.locale,
       ...(title !== undefined ? { title } : {}),
       description: desc,
       url: path,
@@ -80,6 +88,8 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
     } as Metadata["openGraph"],
     twitter: {
       card: brand.og.twitterCard,
+      // Same nested-replace reason as openGraph above — re-emit twitter:site.
+      site: brand.identity.socials.twitter,
       images: [image],
     },
     // Only override robots when noindexing; otherwise inherit the indexable root.

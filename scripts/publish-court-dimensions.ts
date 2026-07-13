@@ -64,9 +64,9 @@ async function main(): Promise<void> {
     id: ID,
     slug: SLUG,
     category: CATEGORY,
-    title: "Pickleball Court Dimensions, Demystified: Every Line, Zone & Inch",
+    title: "Pickleball Court Dimensions, Demystified",
     excerpt:
-      "A pickleball court is 20 by 44 feet, small on purpose. Here is every line, zone, and inch: the 7-foot kitchen, the 36 and 34-inch net, the service courts, and the room you need to build one.",
+      "A pickleball court is 20 by 44 feet, small on purpose. Here is every line and zone: the 7-foot kitchen, the 36 and 34-inch net, and the service courts.",
     body,
     authorId: AUTHOR_ID,
     authorName: "Jamie Green",
