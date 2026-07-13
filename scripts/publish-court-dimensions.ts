@@ -66,11 +66,11 @@ async function main(): Promise<void> {
     category: CATEGORY,
     title: "Pickleball Court Dimensions, Demystified",
     excerpt:
-      "A pickleball court is 20 by 44 feet, small on purpose. Here is every line and zone: the 7-foot kitchen, the 36 and 34-inch net, and the service courts.",
+      "A pickleball court is 20 by 44 feet: every line and zone explained, from the 7-foot kitchen to the 34 and 36-inch net.",
     body,
     authorId: AUTHOR_ID,
     authorName: "Jamie Green",
-    coverImage: "/studio/pickle-jam/court-dimensions-hero.jpg",
+    coverImage: "/studio/pickle-jam/court-dimensions-hero-1200x630.jpg",
     keyTakeaways: [
       "A regulation pickleball court is 20 by 44 feet, the same for singles and doubles: 880 square feet.",
       "The kitchen (non-volley zone) runs 7 feet from the net on each side, and the net is 36 inches at the posts, 34 at the center.",
@@ -124,6 +124,10 @@ async function main(): Promise<void> {
 
   const check = await getContentBySlug(SLUG, CATEGORY);
   if (!check) throw new Error("Read-back failed: article did not publish.");
+  // Meta-description hard limit (§ Metadata quality): excerpt is the og:/meta description.
+  if ((check.excerpt ?? "").length > 155) {
+    throw new Error(`excerpt is ${check.excerpt!.length} chars > 155 (meta description hard limit)`);
+  }
   console.log(
     `Published: /learn/${CATEGORY}/${check.slug} | "${check.title}" | author=${check.authorId} | status=${check.status} | ${check.readMinutes} min | ${check.faq?.length ?? 0} FAQ | cover=${check.coverImage}`,
   );
