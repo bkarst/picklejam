@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" role="img" aria-labelledby="t d">
+  <title id="t">The kitchen: pickleball's non-volley zone</title>
+  <desc id="d">A top-down PickleJam-branded diagram of the 7-foot non-volley zone (the kitchen) on both sides of the net, showing that you may stand in it and play a ball that has bounced, but you may not volley (hit out of the air) while touching it, and that your momentum after a volley may not carry you in.</desc>
+  <rect width="1200" height="660" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="70" fill="#ffffff" font-family="Arial, sans-serif" font-size="46" font-weight="800" text-anchor="middle">THE KITCHEN</text>
+  <text x="600" y="110" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="23" font-weight="700" text-anchor="middle">THE 7-FOOT NON-VOLLEY ZONE ON EACH SIDE OF THE NET</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- court -->
+    <rect x="150" y="170" width="900" height="300" fill="#0d7a5c" stroke="#ffffff" stroke-width="5"/>
+    <!-- kitchen both sides -->
+    <rect x="480" y="170" width="240" height="300" fill="#ff3f8e" opacity=".92"/>
+    <line x1="480" y1="170" x2="480" y2="470" stroke="#ffffff" stroke-width="5"/>
+    <line x1="720" y1="170" x2="720" y2="470" stroke="#ffffff" stroke-width="5"/>
+    <!-- centerlines outside kitchen -->
+    <line x1="150" y1="320" x2="480" y2="320" stroke="#ffffff" stroke-width="4"/>
+    <line x1="720" y1="320" x2="1050" y2="320" stroke="#ffffff" stroke-width="4"/>
+    <!-- net -->
+    <line x1="600" y1="150" x2="600" y2="490" stroke="#0b3f31" stroke-width="9"/>
+    <line x1="600" y1="150" x2="600" y2="490" stroke="#ffffff" stroke-width="9" stroke-dasharray="2 7"/>
+    <circle cx="600" cy="150" r="8" fill="#d7ff3f"/>
+    <circle cx="600" cy="490" r="8" fill="#d7ff3f"/>
+    <text x="600" y="142" fill="#d7ff3f" font-size="17" font-weight="800" text-anchor="middle">NET</text>
+    <!-- backing panel so the label reads cleanly over the net line -->
+    <rect x="418" y="305" width="364" height="72" rx="14" fill="#0b3f31" opacity=".82"/>
+
+    <!-- 7 ft markers -->
+    <line x1="480" y1="205" x2="600" y2="205" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="480" y1="198" x2="480" y2="212" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="600" y1="198" x2="600" y2="212" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="540" y="196" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">7 FT</text>
+    <line x1="600" y1="205" x2="720" y2="205" stroke="#ffffff" stroke-width="2.5"/>
+    <line x1="720" y1="198" x2="720" y2="212" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="660" y="196" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">7 FT</text>
+
+    <text x="600" y="335" fill="#ffffff" font-size="30" font-weight="800" text-anchor="middle">NON-VOLLEY ZONE</text>
+    <text x="600" y="362" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">NO HITTING IT OUT OF THE AIR IN HERE</text>
+  </g>
+
+  <!-- DO / DON'T callouts -->
+  <g font-family="Arial, sans-serif">
+    <!-- DON'T -->
+    <rect x="150" y="510" width="435" height="112" rx="20" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="4"/>
+    <circle cx="196" cy="552" r="24" fill="#ff3f8e"/>
+    <text x="196" y="562" fill="#ffffff" font-size="30" font-weight="800" text-anchor="middle">✕</text>
+    <text x="238" y="548" fill="#ff3f8e" font-size="21" font-weight="800">DON'T VOLLEY IN THE KITCHEN</text>
+    <text x="238" y="576" fill="#ffffff" font-size="15" font-weight="700">Touching the line or zone as you volley is a fault.</text>
+    <text x="238" y="598" fill="#ffffff" font-size="15" font-weight="700">Your momentum can't carry you in either.</text>
+
+    <!-- DO -->
+    <rect x="615" y="510" width="435" height="112" rx="20" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="4"/>
+    <circle cx="661" cy="552" r="24" fill="#d7ff3f"/>
+    <text x="661" y="562" fill="#0f5a46" font-size="30" font-weight="800" text-anchor="middle">✓</text>
+    <text x="703" y="548" fill="#d7ff3f" font-size="21" font-weight="800">DO STAND IN IT ANYTIME</text>
+    <text x="703" y="576" fill="#ffffff" font-size="15" font-weight="700">You may enter to play a ball that bounced,</text>
+    <text x="703" y="598" fill="#ffffff" font-size="15" font-weight="700">then step out. Standing there is legal.</text>
+  </g>
+</svg>

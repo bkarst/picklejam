@@ -47,6 +47,16 @@ import type {
   FaqEntry,
   PublishStatus,
 } from "@/lib/db/types";
+// Content Hub articles + authors are file-backed (content/learn, content/authors);
+// the CONTENT/AUTHOR reads below delegate here. News + city/court stay in DynamoDB.
+import {
+  fileGetContentBySlug,
+  fileGetContent,
+  fileGetContentByCategory,
+  fileGetContentByAuthor,
+  fileGetAuthor,
+  fileGetAuthorBySlug,
+} from "@/lib/data/content-files";
 
 const asItem = (o: object): Record<string, unknown> => o as unknown as Record<string, unknown>;
 
@@ -65,85 +75,42 @@ export const CONTENT_CATEGORIES = [
 ] as const;
 export const NEWS_TOPICS = ["pro-tour", "rules", "equipment", "events", "community"] as const;
 
-// ── content reads (pattern 14) ────────────────────────────────────────────────
+// ── content reads (pattern 14) — file-backed (content/learn, content/authors) ──
+// These delegate to content-files.ts. The DynamoDB CONTENT/AUTHOR reads were
+// retired when the Content Hub moved to git-versioned YAML files; the write
+// helpers (createContent/upsertAuthor) below are kept for any DB-seeded flows.
 
-/** One GSI3 Query for a published article at `CONTENTSLUG#<category>#<slug>`. */
-async function queryContentSlug(category: string, slug: string): Promise<ContentItem | undefined> {
-  const { gsi3pk, gsi3sk } = contentKeys.bySlug(category, slug);
-  const { items } = await query<ContentItem>({
-    index: GSI.bySlug,
-    pk: gsi3pk,
-    skEquals: gsi3sk,
-    limit: 1,
-  });
-  const item = items[0];
-  return item && item.status === "published" ? item : undefined;
-}
-
-/**
- * Pattern 14 — resolve a published article by URL slug.
- *
- * FAST PATH — when the category is known (SSG pages usually have it), this is a
- * SINGLE GSI3 Query on `CONTENTSLUG#<category>#<slug>`. When the category is omitted
- * (the article route resolves by slug and validates the category itself), fall back
- * to a BOUNDED fan-out — one GSI3 Query per known {@link CONTENT_CATEGORIES} (never a
- * scan) — returning the first published match. Slugs are unique across categories in
- * practice, so the fan-out yields a single hit.
- */
+/** Resolve a published article by URL slug (optionally within a known category). */
 export async function getContentBySlug(
   slug: string,
   category?: string,
 ): Promise<ContentItem | undefined> {
-  if (category !== undefined) return queryContentSlug(category, slug);
-  const results = await Promise.all(CONTENT_CATEGORIES.map((c) => queryContentSlug(c, slug)));
-  return results.find((r) => r !== undefined);
+  return fileGetContentBySlug(slug, category);
 }
 
-/** An article META by id (GetItem) — cross-reference hydration. */
+/** An article by id — cross-reference hydration. */
 export async function getContent(id: string): Promise<ContentItem | undefined> {
-  return getItem<ContentItem>(contentKeys.meta(id));
+  return fileGetContent(id);
 }
 
-/**
- * Pattern 14 — the newest PUBLISHED articles in a category (GSI2 `CONTENTCAT#`,
- * recency-desc). Only published items carry the GSI2 keys (drafts are never
- * projected), so the status filter is belt-and-braces.
- */
+/** The newest published articles in a category, recency-desc. */
 export async function getContentByCategory(category: string, limit?: number): Promise<ContentItem[]> {
-  const { items } = await query<ContentItem>({
-    index: GSI.byLocation,
-    pk: contentKeys.categoryPk(category),
-    ascending: false, // gsi2sk = publishedAt → newest first
-    ...(limit !== undefined ? { limit } : {}),
-  });
-  return items.filter((c) => c.status === "published");
+  return fileGetContentByCategory(category, limit);
 }
 
-/** Pattern 14 — an author's PUBLISHED articles (GSI1 `AUTHOR#<id>`), newest first. */
+/** An author's published articles, newest first. */
 export async function getContentByAuthor(authorId: string): Promise<ContentItem[]> {
-  const { items } = await query<ContentItem>({
-    index: GSI.byOwner,
-    pk: contentKeys.authorPk(authorId),
-    ascending: false,
-  });
-  return items.filter((c) => c.entity === "CONTENT" && c.status === "published");
+  return fileGetContentByAuthor(authorId);
 }
 
-/** An author profile by id (GetItem) — E-E-A-T byline. */
+/** An author profile by id — E-E-A-T byline. */
 export async function getAuthor(authorId: string): Promise<AuthorItem | undefined> {
-  return getItem<AuthorItem>(contentKeys.author(authorId));
+  return fileGetAuthor(authorId);
 }
 
-/** An author profile by URL slug (GSI3, one Query). */
+/** An author profile by URL slug. */
 export async function getAuthorBySlug(slug: string): Promise<AuthorItem | undefined> {
-  const { gsi3pk, gsi3sk } = contentKeys.authorBySlug(slug);
-  const { items } = await query<AuthorItem>({
-    index: GSI.bySlug,
-    pk: gsi3pk,
-    skEquals: gsi3sk,
-    limit: 1,
-  });
-  return items[0];
+  return fileGetAuthorBySlug(slug);
 }
 
 export interface CategorySummary {

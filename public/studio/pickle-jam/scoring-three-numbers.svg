@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">How to call the score in doubles pickleball</title>
+  <desc id="d">A PickleJam-branded infographic decoding the three-number pickleball score call: the first number is your team's score, the second is the other team's score, and the third is the server number, 1 or 2. It also explains why every game starts at 0-0-2, that only the serving team scores, and that games go to 11, win by 2.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="70" fill="#ffffff" font-family="Arial, sans-serif" font-size="46" font-weight="800" text-anchor="middle">CALLING THE SCORE</text>
+  <text x="600" y="110" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="23" font-weight="700" text-anchor="middle">IN DOUBLES, THE SCORE IS ALWAYS THREE NUMBERS</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- badges -->
+    <rect x="295" y="165" width="170" height="160" rx="24" fill="#d7ff3f"/>
+    <text x="380" y="278" fill="#0f5a46" font-size="96" font-weight="800" text-anchor="middle">4</text>
+    <text x="380" y="360" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">YOUR TEAM'S</text>
+    <text x="380" y="384" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">SCORE</text>
+
+    <text x="490" y="270" fill="#ffffff" font-size="70" font-weight="800" text-anchor="middle">–</text>
+
+    <rect x="515" y="165" width="170" height="160" rx="24" fill="#ffffff"/>
+    <text x="600" y="278" fill="#0f5a46" font-size="96" font-weight="800" text-anchor="middle">2</text>
+    <text x="600" y="360" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">THEIR TEAM'S</text>
+    <text x="600" y="384" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">SCORE</text>
+
+    <text x="710" y="270" fill="#ffffff" font-size="70" font-weight="800" text-anchor="middle">–</text>
+
+    <rect x="735" y="165" width="170" height="160" rx="24" fill="#ff3f8e"/>
+    <text x="820" y="278" fill="#ffffff" font-size="96" font-weight="800" text-anchor="middle">1</text>
+    <text x="820" y="360" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">SERVER</text>
+    <text x="820" y="384" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">1st OR 2nd</text>
+  </g>
+
+  <!-- bottom explainer -->
+  <g font-family="Arial, sans-serif">
+    <rect x="110" y="420" width="980" height="180" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="4"/>
+    <text x="150" y="466" fill="#d7ff3f" font-size="24" font-weight="800">WHY EVERY GAME STARTS AT 0 – 0 – 2</text>
+    <text x="150" y="502" fill="#ffffff" font-size="18" font-weight="700">The team that serves first gets only one server, so the game opens at 0-0-2.</text>
+    <text x="150" y="530" fill="#ffffff" font-size="18" font-weight="700">The "2" means that when they lose the rally, the serve passes straight to the other team.</text>
+    <text x="150" y="558" fill="#ffffff" font-size="18" font-weight="700">After that, each side gets two servers, one per partner. Only the serving team can score.</text>
+    <text x="150" y="586" fill="#d7ff3f" font-size="18" font-weight="800">Games go to 11, win by 2.</text>
+  </g>
+</svg>
