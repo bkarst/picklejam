@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">What a pickleball triple crown is</title>
+  <desc id="d">A diagram explaining a triple crown in pickleball: winning gold in singles, men's doubles, and mixed doubles all at the same tournament. Ben Johns was the first man ever to do it, in 2019, and has won more of them than any other male player.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+  <text x="600" y="72" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">WHAT IS A TRIPLE CROWN?</text>
+  <text x="600" y="112" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">THREE GOLD MEDALS, ONE TOURNAMENT, ONE PLAYER</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- Singles badge -->
+    <circle cx="165" cy="300" r="76" fill="#d7ff3f"/>
+    <text x="165" y="292" fill="#0f5a46" font-size="23" font-weight="800" text-anchor="middle">SINGLES</text>
+    <text x="165" y="320" fill="#0f5a46" font-size="16" font-weight="700" text-anchor="middle">GOLD</text>
+    <text x="165" y="410" fill="#e8fbe4" font-size="17" font-weight="600" text-anchor="middle">one-on-one</text>
+
+    <text x="285" y="314" fill="#ffffff" font-size="46" font-weight="800" text-anchor="middle">+</text>
+
+    <!-- Men's doubles badge -->
+    <circle cx="405" cy="300" r="76" fill="#ffffff"/>
+    <text x="405" y="286" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">MEN'S</text>
+    <text x="405" y="312" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">DOUBLES</text>
+    <text x="405" y="336" fill="#0f5a46" font-size="15" font-weight="700" text-anchor="middle">GOLD</text>
+    <text x="405" y="410" fill="#e8fbe4" font-size="17" font-weight="600" text-anchor="middle">with his brother</text>
+
+    <text x="525" y="314" fill="#ffffff" font-size="46" font-weight="800" text-anchor="middle">+</text>
+
+    <!-- Mixed doubles badge -->
+    <circle cx="645" cy="300" r="76" fill="#ff3f8e"/>
+    <text x="645" y="286" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">MIXED</text>
+    <text x="645" y="312" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">DOUBLES</text>
+    <text x="645" y="336" fill="#ffffff" font-size="15" font-weight="700" text-anchor="middle">GOLD</text>
+    <text x="645" y="410" fill="#e8fbe4" font-size="17" font-weight="600" text-anchor="middle">with his partner</text>
+
+    <text x="770" y="314" fill="#d7ff3f" font-size="46" font-weight="800" text-anchor="middle">=</text>
+
+    <!-- Triple crown badge -->
+    <circle cx="965" cy="300" r="98" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="4"/>
+    <polygon points="905,300 923,262 947,290 965,250 983,290 1007,262 1025,300" fill="#d7ff3f"/>
+    <rect x="905" y="300" width="120" height="16" fill="#d7ff3f"/>
+    <text x="965" y="356" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">TRIPLE</text>
+    <text x="965" y="382" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">CROWN</text>
+
+    <!-- bottom banner -->
+    <rect x="70" y="486" width="1060" height="110" rx="24" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="600" y="530" fill="#d7ff3f" font-size="24" font-weight="800" text-anchor="middle">BEN JOHNS WAS THE FIRST MAN EVER TO WIN ONE (2019).</text>
+    <text x="600" y="566" fill="#ffffff" font-size="21" font-weight="700" text-anchor="middle">He has since collected more triple crowns than any other male player.</text>
+  </g>
+</svg>

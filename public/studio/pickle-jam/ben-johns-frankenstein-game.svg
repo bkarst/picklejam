@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">The Frankenstein game of Ben Johns</title>
+  <desc id="d">An infographic showing the four sources Ben Johns stitched his pickleball game from, his own word for it being Frankensteined: tennis gave him topspin drives and movement, table tennis gave him the backhand roll and spin, an engineer's mind gave him shot selection and patience, and relentless curiosity keeps him adding new shots to an unsolved sport.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+  <text x="600" y="72" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE "FRANKENSTEIN" GAME</text>
+  <text x="600" y="112" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">HIS OWN WORD FOR A GAME BORROWED FROM EVERYWHERE</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- Card 1 -->
+    <rect x="40" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="82" y="188" width="171" height="46" rx="23" fill="#d7ff3f"/>
+    <text x="167" y="219" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">TENNIS</text>
+    <text x="167" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">Topspin drives, a</text>
+    <text x="167" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">heavy return, and</text>
+    <text x="167" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">the footwork to</text>
+    <text x="167" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">cover the court.</text>
+
+    <!-- Card 2 -->
+    <rect x="330" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#ffffff" stroke-width="3"/>
+    <rect x="360" y="188" width="195" height="46" rx="23" fill="#ffffff"/>
+    <text x="457" y="219" fill="#0f5a46" font-size="20" font-weight="800" text-anchor="middle">TABLE TENNIS</text>
+    <text x="457" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">The backhand</text>
+    <text x="457" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">roll, wrist spin,</text>
+    <text x="457" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">and hands quick</text>
+    <text x="457" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">as a blink.</text>
+
+    <!-- Card 3 -->
+    <rect x="620" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="640" y="188" width="215" height="46" rx="23" fill="#d7ff3f"/>
+    <text x="747" y="219" fill="#0f5a46" font-size="19" font-weight="800" text-anchor="middle">ENGINEER'S MIND</text>
+    <text x="747" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">Ruthless shot</text>
+    <text x="747" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">selection and</text>
+    <text x="747" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">patience when</text>
+    <text x="747" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">the point drags.</text>
+
+    <!-- Card 4 -->
+    <rect x="910" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <rect x="945" y="188" width="185" height="46" rx="23" fill="#ff3f8e"/>
+    <text x="1037" y="219" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">CURIOSITY</text>
+    <text x="1037" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">He calls the sport</text>
+    <text x="1037" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">"unsolved," and</text>
+    <text x="1037" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">keeps adding new</text>
+    <text x="1037" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">shots every year.</text>
+
+    <!-- bottom banner -->
+    <rect x="40" y="500" width="1125" height="96" rx="24" fill="#d7ff3f"/>
+    <text x="602" y="546" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">STITCH THEM TOGETHER, AND YOU GET THE MOST</text>
+    <text x="602" y="578" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">COMPLETE GAME IN THE SPORT.</text>
+  </g>
+</svg>

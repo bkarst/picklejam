@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">The bookshelf that built Ben Johns' backhand</title>
+  <desc id="d">A three-step diagram: a bookshelf beside the Johns family basement ping-pong table pinned young Ben to his left so he could not run around to his forehand; he learned to take every ball off his backhand; and that constraint grew into his two-handed backhand roll, one of pickleball's most feared shots.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+  <text x="600" y="74" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800" text-anchor="middle">THE BOOKSHELF THAT BUILT THE BACKHAND</text>
+  <text x="600" y="114" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">HOW A BASEMENT PING-PONG TABLE MADE A SIGNATURE SHOT</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- Panel 1 -->
+    <rect x="70" y="182" width="300" height="372" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <circle cx="220" cy="236" r="27" fill="#d7ff3f"/>
+    <text x="220" y="246" fill="#0f5a46" font-size="30" font-weight="800" text-anchor="middle">1</text>
+    <text x="220" y="308" fill="#ffffff" font-size="25" font-weight="800" text-anchor="middle">PINNED LEFT</text>
+    <text x="220" y="356" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">A bookshelf stood to the</text>
+    <text x="220" y="382" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">left of the basement</text>
+    <text x="220" y="408" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">ping-pong table. He could</text>
+    <text x="220" y="434" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">not run around it to</text>
+    <text x="220" y="460" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">his forehand.</text>
+
+    <!-- Panel 2 -->
+    <rect x="450" y="182" width="300" height="372" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <circle cx="600" cy="236" r="27" fill="#d7ff3f"/>
+    <text x="600" y="246" fill="#0f5a46" font-size="30" font-weight="800" text-anchor="middle">2</text>
+    <text x="600" y="308" fill="#ffffff" font-size="25" font-weight="800" text-anchor="middle">ALL BACKHAND</text>
+    <text x="600" y="356" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">So every ball came off</text>
+    <text x="600" y="382" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">his backhand side, from</text>
+    <text x="600" y="408" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">every spot on the table.</text>
+    <text x="600" y="434" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">He learned to attack</text>
+    <text x="600" y="460" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">from there.</text>
+
+    <!-- Panel 3 -->
+    <rect x="830" y="182" width="300" height="372" rx="24" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <circle cx="980" cy="236" r="27" fill="#ff3f8e"/>
+    <text x="980" y="246" fill="#ffffff" font-size="30" font-weight="800" text-anchor="middle">3</text>
+    <text x="980" y="308" fill="#ffffff" font-size="25" font-weight="800" text-anchor="middle">THE ROLL</text>
+    <text x="980" y="356" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">That childhood limit</text>
+    <text x="980" y="382" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">grew into his two-handed</text>
+    <text x="980" y="408" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">backhand roll, now one of</text>
+    <text x="980" y="434" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">the most feared shots</text>
+    <text x="980" y="460" fill="#e8fbe4" font-size="18" font-weight="600" text-anchor="middle">in the sport.</text>
+
+    <!-- arrows -->
+    <polygon points="388,338 420,368 388,398" fill="#d7ff3f"/>
+    <polygon points="768,338 800,368 768,398" fill="#d7ff3f"/>
+  </g>
+</svg>

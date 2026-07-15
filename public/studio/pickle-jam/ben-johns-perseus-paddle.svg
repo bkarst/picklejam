@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">Anatomy of Ben Johns' paddle</title>
+  <desc id="d">A labeled diagram of the elongated carbon-fiber paddle Ben Johns helped design: the elongated shape gives extra reach and head-heavy power on his drives, the grit carbon-fiber face grabs the ball for heavy topspin, the sixteen-millimeter core gives a soft forgiving sweet spot for resets and dinks, and the longer handle leaves room for his two-handed backhand.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+  <text x="600" y="72" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">ANATOMY OF HIS PADDLE</text>
+  <text x="600" y="112" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">THE BUILD BEHIND BEN JOHNS' CONTROL GAME</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- paddle: elongated face + handle -->
+    <rect x="150" y="168" width="170" height="330" rx="70" fill="#eef7f0" stroke="#0b4536" stroke-width="4"/>
+    <rect x="150" y="168" width="170" height="330" rx="70" fill="none" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="208" y="496" width="54" height="104" rx="12" fill="#123a2e" stroke="#0b4536" stroke-width="3"/>
+    <line x1="222" y1="512" x2="222" y2="588" stroke="#3c6f5c" stroke-width="3"/>
+    <line x1="235" y1="512" x2="235" y2="588" stroke="#3c6f5c" stroke-width="3"/>
+    <line x1="248" y1="512" x2="248" y2="588" stroke="#3c6f5c" stroke-width="3"/>
+    <text x="235" y="345" fill="#7fa393" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="2">CARBON</text>
+
+    <!-- marker A: elongated shape -->
+    <circle cx="235" cy="192" r="11" fill="#d7ff3f"/>
+    <line x1="246" y1="192" x2="470" y2="200" stroke="#d7ff3f" stroke-width="2.5"/>
+    <text x="484" y="196" fill="#d7ff3f" font-size="24" font-weight="800">ELONGATED SHAPE</text>
+    <text x="484" y="228" fill="#ffffff" font-size="19" font-weight="600">Extra reach and head-heavy power</text>
+    <text x="484" y="254" fill="#ffffff" font-size="19" font-weight="600">for his put-away drives.</text>
+
+    <!-- marker B: grit face -->
+    <circle cx="300" cy="300" r="11" fill="#ff3f8e"/>
+    <line x1="311" y1="300" x2="470" y2="310" stroke="#ff3f8e" stroke-width="2.5"/>
+    <text x="484" y="306" fill="#ff8ebc" font-size="24" font-weight="800">GRIT CARBON FACE</text>
+    <text x="484" y="338" fill="#ffffff" font-size="19" font-weight="600">Grabs the ball so he can roll it out</text>
+    <text x="484" y="364" fill="#ffffff" font-size="19" font-weight="600">of the air on heavy topspin.</text>
+
+    <!-- marker C: core -->
+    <circle cx="300" cy="420" r="11" fill="#d7ff3f"/>
+    <line x1="311" y1="420" x2="470" y2="418" stroke="#d7ff3f" stroke-width="2.5"/>
+    <text x="484" y="414" fill="#d7ff3f" font-size="24" font-weight="800">16MM CONTROL CORE</text>
+    <text x="484" y="446" fill="#ffffff" font-size="19" font-weight="600">A soft, forgiving sweet spot for</text>
+    <text x="484" y="472" fill="#ffffff" font-size="19" font-weight="600">the resets and dinks that win points.</text>
+
+    <!-- marker D: handle -->
+    <circle cx="262" cy="548" r="11" fill="#ffffff"/>
+    <line x1="273" y1="548" x2="470" y2="524" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="484" y="520" fill="#ffffff" font-size="24" font-weight="800">LONGER HANDLE</text>
+    <text x="484" y="552" fill="#ffffff" font-size="19" font-weight="600">Room for two hands on the grip:</text>
+    <text x="484" y="578" fill="#ffffff" font-size="19" font-weight="600">the home of his backhand roll.</text>
+  </g>
+</svg>
