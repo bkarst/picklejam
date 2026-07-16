@@ -20,6 +20,7 @@ import {
   type TocItem,
 } from "@/components/content";
 import { categoryMeta } from "@/components/content/categories";
+import { FindYourPeopleCTA } from "@/components/groups";
 import { MarkdownBody, extractToc, readMinutes } from "@/lib/content/render";
 import { getContentBySlug, getAuthor } from "@/lib/data/content";
 import { getCity } from "@/lib/data/geo";
@@ -221,6 +222,15 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
           )}
         </div>
       </div>
+
+      {/* Every article ends with an invitation to form a crew (§6.9). Full-bleed
+          cream band — `main` is bg-surface, so the white card needs the canvas
+          behind it to read as a card. */}
+      <section className="mt-4 bg-background">
+        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-16">
+          <FindYourPeopleCTA />
+        </div>
+      </section>
     </main>
   );
 }

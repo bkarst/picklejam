@@ -8,6 +8,7 @@ import { newsArticleJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
 import { NewsCard } from "@/components/content";
+import { FindYourPeopleCTA } from "@/components/groups";
 import { relativeTime, formatArticleDate, titleize } from "@/components/content/format";
 import { MarkdownBody } from "@/lib/content/render";
 import { getNewsBySlug, getNewsFeed } from "@/lib/data/content";
@@ -238,6 +239,11 @@ export default async function NewsArticlePage({ params }: { params: Params }): P
             </Link>
           </section>
         </aside>
+      </div>
+
+      {/* Every story ends with an invitation to form a crew (§6.9). */}
+      <div className="mt-12">
+        <FindYourPeopleCTA />
       </div>
     </main>
   );
