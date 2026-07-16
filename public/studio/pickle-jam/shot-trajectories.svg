@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" role="img" aria-labelledby="t d">
+  <title id="t">Four pickleball shots, side by side: the dink, the drop, the drive, and the lob</title>
+  <desc id="d">Four side-view PickleJam-branded panels showing the flight path of the four pickleball shots players name most often. The dink is a soft arc from the kitchen line that barely clears the net and drops into the opponent's kitchen. The drop is a soft arc from the backcourt that also lands in the kitchen. The drive is a low, fast, nearly flat shot that skims the net on its way to the opponent's backcourt. The lob is a high arc far above the net to the back of the court.</desc>
+  <rect width="1200" height="860" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">FOUR SHOTS, FOUR NAMES</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">SIDE VIEW. EACH SHOT IS NAMED FOR ITS SHAPE, NOT ITS DIFFICULTY.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- ================= PANEL 1: DINK ================= -->
+    <g>
+      <rect x="60" y="140" width="520" height="320" rx="20" fill="#0d7a5c"/>
+      <text x="86" y="180" fill="#d7ff3f" font-size="26" font-weight="800">DINK</text>
+      <text x="86" y="204" fill="#ffffff" font-size="15" font-weight="700">Soft, from the kitchen line, into their kitchen.</text>
+
+      <rect x="250" y="360" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <rect x="330" y="360" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <line x1="90" y1="390" x2="550" y2="390" stroke="#ffffff" stroke-width="4"/>
+      <line x1="330" y1="390" x2="330" y2="345" stroke="#ffffff" stroke-width="5"/>
+      <path d="M 250 360 Q 310 300 385 378" fill="none" stroke="#d7ff3f" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="250" cy="360" r="8" fill="#d7ff3f"/>
+      <circle cx="385" cy="378" r="7" fill="#ffffff"/>
+      <text x="86" y="435" fill="#ffffff" font-size="14" font-weight="700">Barely clears the net. Nothing to attack.</text>
+    </g>
+
+    <!-- ================= PANEL 2: DROP ================= -->
+    <g>
+      <rect x="620" y="140" width="520" height="320" rx="20" fill="#0d7a5c"/>
+      <text x="646" y="180" fill="#d7ff3f" font-size="26" font-weight="800">DROP</text>
+      <text x="646" y="204" fill="#ffffff" font-size="15" font-weight="700">Soft, from the backcourt, into their kitchen.</text>
+
+      <rect x="810" y="360" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <rect x="890" y="360" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <line x1="650" y1="390" x2="1110" y2="390" stroke="#ffffff" stroke-width="4"/>
+      <line x1="890" y1="390" x2="890" y2="345" stroke="#ffffff" stroke-width="5"/>
+      <path d="M 645 375 Q 795 255 945 378" fill="none" stroke="#d7ff3f" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="645" cy="375" r="8" fill="#d7ff3f"/>
+      <circle cx="945" cy="378" r="7" fill="#ffffff"/>
+      <text x="646" y="435" fill="#ffffff" font-size="14" font-weight="700">The third shot drop is this, hit third. It buys you the net.</text>
+    </g>
+
+    <!-- ================= PANEL 3: DRIVE ================= -->
+    <g>
+      <rect x="60" y="480" width="520" height="320" rx="20" fill="#0d7a5c"/>
+      <text x="86" y="520" fill="#d7ff3f" font-size="26" font-weight="800">DRIVE</text>
+      <text x="86" y="544" fill="#ffffff" font-size="15" font-weight="700">Low, hard, and flat, at their feet.</text>
+
+      <rect x="250" y="700" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <rect x="330" y="700" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <line x1="90" y1="730" x2="550" y2="730" stroke="#ffffff" stroke-width="4"/>
+      <line x1="330" y1="730" x2="330" y2="685" stroke="#ffffff" stroke-width="5"/>
+      <path d="M 115 715 Q 320 640 525 722" fill="none" stroke="#ff3f8e" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="115" cy="715" r="8" fill="#ff3f8e"/>
+      <circle cx="525" cy="722" r="7" fill="#ffffff"/>
+      <text x="86" y="775" fill="#ffffff" font-size="14" font-weight="700">Skims the net. Hit only these and you have earned the name banger.</text>
+    </g>
+
+    <!-- ================= PANEL 4: LOB ================= -->
+    <g>
+      <rect x="620" y="480" width="520" height="320" rx="20" fill="#0d7a5c"/>
+      <text x="646" y="520" fill="#d7ff3f" font-size="26" font-weight="800">LOB</text>
+      <text x="646" y="544" fill="#ffffff" font-size="15" font-weight="700">High, over their head, to the back line.</text>
+
+      <rect x="810" y="700" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <rect x="890" y="700" width="80" height="30" fill="#ff3f8e" opacity=".5"/>
+      <line x1="650" y1="730" x2="1110" y2="730" stroke="#ffffff" stroke-width="4"/>
+      <line x1="890" y1="730" x2="890" y2="685" stroke="#ffffff" stroke-width="5"/>
+      <path d="M 675 715 Q 880 570 1085 722" fill="none" stroke="#ff3f8e" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="675" cy="715" r="8" fill="#ff3f8e"/>
+      <circle cx="1085" cy="722" r="7" fill="#ffffff"/>
+      <text x="646" y="775" fill="#ffffff" font-size="14" font-weight="700">Answered by an overhead smash, if they get back in time.</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+  <title id="t">The Erne and the Bert: two legal ways to volley beside the kitchen</title>
+  <desc id="d">A top-down PickleJam-branded diagram of one side of a pickleball court showing where an Erne and a Bert are played. The Erne is a volley hit from just outside your own sideline, beside the kitchen, never touching the kitchen itself. The Bert is the same shot played beside your partner's sideline, after crossing in front of them, shown by a dashed path across the court. A footer explains both are legal because the kitchen line stops at the sideline.</desc>
+  <rect width="1200" height="720" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE ERNE AND THE BERT</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">SAME TRICK. THE ONLY DIFFERENCE IS WHOSE SIDE YOU DO IT ON.</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- net across the top -->
+    <line x1="230" y1="150" x2="970" y2="150" stroke="#0b3f31" stroke-width="9"/>
+    <line x1="230" y1="150" x2="970" y2="150" stroke="#ffffff" stroke-width="9" stroke-dasharray="2 7"/>
+    <text x="600" y="136" fill="#d7ff3f" font-size="17" font-weight="800" text-anchor="middle">NET</text>
+
+    <!-- court (your side of the net only) -->
+    <rect x="270" y="150" width="660" height="400" fill="#0d7a5c" stroke="#ffffff" stroke-width="5"/>
+
+    <!-- the kitchen -->
+    <rect x="270" y="150" width="660" height="231" fill="#ff3f8e" opacity=".9"/>
+    <line x1="270" y1="381" x2="930" y2="381" stroke="#ffffff" stroke-width="5"/>
+    <text x="600" y="268" fill="#ffffff" font-size="24" font-weight="800" text-anchor="middle">THE KITCHEN</text>
+    <text x="600" y="294" fill="#ffffff" font-size="15" font-weight="700" text-anchor="middle">NO VOLLEYING IN HERE, EVER</text>
+
+    <!-- centerline -->
+    <line x1="600" y1="381" x2="600" y2="550" stroke="#ffffff" stroke-width="4"/>
+
+    <!-- half labels -->
+    <text x="435" y="586" fill="#d7ff3f" font-size="17" font-weight="800" text-anchor="middle">YOUR HALF</text>
+    <text x="765" y="586" fill="#ff3f8e" font-size="17" font-weight="800" text-anchor="middle">YOUR PARTNER'S HALF</text>
+
+    <!-- Bert's run: from your half, across in front of your partner -->
+    <path d="M 470 510 Q 820 545 975 305" fill="none" stroke="#ff3f8e" stroke-width="4" stroke-dasharray="10 8" stroke-linecap="round"/>
+    <polygon points="975,305 972,322 960,315" fill="#ff3f8e"/>
+    <circle cx="470" cy="510" r="8" fill="#ff3f8e"/>
+    <rect x="545" y="420" width="430" height="32" rx="10" fill="#0b3f31" opacity=".88"/>
+    <text x="760" y="442" fill="#ff3f8e" font-size="14" font-weight="800" text-anchor="middle">YOU CROSS IN FRONT OF YOUR PARTNER</text>
+
+    <!-- ERNE marker: outside YOUR sideline, beside the kitchen -->
+    <circle cx="215" cy="265" r="26" fill="#d7ff3f"/>
+    <text x="215" y="275" fill="#0b3f31" font-size="24" font-weight="800" text-anchor="middle">E</text>
+    <text x="180" y="258" fill="#d7ff3f" font-size="19" font-weight="800" text-anchor="end">ERNE</text>
+    <text x="180" y="280" fill="#ffffff" font-size="13" font-weight="700" text-anchor="end">outside your</text>
+    <text x="180" y="298" fill="#ffffff" font-size="13" font-weight="700" text-anchor="end">own sideline</text>
+
+    <!-- BERT marker: outside PARTNER'S sideline -->
+    <circle cx="985" cy="265" r="26" fill="#ff3f8e"/>
+    <text x="985" y="275" fill="#ffffff" font-size="24" font-weight="800" text-anchor="middle">B</text>
+    <text x="1022" y="258" fill="#ff3f8e" font-size="19" font-weight="800">BERT</text>
+    <text x="1022" y="280" fill="#ffffff" font-size="13" font-weight="700">outside your</text>
+    <text x="1022" y="298" fill="#ffffff" font-size="13" font-weight="700">partner's sideline</text>
+  </g>
+
+  <!-- why it's legal -->
+  <g font-family="Arial, sans-serif">
+    <rect x="150" y="616" width="900" height="76" rx="20" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="4"/>
+    <circle cx="196" cy="654" r="22" fill="#d7ff3f"/>
+    <text x="196" y="664" fill="#0f5a46" font-size="28" font-weight="800" text-anchor="middle">✓</text>
+    <text x="236" y="648" fill="#d7ff3f" font-size="19" font-weight="800">WHY BOTH ARE LEGAL</text>
+    <text x="236" y="674" fill="#ffffff" font-size="15" font-weight="700">The kitchen line stops at the sideline. Stand beside the kitchen, not in it, and you may volley all you like.</text>
+  </g>
+</svg>

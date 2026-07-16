@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">Pickleball shots named after the actual people who hit them first</title>
+  <desc id="d">A PickleJam-branded roster infographic listing four pickleball terms and the real person each is named for: the Erne for Erne Perry, the Nasty Nelson for Timothy Nelson, the Joey for Joe Valenti, and the chainsaw serve for Zane Navratil, which is no longer legal in USA Pickleball sanctioned play. A footer notes that the Bert is the exception, named for Bert of Sesame Street, Ernie's companion.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE PEOPLE WHO BECAME WORDS</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">FOUR TERMS. FOUR ACTUAL HUMAN BEINGS WHO DID IT FIRST.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- ROW 1: ERNE -->
+    <rect x="80" y="140" width="1040" height="88" rx="18" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="112" y="180" fill="#d7ff3f" font-size="27" font-weight="800">ERNE</text>
+    <text x="112" y="208" fill="#ffffff" font-size="15" font-weight="700">A volley hit from outside the sideline, beside the kitchen, never in it.</text>
+    <text x="800" y="176" fill="#d7ff3f" font-size="13" font-weight="800">NAMED FOR</text>
+    <text x="800" y="204" fill="#ffffff" font-size="22" font-weight="800">Erne Perry</text>
+
+    <!-- ROW 2: NASTY NELSON -->
+    <rect x="80" y="252" width="1040" height="88" rx="18" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="112" y="292" fill="#d7ff3f" font-size="27" font-weight="800">NASTY NELSON</text>
+    <text x="112" y="320" fill="#ffffff" font-size="15" font-weight="700">A serve aimed at the player who is not receiving. It wins the point.</text>
+    <text x="800" y="288" fill="#d7ff3f" font-size="13" font-weight="800">NAMED FOR</text>
+    <text x="800" y="316" fill="#ffffff" font-size="22" font-weight="800">Timothy Nelson</text>
+
+    <!-- ROW 3: JOEY -->
+    <rect x="80" y="364" width="1040" height="88" rx="18" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="112" y="404" fill="#d7ff3f" font-size="27" font-weight="800">JOEY</text>
+    <text x="112" y="432" fill="#ffffff" font-size="15" font-weight="700">Answering an around-the-post shot by sending it straight back the same way.</text>
+    <text x="800" y="400" fill="#d7ff3f" font-size="13" font-weight="800">NAMED FOR</text>
+    <text x="800" y="428" fill="#ffffff" font-size="22" font-weight="800">Joe Valenti</text>
+
+    <!-- ROW 4: CHAINSAW (pink = no longer legal) -->
+    <rect x="80" y="476" width="1040" height="88" rx="18" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="112" y="516" fill="#ff3f8e" font-size="27" font-weight="800">CHAINSAW SERVE</text>
+    <text x="112" y="544" fill="#ffffff" font-size="15" font-weight="700">Spinning the ball off the paddle before the toss. Legislated out of the rulebook.</text>
+    <text x="800" y="512" fill="#ff3f8e" font-size="13" font-weight="800">NAMED FOR</text>
+    <text x="800" y="540" fill="#ffffff" font-size="22" font-weight="800">Zane Navratil</text>
+
+    <text x="600" y="606" fill="#ffffff" font-size="16" font-weight="700" text-anchor="middle">The Bert is the exception: the same shot on your partner's side, named for Bert of Sesame Street, Ernie's companion.</text>
+  </g>
+</svg>
