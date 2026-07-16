@@ -8,6 +8,7 @@ export { AuthorByline } from "./AuthorByline";
 export { CategoryTile } from "./CategoryTile";
 export { KeyTakeaways } from "./KeyTakeaways";
 export { RelatedLocalCTA } from "./RelatedLocalCTA";
+export { ShareLinkButton, type ShareLinkButtonProps } from "./ShareLinkButton";
 export { NewsletterSignup } from "./NewsletterSignup";
 export { TableOfContents, type TocItem } from "./TableOfContents";
 export { categoryMeta, CATEGORY_META, type CategoryMeta, type CategoryGlyph } from "./categories";

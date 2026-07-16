@@ -7,7 +7,7 @@ import { buildMetadata, articleTitle } from "@/lib/seo/metadata";
 import { newsArticleJsonLd, breadcrumbListJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
-import { NewsCard } from "@/components/content";
+import { NewsCard, ShareLinkButton } from "@/components/content";
 import { FindYourPeopleCTA } from "@/components/groups";
 import { relativeTime, formatArticleDate, titleize } from "@/components/content/format";
 import { MarkdownBody } from "@/lib/content/render";
@@ -122,33 +122,36 @@ export default async function NewsArticlePage({ params }: { params: Params }): P
           </h1>
 
           {/* Dateline + source attribution */}
-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-            <time dateTime={news.publishedAt} className="font-medium text-foreground">
-              {relativeTime(news.publishedAt)}
-            </time>
-            <span aria-hidden="true">·</span>
-            <span>{formatArticleDate(news.publishedAt)}</span>
-            {news.source?.name && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>
-                  via{" "}
-                  {news.source.url ? (
-                    <a
-                      href={news.source.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="font-semibold text-accent hover:underline"
-                    >
-                      {news.source.name}
-                    </a>
-                  ) : (
-                    <span className="font-semibold text-foreground">{news.source.name}</span>
-                  )}
-                </span>
-              </>
-            )}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+              <time dateTime={news.publishedAt} className="font-medium text-foreground">
+                {relativeTime(news.publishedAt)}
+              </time>
+              <span aria-hidden="true">·</span>
+              <span>{formatArticleDate(news.publishedAt)}</span>
+              {news.source?.name && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    via{" "}
+                    {news.source.url ? (
+                      <a
+                        href={news.source.url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="font-semibold text-accent hover:underline"
+                      >
+                        {news.source.name}
+                      </a>
+                    ) : (
+                      <span className="font-semibold text-foreground">{news.source.name}</span>
+                    )}
+                  </span>
+                </>
+              )}
+            </p>
+            <ShareLinkButton url={url} />
+          </div>
 
           {/* Cover */}
           {news.coverImage && (

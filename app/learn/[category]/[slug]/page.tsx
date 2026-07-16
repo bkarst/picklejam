@@ -16,6 +16,7 @@ import {
   AuthorByline,
   KeyTakeaways,
   RelatedLocalCTA,
+  ShareLinkButton,
   TableOfContents,
   type TocItem,
 } from "@/components/content";
@@ -121,7 +122,7 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
             {content.title}
           </h1>
           {content.excerpt && <p className="mt-3 text-lg text-muted">{content.excerpt}</p>}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <AuthorByline
               name={author?.name ?? content.authorName ?? brand.identity.name}
               avatarUrl={author?.avatarUrl}
@@ -130,6 +131,7 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
               date={content.publishedAt}
               size="md"
             />
+            <ShareLinkButton url={`${base}${path}`} />
           </div>
         </header>
 
