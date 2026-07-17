@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" role="img" aria-labelledby="t d">
+  <title id="t">The fight for the pickleball kitchen line, seen from above</title>
+  <desc id="d">A top-down view of a 20 by 44 foot pickleball court with the net down the middle and a seven-foot kitchen, or non-volley zone, marked on each side. On the left, both partners stand together just behind their kitchen line, the position from which a team hits down at its opponents. On the right, both partners are stranded back at their baseline, the position from which a team is forced to hit up. The kitchen line, not the net, is the piece of ground the whole point is fought over.</desc>
+  <rect width="1200" height="820" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE FIGHT IS OVER SEVEN FEET</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">TOP-DOWN VIEW. THE TEAM THAT OWNS THE KITCHEN LINE HITS DOWN.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- court surface -->
+    <rect x="150" y="190" width="900" height="410" rx="6" fill="#0d7a5c"/>
+
+    <!-- kitchen zones -->
+    <rect x="457" y="190" width="143" height="410" fill="#ff3f8e" opacity=".5"/>
+    <rect x="600" y="190" width="143" height="410" fill="#ff3f8e" opacity=".5"/>
+    <text x="528" y="216" fill="#ffffff" font-size="13" font-weight="800" text-anchor="middle">KITCHEN</text>
+    <text x="528" y="234" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle" opacity=".85">7 FT</text>
+    <text x="671" y="216" fill="#ffffff" font-size="13" font-weight="800" text-anchor="middle">KITCHEN</text>
+    <text x="671" y="234" fill="#ffffff" font-size="12" font-weight="700" text-anchor="middle" opacity=".85">7 FT</text>
+
+    <!-- court lines -->
+    <rect x="150" y="190" width="900" height="410" fill="none" stroke="#ffffff" stroke-width="4"/>
+    <line x1="150" y1="395" x2="457" y2="395" stroke="#ffffff" stroke-width="3"/>
+    <line x1="743" y1="395" x2="1050" y2="395" stroke="#ffffff" stroke-width="3"/>
+    <line x1="743" y1="190" x2="743" y2="600" stroke="#ffffff" stroke-width="3"/>
+
+    <!-- the line that matters -->
+    <line x1="457" y1="190" x2="457" y2="600" stroke="#d7ff3f" stroke-width="7"/>
+
+    <!-- net -->
+    <line x1="600" y1="190" x2="600" y2="600" stroke="#ffffff" stroke-width="6" stroke-dasharray="10 8"/>
+    <text x="600" y="182" fill="#ffffff" font-size="14" font-weight="800" text-anchor="middle">NET</text>
+
+    <!-- winning team: at the line -->
+    <circle cx="437" cy="290" r="17" fill="#d7ff3f"/>
+    <circle cx="437" cy="500" r="17" fill="#d7ff3f"/>
+
+    <!-- losing team: stuck back -->
+    <circle cx="1028" cy="290" r="17" fill="#ffffff" opacity=".55"/>
+    <circle cx="1028" cy="500" r="17" fill="#ffffff" opacity=".55"/>
+
+    <!-- no man's land: the ground the stranded team still has to cross -->
+    <text x="896" y="336" fill="#ffffff" font-size="15" font-weight="800" text-anchor="middle" opacity=".85">NO MAN'S LAND</text>
+    <text x="896" y="358" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle" opacity=".7">They still have to cross it.</text>
+
+    <!-- callout for the line -->
+    <text x="437" y="638" fill="#d7ff3f" font-size="17" font-weight="800" text-anchor="middle">THE ONLY LINE THAT MATTERS</text>
+
+    <!-- captions -->
+    <text x="330" y="678" fill="#d7ff3f" font-size="19" font-weight="800" text-anchor="middle">AT THE LINE. THEY HIT DOWN.</text>
+    <text x="880" y="678" fill="#ffffff" font-size="19" font-weight="800" text-anchor="middle" opacity=".8">STUCK BACK. THEY HIT UP.</text>
+
+    <!-- takeaway -->
+    <g>
+      <rect x="60" y="710" width="1080" height="80" rx="20" fill="#0d7a5c"/>
+      <text x="600" y="746" fill="#d7ff3f" font-size="21" font-weight="800" text-anchor="middle">YOU ARE NOT FIGHTING FOR THE POINT. YOU ARE FIGHTING FOR THE LINE.</text>
+      <text x="600" y="774" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">Win the seven feet, and the point tends to come with it.</text>
+    </g>
+
+  </g>
+</svg>

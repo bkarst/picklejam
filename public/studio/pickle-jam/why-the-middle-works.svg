@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+  <title id="t">Why down the middle works in pickleball doubles</title>
+  <desc id="d">A front view of a pickleball net showing that it is 36 inches high at the sidelines and sags to 34 inches at the center, so the middle of the court is the lowest part of the net to clear. A highlighted target band marks the center as the place to aim. Three cards below give the three reasons the tactic works: the net is two inches lower there, a ball in the middle lands between two opponents who must decide whose ball it is, and there is no sideline nearby to miss.</desc>
+  <rect width="1200" height="720" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">WHY DOWN THE MIDDLE WORKS</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">FRONT VIEW. THE NET IS LOWEST EXACTLY WHERE NOBODY AIMS.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- target band through the middle -->
+    <rect x="520" y="286" width="160" height="184" fill="#d7ff3f" opacity=".14"/>
+    <text x="600" y="238" fill="#d7ff3f" font-size="20" font-weight="800" text-anchor="middle">AIM HERE</text>
+    <path d="M 600 246 L 610 262 L 590 262 Z" fill="#d7ff3f"/>
+
+    <!-- net body -->
+    <path d="M 200 250 Q 600 330 1000 250 L 1000 470 L 200 470 Z" fill="#ffffff" opacity=".10"/>
+    <path d="M 200 250 Q 600 330 1000 250" fill="none" stroke="#ffffff" stroke-width="6"/>
+
+    <!-- posts -->
+    <line x1="200" y1="250" x2="200" y2="470" stroke="#ffffff" stroke-width="7"/>
+    <line x1="1000" y1="250" x2="1000" y2="470" stroke="#ffffff" stroke-width="7"/>
+
+    <!-- ground -->
+    <line x1="120" y1="470" x2="1080" y2="470" stroke="#ffffff" stroke-width="4"/>
+
+    <!-- left dimension: 36 in -->
+    <line x1="158" y1="250" x2="158" y2="470" stroke="#ffffff" stroke-width="2" opacity=".8"/>
+    <line x1="148" y1="250" x2="168" y2="250" stroke="#ffffff" stroke-width="2" opacity=".8"/>
+    <line x1="148" y1="470" x2="168" y2="470" stroke="#ffffff" stroke-width="2" opacity=".8"/>
+    <text x="140" y="356" fill="#ffffff" font-size="22" font-weight="800" text-anchor="end">36 IN</text>
+    <text x="140" y="378" fill="#ffffff" font-size="14" font-weight="700" text-anchor="end" opacity=".8">at the</text>
+    <text x="140" y="396" fill="#ffffff" font-size="14" font-weight="700" text-anchor="end" opacity=".8">sideline</text>
+
+    <!-- center dimension: 34 in -->
+    <line x1="600" y1="290" x2="600" y2="470" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="590" y1="290" x2="610" y2="290" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="590" y1="470" x2="610" y2="470" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="622" y="368" fill="#d7ff3f" font-size="22" font-weight="800">34 IN</text>
+    <text x="622" y="390" fill="#ffffff" font-size="14" font-weight="700" opacity=".85">at the center</text>
+
+    <text x="600" y="516" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">Two inches of free help, on every single shot, forever.</text>
+
+    <!-- ================= THREE REASONS ================= -->
+    <g>
+      <!-- card 1 -->
+      <rect x="60" y="560" width="340" height="120" rx="16" fill="#0d7a5c"/>
+      <circle cx="94" cy="596" r="17" fill="#ff3f8e"/>
+      <text x="94" y="603" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">1</text>
+      <text x="122" y="603" fill="#d7ff3f" font-size="20" font-weight="800">LOWER NET</text>
+      <text x="82" y="636" fill="#ffffff" font-size="15" font-weight="700">Two inches less to clear</text>
+      <text x="82" y="658" fill="#ffffff" font-size="15" font-weight="700">than either sideline.</text>
+
+      <!-- card 2 -->
+      <rect x="430" y="560" width="340" height="120" rx="16" fill="#0d7a5c"/>
+      <circle cx="464" cy="596" r="17" fill="#ff3f8e"/>
+      <text x="464" y="603" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">2</text>
+      <text x="492" y="603" fill="#d7ff3f" font-size="20" font-weight="800">WHOSE BALL?</text>
+      <text x="452" y="636" fill="#ffffff" font-size="15" font-weight="700">It lands between two people</text>
+      <text x="452" y="658" fill="#ffffff" font-size="15" font-weight="700">who must both decide.</text>
+
+      <!-- card 3 -->
+      <rect x="800" y="560" width="340" height="120" rx="16" fill="#0d7a5c"/>
+      <circle cx="834" cy="596" r="17" fill="#ff3f8e"/>
+      <text x="834" y="603" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">3</text>
+      <text x="862" y="603" fill="#d7ff3f" font-size="20" font-weight="800">MORE ROOM</text>
+      <text x="822" y="636" fill="#ffffff" font-size="15" font-weight="700">No sideline sitting there</text>
+      <text x="822" y="658" fill="#ffffff" font-size="15" font-weight="700">waiting for you to miss.</text>
+    </g>
+
+  </g>
+</svg>

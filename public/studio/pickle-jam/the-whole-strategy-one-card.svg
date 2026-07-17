@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="t d">
+  <title id="t">The whole pickleball strategy on one card</title>
+  <desc id="d">A summary card. The core rule reads: make them hit up, and do not hit up yourself. Four numbered rules follow: get to the kitchen line and stay there, keep every ball low so it reaches them at their shoelaces, aim at the middle where the net sags and the confusion lives, and wait one more shot than feels reasonable. The footer gives the decision rule: if the ball is above the net tape, drive it; if it is below the tape, lift it softly and wait for the next one.</desc>
+  <rect width="1200" height="620" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="60" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="800" text-anchor="middle">THE WHOLE STRATEGY, ON ONE CARD</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- the core rule -->
+    <rect x="60" y="96" width="1080" height="106" rx="20" fill="#d7ff3f"/>
+    <text x="600" y="145" fill="#0f5a46" font-size="36" font-weight="800" text-anchor="middle">MAKE THEM HIT UP.</text>
+    <text x="600" y="184" fill="#0f5a46" font-size="36" font-weight="800" text-anchor="middle">DO NOT HIT UP YOURSELF.</text>
+
+    <!-- four rules -->
+    <g>
+      <rect x="60" y="230" width="260" height="196" rx="16" fill="#0d7a5c"/>
+      <circle cx="94" cy="266" r="17" fill="#ff3f8e"/>
+      <text x="94" y="273" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">1</text>
+      <text x="122" y="273" fill="#d7ff3f" font-size="19" font-weight="800">GET UP</text>
+      <text x="82" y="316" fill="#ffffff" font-size="15" font-weight="700">Live at the kitchen</text>
+      <text x="82" y="338" fill="#ffffff" font-size="15" font-weight="700">line. It is the only</text>
+      <text x="82" y="360" fill="#ffffff" font-size="15" font-weight="700">ground worth</text>
+      <text x="82" y="382" fill="#ffffff" font-size="15" font-weight="700">fighting for.</text>
+
+      <rect x="340" y="230" width="260" height="196" rx="16" fill="#0d7a5c"/>
+      <circle cx="374" cy="266" r="17" fill="#ff3f8e"/>
+      <text x="374" y="273" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">2</text>
+      <text x="402" y="273" fill="#d7ff3f" font-size="19" font-weight="800">STAY LOW</text>
+      <text x="362" y="316" fill="#ffffff" font-size="15" font-weight="700">Every ball should</text>
+      <text x="362" y="338" fill="#ffffff" font-size="15" font-weight="700">reach them around</text>
+      <text x="362" y="360" fill="#ffffff" font-size="15" font-weight="700">the shoelaces.</text>
+
+      <rect x="620" y="230" width="260" height="196" rx="16" fill="#0d7a5c"/>
+      <circle cx="654" cy="266" r="17" fill="#ff3f8e"/>
+      <text x="654" y="273" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">3</text>
+      <text x="682" y="273" fill="#d7ff3f" font-size="19" font-weight="800">GO MIDDLE</text>
+      <text x="642" y="316" fill="#ffffff" font-size="15" font-weight="700">The net sags there</text>
+      <text x="642" y="338" fill="#ffffff" font-size="15" font-weight="700">and the confusion</text>
+      <text x="642" y="360" fill="#ffffff" font-size="15" font-weight="700">lives there.</text>
+
+      <rect x="900" y="230" width="240" height="196" rx="16" fill="#0d7a5c"/>
+      <circle cx="934" cy="266" r="17" fill="#ff3f8e"/>
+      <text x="934" y="273" fill="#ffffff" font-size="18" font-weight="800" text-anchor="middle">4</text>
+      <text x="962" y="273" fill="#d7ff3f" font-size="19" font-weight="800">WAIT</text>
+      <text x="922" y="316" fill="#ffffff" font-size="15" font-weight="700">One more shot than</text>
+      <text x="922" y="338" fill="#ffffff" font-size="15" font-weight="700">feels reasonable.</text>
+      <text x="922" y="360" fill="#ffffff" font-size="15" font-weight="700">Then one more.</text>
+    </g>
+
+    <!-- decision rule -->
+    <g>
+      <rect x="60" y="452" width="1080" height="104" rx="20" fill="#0d7a5c"/>
+      <text x="600" y="492" fill="#d7ff3f" font-size="21" font-weight="800" text-anchor="middle">THE ONLY DECISION YOU EVER HAVE TO MAKE</text>
+      <text x="600" y="524" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">Above the tape? Drive it. Below the tape? Lift it softly and wait for the next one.</text>
+    </g>
+
+  </g>
+</svg>

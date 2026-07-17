@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="t d">
+  <title id="t">Who has to hit up? The net tape decides every pickleball point</title>
+  <desc id="d">Two side-view panels comparing the only two situations in a pickleball rally. On the left, the ball is above the height of the net tape when you contact it, so you can hit downward into the opponent's court and attack. On the right, the ball is below the net tape when you contact it, so you are forced to lift the ball upward just to clear the net, which hands control to the other team. Every tactic in the guide exists to put opponents in the second panel and keep you in the first.</desc>
+  <rect width="1200" height="700" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">WHO HAS TO HIT UP?</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle">SIDE VIEW. THE NET TAPE DECIDES THE WHOLE POINT.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- ================= PANEL 1: ABOVE THE TAPE ================= -->
+    <g>
+      <rect x="60" y="140" width="520" height="380" rx="20" fill="#0d7a5c"/>
+      <text x="86" y="184" fill="#d7ff3f" font-size="25" font-weight="800">BALL ABOVE THE TAPE</text>
+      <text x="86" y="211" fill="#ffffff" font-size="16" font-weight="700">You get to hit DOWN. You attack.</text>
+
+      <!-- tape reference line -->
+      <line x1="90" y1="370" x2="550" y2="370" stroke="#d7ff3f" stroke-width="2" stroke-dasharray="7 7" opacity=".45"/>
+      <text x="550" y="362" fill="#d7ff3f" font-size="12" font-weight="700" text-anchor="end" opacity=".85">TAPE HEIGHT</text>
+
+      <!-- court + net -->
+      <line x1="90" y1="430" x2="550" y2="430" stroke="#ffffff" stroke-width="4"/>
+      <line x1="320" y1="430" x2="320" y2="370" stroke="#ffffff" stroke-width="5"/>
+
+      <!-- trajectory: downward across the net -->
+      <path d="M 240 320 Q 360 350 460 426" fill="none" stroke="#d7ff3f" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="240" cy="320" r="9" fill="#d7ff3f"/>
+      <circle cx="460" cy="426" r="7" fill="#ffffff"/>
+
+      <text x="86" y="480" fill="#ffffff" font-size="15" font-weight="700">This is the ball you put away.</text>
+      <text x="86" y="502" fill="#ffffff" font-size="15" font-weight="700">It is a gift. Somebody handed it to you.</text>
+    </g>
+
+    <!-- ================= PANEL 2: BELOW THE TAPE ================= -->
+    <g>
+      <rect x="620" y="140" width="520" height="380" rx="20" fill="#0d7a5c"/>
+      <text x="646" y="184" fill="#d7ff3f" font-size="25" font-weight="800">BALL BELOW THE TAPE</text>
+      <text x="646" y="211" fill="#ffffff" font-size="16" font-weight="700">You must hit UP. You defend.</text>
+
+      <!-- tape reference line -->
+      <line x1="650" y1="370" x2="1110" y2="370" stroke="#d7ff3f" stroke-width="2" stroke-dasharray="7 7" opacity=".45"/>
+      <text x="1110" y="362" fill="#d7ff3f" font-size="12" font-weight="700" text-anchor="end" opacity=".85">TAPE HEIGHT</text>
+
+      <!-- court + net -->
+      <line x1="650" y1="430" x2="1110" y2="430" stroke="#ffffff" stroke-width="4"/>
+      <line x1="880" y1="430" x2="880" y2="370" stroke="#ffffff" stroke-width="5"/>
+
+      <!-- trajectory: must lift over the net -->
+      <path d="M 800 400 Q 890 300 1020 420" fill="none" stroke="#ff3f8e" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="800" cy="400" r="9" fill="#ff3f8e"/>
+      <circle cx="1020" cy="420" r="7" fill="#ffffff"/>
+
+      <text x="646" y="480" fill="#ffffff" font-size="15" font-weight="700">This is the ball you survive.</text>
+      <text x="646" y="502" fill="#ffffff" font-size="15" font-weight="700">Get it back softly and wait. Do not swing.</text>
+    </g>
+
+    <!-- ================= TAKEAWAY ================= -->
+    <g>
+      <rect x="60" y="560" width="1080" height="100" rx="20" fill="#0d7a5c"/>
+      <text x="600" y="602" fill="#d7ff3f" font-size="23" font-weight="800" text-anchor="middle">EVERY TACTIC IN THIS GUIDE DOES EXACTLY ONE THING</text>
+      <text x="600" y="634" fill="#ffffff" font-size="18" font-weight="700" text-anchor="middle">It puts them under the tape, and keeps you over it. That is the whole sport.</text>
+    </g>
+
+  </g>
+</svg>
