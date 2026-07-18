@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="t d">
+  <title id="t">How Anna Leigh Waters plays pickleball</title>
+  <desc id="d">An infographic showing the four habits behind Anna Leigh Waters' aggressive, fast game: she speeds the ball up the moment it floats, she wins the hands battle at the net, she resets instead of panicking when she is rushed, and she keeps the pressure on from every spot on the court. Together they add up to the idea that she did not just win pickleball, she sped it up.</desc>
+  <rect width="1200" height="640" rx="42" fill="#0f5a46"/>
+  <text x="600" y="72" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">HOW SHE PLAYS</text>
+  <text x="600" y="112" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">THE AGGRESSIVE, FAST STYLE SHE MADE FAMOUS</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- Card 1 -->
+    <rect x="40" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="78" y="188" width="179" height="46" rx="23" fill="#d7ff3f"/>
+    <text x="167" y="219" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">SPEED IT UP</text>
+    <text x="167" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">The instant a ball</text>
+    <text x="167" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">floats up, she</text>
+    <text x="167" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">attacks. She made</text>
+    <text x="167" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">the sport faster.</text>
+
+    <!-- Card 2 -->
+    <rect x="330" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#ffffff" stroke-width="3"/>
+    <rect x="360" y="188" width="195" height="46" rx="23" fill="#ffffff"/>
+    <text x="457" y="219" fill="#0f5a46" font-size="20" font-weight="800" text-anchor="middle">FASTEST HANDS</text>
+    <text x="457" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">At the net she</text>
+    <text x="457" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">wins the hands</text>
+    <text x="457" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">battle: quick</text>
+    <text x="457" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">counters, no panic.</text>
+
+    <!-- Card 3 -->
+    <rect x="620" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="682" y="188" width="131" height="46" rx="23" fill="#d7ff3f"/>
+    <text x="747" y="219" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">RESET</text>
+    <text x="747" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">When she is</text>
+    <text x="747" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">rushed, she does</text>
+    <text x="747" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">not panic: she</text>
+    <text x="747" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">absorbs and waits.</text>
+
+    <!-- Card 4 -->
+    <rect x="910" y="160" width="255" height="300" rx="22" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <rect x="938" y="188" width="199" height="46" rx="23" fill="#ff3f8e"/>
+    <text x="1037" y="219" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">RELENTLESS</text>
+    <text x="1037" y="292" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">From every spot</text>
+    <text x="1037" y="320" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">on the court, the</text>
+    <text x="1037" y="348" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">pressure simply</text>
+    <text x="1037" y="376" fill="#ffffff" font-size="18" font-weight="600" text-anchor="middle">never lets up.</text>
+
+    <!-- bottom banner -->
+    <rect x="40" y="500" width="1125" height="96" rx="24" fill="#d7ff3f"/>
+    <text x="602" y="546" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">SHE DIDN'T JUST WIN PICKLEBALL.</text>
+    <text x="602" y="578" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">SHE SPED IT UP.</text>
+  </g>
+</svg>

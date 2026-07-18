@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-labelledby="t d">
+  <title id="t">The rise of Anna Leigh Waters</title>
+  <desc id="d">A timeline of Anna Leigh Waters' rise in pickleball: in 2017 a hurricane evacuation sends her family north and a 10-year-old learns the game with her mom, in 2019 she turns pro at 12 as the youngest professional in the sport's history, in 2022 she and her mom play the first pro match shown on national television, in 2026 she signs a new paddle deal with Franklin and the first Nike deal in the sport, and today she is world number one in singles, doubles, and mixed at the same time. She has won 181 gold medals and 39 triple crowns, the most of anyone, and counting.</desc>
+  <rect width="1200" height="600" rx="42" fill="#0f5a46"/>
+  <text x="600" y="66" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">THE RISE OF A PHENOM</text>
+  <text x="600" y="106" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle">FROM A HURRICANE EVACUATION TO WORLD NO. 1</text>
+
+  <g font-family="Arial, sans-serif">
+    <!-- timeline spine -->
+    <line x1="145" y1="150" x2="1052" y2="150" stroke="#3c6f5c" stroke-width="4"/>
+
+    <!-- Card 1: 2017 -->
+    <line x1="144" y1="172" x2="144" y2="190" stroke="#d7ff3f" stroke-width="4"/>
+    <rect x="40" y="190" width="209" height="280" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="96" y="128" width="96" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="144" y="158" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">2017</text>
+    <text x="144" y="238" fill="#d7ff3f" font-size="20" font-weight="800" text-anchor="middle">THE START</text>
+    <text x="144" y="286" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">A hurricane sends</text>
+    <text x="144" y="312" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">her family north. At</text>
+    <text x="144" y="338" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">10, she learns the</text>
+    <text x="144" y="364" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">game with her mom.</text>
+
+    <!-- Card 2: 2019 -->
+    <line x1="371" y1="172" x2="371" y2="190" stroke="#ffffff" stroke-width="4"/>
+    <rect x="267" y="190" width="209" height="280" rx="22" fill="#0d7a5c" stroke="#ffffff" stroke-width="3"/>
+    <rect x="323" y="128" width="96" height="44" rx="22" fill="#ffffff"/>
+    <text x="371" y="158" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">2019</text>
+    <text x="371" y="238" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">GOES PRO</text>
+    <text x="371" y="286" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">She turns pro at</text>
+    <text x="371" y="312" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">12: the youngest</text>
+    <text x="371" y="338" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">professional the</text>
+    <text x="371" y="364" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">sport has ever had.</text>
+
+    <!-- Card 3: 2022 -->
+    <line x1="598" y1="172" x2="598" y2="190" stroke="#d7ff3f" stroke-width="4"/>
+    <rect x="494" y="190" width="209" height="280" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="550" y="128" width="96" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="598" y="158" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">2022</text>
+    <text x="598" y="238" fill="#d7ff3f" font-size="20" font-weight="800" text-anchor="middle">ON TV</text>
+    <text x="598" y="286" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">She and her mom</text>
+    <text x="598" y="312" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">play the first pro</text>
+    <text x="598" y="338" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">match ever shown</text>
+    <text x="598" y="364" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">on national TV.</text>
+
+    <!-- Card 4: 2026 -->
+    <line x1="825" y1="172" x2="825" y2="190" stroke="#ff3f8e" stroke-width="4"/>
+    <rect x="721" y="190" width="209" height="280" rx="22" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <rect x="777" y="128" width="96" height="44" rx="22" fill="#ff3f8e"/>
+    <text x="825" y="158" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">2026</text>
+    <text x="825" y="238" fill="#ff8ebc" font-size="20" font-weight="800" text-anchor="middle">THE DEALS</text>
+    <text x="825" y="286" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">A new paddle with</text>
+    <text x="825" y="312" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">Franklin, and the</text>
+    <text x="825" y="338" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">first Nike deal in</text>
+    <text x="825" y="364" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">the sport's history.</text>
+
+    <!-- Card 5: TODAY -->
+    <line x1="1052" y1="172" x2="1052" y2="190" stroke="#d7ff3f" stroke-width="4"/>
+    <rect x="948" y="190" width="209" height="280" rx="22" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="994" y="128" width="116" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="1052" y="158" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">TODAY</text>
+    <text x="1052" y="238" fill="#d7ff3f" font-size="20" font-weight="800" text-anchor="middle">NO. 1</text>
+    <text x="1052" y="286" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">World number one</text>
+    <text x="1052" y="312" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">in singles, doubles,</text>
+    <text x="1052" y="338" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">and mixed, all at</text>
+    <text x="1052" y="364" fill="#ffffff" font-size="17" font-weight="600" text-anchor="middle">the very same time.</text>
+
+    <!-- bottom banner: perishable stats, quarantined -->
+    <rect x="40" y="500" width="1117" height="72" rx="24" fill="#d7ff3f"/>
+    <text x="598" y="546" fill="#0f5a46" font-size="25" font-weight="800" text-anchor="middle">181 GOLD MEDALS. 39 TRIPLE CROWNS. THE MOST OF ANYONE, AND CLIMBING.</text>
+  </g>
+</svg>
