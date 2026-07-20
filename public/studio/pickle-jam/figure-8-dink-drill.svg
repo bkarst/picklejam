@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="t d">
+  <title id="t">The figure 8 dink drill, drawn on a pickleball court</title>
+  <desc id="d">A top-down view of a pickleball court with the net across the middle and the kitchen zones on both sides. Two players stand at each kitchen line and move between two spots. You, at the bottom, hit every ball crosscourt along the diagonals. Your partner, at the top, hits every ball down the line along the sidelines. Together the ball path traces a figure eight, and both players keep their feet moving.</desc>
+  <rect width="1200" height="760" rx="42" fill="#0f5a46"/>
+
+  <defs>
+    <marker id="ahPink" markerWidth="12" markerHeight="12" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff3f8e"/>
+    </marker>
+    <marker id="ahLime" markerWidth="12" markerHeight="12" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#d7ff3f"/>
+    </marker>
+  </defs>
+
+  <text x="600" y="62" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="40" font-weight="800" text-anchor="middle">THE FIGURE 8 DINK DRILL</text>
+  <text x="600" y="100" fill="#ffffff" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">One hits only crosscourt. One hits only down the line.</text>
+
+  <!-- Court -->
+  <g font-family="Arial, sans-serif">
+    <rect x="270" y="150" width="660" height="450" rx="6" fill="#0d7a5c" stroke="#ffffff" stroke-width="4"/>
+    <!-- kitchen zones -->
+    <rect x="270" y="315" width="660" height="60" fill="#0a4a3a" stroke="#d7ff3f" stroke-width="2" stroke-dasharray="8 7"/>
+    <rect x="270" y="375" width="660" height="60" fill="#0a4a3a" stroke="#d7ff3f" stroke-width="2" stroke-dasharray="8 7"/>
+    <!-- net -->
+    <line x1="270" y1="375" x2="930" y2="375" stroke="#ffffff" stroke-width="5"/>
+    <!-- center line -->
+    <line x1="600" y1="150" x2="600" y2="315" stroke="#ffffff" stroke-width="2" opacity=".55"/>
+    <line x1="600" y1="435" x2="600" y2="600" stroke="#ffffff" stroke-width="2" opacity=".55"/>
+
+    <text x="948" y="381" fill="#ffffff" font-size="16" font-weight="800">NET</text>
+    <text x="286" y="337" fill="#d7ff3f" font-size="13" font-weight="800" opacity=".85">KITCHEN</text>
+    <text x="286" y="413" fill="#d7ff3f" font-size="13" font-weight="800" opacity=".85">KITCHEN</text>
+
+    <!-- ball paths (drawn under dots) -->
+    <!-- YOU: crosscourt diagonals (pink) -->
+    <path d="M440,478 Q655,418 760,272" fill="none" stroke="#ff3f8e" stroke-width="5" marker-end="url(#ahPink)"/>
+    <path d="M760,478 Q545,332 440,272" fill="none" stroke="#ff3f8e" stroke-width="5" marker-end="url(#ahPink)"/>
+    <!-- PARTNER: down the line verticals (lime) -->
+    <path d="M760,272 Q812,375 760,478" fill="none" stroke="#d7ff3f" stroke-width="5" marker-end="url(#ahLime)"/>
+    <path d="M440,272 Q388,375 440,478" fill="none" stroke="#d7ff3f" stroke-width="5" marker-end="url(#ahLime)"/>
+
+    <!-- player spots: partner (top, lime) -->
+    <circle cx="440" cy="272" r="14" fill="#d7ff3f"/>
+    <circle cx="760" cy="272" r="14" fill="#0f5a46" stroke="#d7ff3f" stroke-width="4"/>
+    <!-- player spots: you (bottom, pink) -->
+    <circle cx="440" cy="478" r="14" fill="#ff3f8e"/>
+    <circle cx="760" cy="478" r="14" fill="#0f5a46" stroke="#ff3f8e" stroke-width="4"/>
+  </g>
+
+  <!-- legend -->
+  <g font-family="Arial, sans-serif">
+    <circle cx="212" cy="648" r="11" fill="#ff3f8e"/>
+    <text x="234" y="654" fill="#ffffff" font-size="17" font-weight="700">YOU: move between two spots, hit every ball crosscourt (the diagonals).</text>
+    <circle cx="212" cy="686" r="11" fill="#d7ff3f"/>
+    <text x="234" y="692" fill="#ffffff" font-size="17" font-weight="700">PARTNER: moves too, hits every ball down the line (the sidelines).</text>
+    <text x="600" y="732" fill="#d7ff3f" font-size="18" font-weight="800" text-anchor="middle">The ball draws an 8. Move to where your last shot went.</text>
+  </g>
+</svg>
