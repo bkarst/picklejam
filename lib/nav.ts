@@ -50,14 +50,20 @@ export interface NavColumn {
  */
 export const primaryNav: NavColumn[] = [
   {
-    label: "Courts",
+    // The two court paths are separate top-level links rather than one menu:
+    // searching and browsing are distinct intents, not a parent/child pair.
+    label: "Court Search",
     intent: "Discovery",
-    links: [
-      // Straight to the US country page: `/courts` is a one-card index whose only
-      // link is this page, so pointing at it just adds a hop.
-      { label: "Browse All Courts", href: countryPath("us"), description: "By state, city & neighborhood" },
-      { label: "Find Courts Near You", href: "/search", description: "Search courts near you" },
-    ],
+    href: "/search",
+    links: [],
+  },
+  {
+    // Straight to the US country page: `/courts` is a one-card index whose only
+    // link is this page, so pointing at it just adds a hop.
+    label: "Browse Courts",
+    intent: "Discovery",
+    href: countryPath("us"),
+    links: [],
   },
   {
     // Single link, no menu. `discoverPath("groups")` deep-links the groups tab so
@@ -119,9 +125,11 @@ export const primaryNav: NavColumn[] = [
 /**
  * Footer IA columns (PRD §4 footer; the sitewide internal-linking hub).
  *
- * Single-destination entries (Round Robin, Blog) would each render as a column
- * heading over an empty list, so they collapse into one shared "More" column —
- * the footer keeps every top-level destination without the dead space.
+ * A single-destination entry would render as a column heading over an empty
+ * list, so they gather into one "Explore" column instead. With the nav now flat,
+ * that column IS the primary nav; any entry that regains a menu (e.g. Compete
+ * and Organize once PAID is on) keeps its own column, so the footer tracks the
+ * header either way.
  */
 const footerDirectLinks: NavLink[] = primaryNav.flatMap((c) =>
   c.links.length === 0 && c.href ? [{ label: c.label, href: c.href }] : [],
@@ -132,7 +140,7 @@ export const footerColumns: NavColumn[] = [
     .filter((c) => c.links.length > 0)
     .map(({ label, intent, links }) => ({ label, intent, links })),
   ...(footerDirectLinks.length > 0
-    ? [{ label: "More", intent: "Top-level destinations", links: footerDirectLinks }]
+    ? [{ label: "Explore", intent: "Top-level destinations", links: footerDirectLinks }]
     : []),
   {
     label: "Company",
