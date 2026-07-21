@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 540" role="img" aria-labelledby="t d">
+  <title id="t">Pickleball, on the record</title>
+  <desc id="d">A reference card of pickleball's founding facts. Invented in the summer of 1965 on Bainbridge Island, Washington, by Joel Pritchard, Bill Bell and Barney McCallum. The first court was an already-paved backyard badminton court. The first gear was ping-pong paddles and a perforated plastic ball. The game was named by Joan Pritchard, after crew's pickle boat. The court is 20 by 44 feet for singles and doubles alike. The net is 36 inches at the sidelines and 34 at the center. The kitchen is 7 feet either side of the net, with no volleys allowed. The first known tournament was in the spring of 1976 in Tukwila, Washington. Washington made pickleball its official state sport on March 28, 2022.</desc>
+  <rect width="1200" height="540" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">PICKLEBALL, ON THE RECORD</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">THE FOUNDING FACTS, IN ONE CARD</text>
+
+    <line x1="600" y1="150" x2="600" y2="500" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="60" y="176" fill="#d7ff3f" font-size="15" font-weight="800">INVENTED</text>
+    <text x="60" y="202" fill="#ffffff" font-size="19" font-weight="600">Summer 1965, Bainbridge Island, Washington</text>
+    <line x1="60" y1="222" x2="540" y2="222" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="60" y="246" fill="#d7ff3f" font-size="15" font-weight="800">BY</text>
+    <text x="60" y="272" fill="#ffffff" font-size="19" font-weight="600">Joel Pritchard, Bill Bell, Barney McCallum</text>
+    <line x1="60" y1="292" x2="540" y2="292" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="60" y="316" fill="#d7ff3f" font-size="15" font-weight="800">THE FIRST COURT</text>
+    <text x="60" y="342" fill="#ffffff" font-size="19" font-weight="600">An already-paved backyard badminton court</text>
+    <line x1="60" y1="362" x2="540" y2="362" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="60" y="386" fill="#d7ff3f" font-size="15" font-weight="800">THE FIRST GEAR</text>
+    <text x="60" y="412" fill="#ffffff" font-size="19" font-weight="600">Ping-pong paddles, perforated plastic ball</text>
+    <line x1="60" y1="432" x2="540" y2="432" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="60" y="456" fill="#d7ff3f" font-size="15" font-weight="800">NAMED BY</text>
+    <text x="60" y="482" fill="#ffffff" font-size="19" font-weight="600">Joan Pritchard, after crew's pickle boat</text>
+
+    <text x="660" y="176" fill="#ff8ebc" font-size="15" font-weight="800">COURT SIZE</text>
+    <text x="660" y="202" fill="#ffffff" font-size="19" font-weight="600">20 by 44 feet, singles and doubles alike</text>
+    <line x1="660" y1="222" x2="1140" y2="222" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="660" y="246" fill="#ff8ebc" font-size="15" font-weight="800">NET HEIGHT</text>
+    <text x="660" y="272" fill="#ffffff" font-size="19" font-weight="600">36 inches at the sidelines, 34 at center</text>
+    <line x1="660" y1="292" x2="1140" y2="292" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="660" y="316" fill="#ff8ebc" font-size="15" font-weight="800">THE KITCHEN</text>
+    <text x="660" y="342" fill="#ffffff" font-size="19" font-weight="600">7 feet either side, no volleys allowed</text>
+    <line x1="660" y1="362" x2="1140" y2="362" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="660" y="386" fill="#ff8ebc" font-size="15" font-weight="800">FIRST KNOWN TOURNAMENT</text>
+    <text x="660" y="412" fill="#ffffff" font-size="19" font-weight="600">Spring 1976, Tukwila, Washington</text>
+    <line x1="660" y1="432" x2="1140" y2="432" stroke="#3c6f5c" stroke-width="2"/>
+
+    <text x="660" y="456" fill="#ff8ebc" font-size="15" font-weight="800">OFFICIAL STATE SPORT</text>
+    <text x="660" y="482" fill="#ffffff" font-size="19" font-weight="600">Washington, signed March 28, 2022</text>
+  </g>
+</svg>

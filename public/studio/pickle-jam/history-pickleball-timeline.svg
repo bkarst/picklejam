@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="t d">
+  <title id="t">From one backyard to every state: a pickleball timeline</title>
+  <desc id="d">A timeline of pickleball. 1965, the dare: Frank Pritchard, 13, tells his dad to go make up a game, so Joel Pritchard and Bill Bell head for the paved badminton court behind the cabin. 1968, the company: Pritchard, McCallum, Bell and friends incorporate Pickle Ball Inc., each putting in 500 dollars, and a boxed set with paddles, balls and a net is 29 dollars and 95 cents. 1976, the first tournament: the first known pickleball tournament is played at the South Center Athletic Club in Tukwila, Washington, eleven years after the backyard. 1984, the rulebook: the United States Amateur Pickleball Association forms and publishes the first rulebook, and by 1990 the game is played in all fifty states. 2022, the state sport: Washington makes pickleball its official state sport, 57 years after the backyard, and the state Senate votes for it 46 to 1. Today, the habit: tens of millions of Americans now play, the exact count moves every year, and the rules the three of them wrote in 1965 do not.</desc>
+  <rect width="1200" height="780" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">FROM ONE BACKYARD TO EVERY STATE</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">THE ROAD FROM A BORED THIRTEEN-YEAR-OLD TO A NATIONAL HABIT</text>
+
+    <line x1="150" y1="150" x2="150" y2="730" stroke="#3c6f5c" stroke-width="4"/>
+
+    <!-- 1965 -->
+    <rect x="70" y="156" width="160" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="150" y="186" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">1965</text>
+    <text x="270" y="178" fill="#d7ff3f" font-size="22" font-weight="800">THE DARE</text>
+    <text x="270" y="206" fill="#ffffff" font-size="18" font-weight="600">Frank Pritchard, 13, tells his dad to go make up a game. Joel Pritchard</text>
+    <text x="270" y="230" fill="#ffffff" font-size="18" font-weight="600">and Bill Bell head for the paved badminton court behind the cabin.</text>
+
+    <!-- 1968 -->
+    <rect x="70" y="251" width="160" height="44" rx="22" fill="#ff3f8e"/>
+    <text x="150" y="281" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">1968</text>
+    <text x="270" y="273" fill="#ff8ebc" font-size="22" font-weight="800">THE COMPANY</text>
+    <text x="270" y="301" fill="#ffffff" font-size="18" font-weight="600">Pritchard, McCallum, Bell and friends incorporate Pickle Ball Inc., each</text>
+    <text x="270" y="325" fill="#ffffff" font-size="18" font-weight="600">putting in $500. A boxed set with paddles, balls and a net is $29.95.</text>
+
+    <!-- 1976 -->
+    <rect x="70" y="346" width="160" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="150" y="376" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">1976</text>
+    <text x="270" y="368" fill="#d7ff3f" font-size="22" font-weight="800">THE FIRST TOURNAMENT</text>
+    <text x="270" y="396" fill="#ffffff" font-size="18" font-weight="600">The first known pickleball tournament is played at the South Center</text>
+    <text x="270" y="420" fill="#ffffff" font-size="18" font-weight="600">Athletic Club in Tukwila, Washington, eleven years after the backyard.</text>
+
+    <!-- 1984 -->
+    <rect x="70" y="441" width="160" height="44" rx="22" fill="#ff3f8e"/>
+    <text x="150" y="471" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">1984</text>
+    <text x="270" y="463" fill="#ff8ebc" font-size="22" font-weight="800">THE RULEBOOK</text>
+    <text x="270" y="491" fill="#ffffff" font-size="18" font-weight="600">The United States Amateur Pickleball Association forms and publishes</text>
+    <text x="270" y="515" fill="#ffffff" font-size="18" font-weight="600">the first rulebook. By 1990 the game is played in all fifty states.</text>
+
+    <!-- 2022 -->
+    <rect x="70" y="536" width="160" height="44" rx="22" fill="#d7ff3f"/>
+    <text x="150" y="566" fill="#0f5a46" font-size="22" font-weight="800" text-anchor="middle">2022</text>
+    <text x="270" y="558" fill="#d7ff3f" font-size="22" font-weight="800">THE STATE SPORT</text>
+    <text x="270" y="586" fill="#ffffff" font-size="18" font-weight="600">Washington makes pickleball its official state sport, 57 years after</text>
+    <text x="270" y="610" fill="#ffffff" font-size="18" font-weight="600">the backyard. The state Senate votes for it 46 to 1.</text>
+
+    <!-- TODAY -->
+    <rect x="70" y="631" width="160" height="44" rx="22" fill="#ff3f8e"/>
+    <text x="150" y="661" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">TODAY</text>
+    <text x="270" y="653" fill="#ff8ebc" font-size="22" font-weight="800">THE HABIT</text>
+    <text x="270" y="681" fill="#ffffff" font-size="18" font-weight="600">Tens of millions of Americans now play. The exact count moves</text>
+    <text x="270" y="705" fill="#ffffff" font-size="18" font-weight="600">every year. The rules the three of them wrote in 1965 do not.</text>
+  </g>
+</svg>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="t d">
+  <title id="t">The fairness engine: three rules built so nobody can take the game over</title>
+  <desc id="d">Three cards explaining the pickleball rules that flatten the gap between a strong athlete and everybody else. The kitchen: neither side may volley inside the seven feet nearest the net, a line Barney McCallum drew on purpose, which neutralizes the tall player who would otherwise camp at the net and swat everything down. The two-bounce rule: the serve must bounce and so must the return before anyone may volley, which neutralizes the big serve and the rush to the net behind it. The underhand serve: the ball is struck underhand, below the waist, on the way up, which neutralizes the unreturnable ace so every point starts as a rally.</desc>
+  <rect width="1200" height="620" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">THE FAIRNESS ENGINE</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">THREE RULES BUILT SO THAT NOBODY CAN TAKE THE GAME OVER</text>
+
+    <!-- CARD 1: THE KITCHEN -->
+    <rect x="50" y="140" width="356" height="440" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="90" y="170" width="276" height="120" fill="#0f5a46" stroke="#ffffff" stroke-width="2"/>
+    <rect x="90" y="170" width="276" height="44" fill="#d7ff3f" opacity="0.22"/>
+    <line x1="90" y1="170" x2="366" y2="170" stroke="#ffffff" stroke-width="6"/>
+    <line x1="90" y1="214" x2="366" y2="214" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="228" y="199" fill="#d7ff3f" font-size="15" font-weight="800" text-anchor="middle">NO VOLLEY IN HERE</text>
+    <circle cx="228" cy="240" r="11" fill="#ffffff"/>
+    <rect x="219" y="254" width="18" height="30" rx="8" fill="#ffffff"/>
+    <text x="228" y="312" fill="#cfe8dd" font-size="14" font-weight="700" text-anchor="middle">SEVEN FEET, NO VOLLEYS</text>
+    <text x="74" y="352" fill="#d7ff3f" font-size="24" font-weight="800">THE KITCHEN</text>
+    <text x="74" y="388" fill="#ffffff" font-size="17" font-weight="600">Neither side may volley inside</text>
+    <text x="74" y="412" fill="#ffffff" font-size="17" font-weight="600">the seven feet nearest the net.</text>
+    <text x="74" y="436" fill="#ffffff" font-size="17" font-weight="600">Barney McCallum drew that line</text>
+    <text x="74" y="460" fill="#ffffff" font-size="17" font-weight="600">on purpose.</text>
+    <text x="74" y="504" fill="#ff8ebc" font-size="15" font-weight="800">WHAT IT NEUTRALIZES</text>
+    <text x="74" y="530" fill="#ffffff" font-size="16" font-weight="600">The tall player who would</text>
+    <text x="74" y="554" fill="#ffffff" font-size="16" font-weight="600">otherwise camp and swat.</text>
+
+    <!-- CARD 2: THE TWO-BOUNCE RULE -->
+    <rect x="422" y="140" width="356" height="440" rx="24" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <line x1="452" y1="282" x2="748" y2="282" stroke="#cfe8dd" stroke-width="3"/>
+    <line x1="600" y1="212" x2="600" y2="282" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="600" cy="212" r="5" fill="#ffffff"/>
+    <path d="M466 264 Q 566 172 662 272" stroke="#d7ff3f" stroke-width="3" fill="none" stroke-dasharray="7 7"/>
+    <path d="M656 256 Q 572 182 506 270" stroke="#ff3f8e" stroke-width="3" fill="none" stroke-dasharray="7 7"/>
+    <circle cx="668" cy="282" r="14" fill="#d7ff3f"/>
+    <text x="668" y="288" fill="#0f5a46" font-size="16" font-weight="800" text-anchor="middle">1</text>
+    <circle cx="500" cy="282" r="14" fill="#ff3f8e"/>
+    <text x="500" y="288" fill="#ffffff" font-size="16" font-weight="800" text-anchor="middle">2</text>
+    <text x="600" y="312" fill="#cfe8dd" font-size="14" font-weight="700" text-anchor="middle">IT MUST BOUNCE ON BOTH SIDES</text>
+    <text x="446" y="352" fill="#ff8ebc" font-size="24" font-weight="800">THE TWO-BOUNCE RULE</text>
+    <text x="446" y="388" fill="#ffffff" font-size="17" font-weight="600">The serve must bounce, and so</text>
+    <text x="446" y="412" fill="#ffffff" font-size="17" font-weight="600">must the return. Only then</text>
+    <text x="446" y="436" fill="#ffffff" font-size="17" font-weight="600">may anyone volley.</text>
+    <text x="446" y="504" fill="#ff8ebc" font-size="15" font-weight="800">WHAT IT NEUTRALIZES</text>
+    <text x="446" y="530" fill="#ffffff" font-size="16" font-weight="600">The big serve, and the rush</text>
+    <text x="446" y="554" fill="#ffffff" font-size="16" font-weight="600">to the net behind it.</text>
+
+    <!-- CARD 3: THE UNDERHAND SERVE -->
+    <rect x="794" y="140" width="356" height="440" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="824" y1="214" x2="1120" y2="214" stroke="#d7ff3f" stroke-width="3" stroke-dasharray="8 8"/>
+    <text x="824" y="202" fill="#d7ff3f" font-size="14" font-weight="800">WAIST</text>
+    <ellipse cx="884" cy="258" rx="20" ry="26" fill="#d9c39a" stroke="#7a4f2a" stroke-width="3"/>
+    <rect x="878" y="282" width="12" height="18" rx="5" fill="#7a4f2a"/>
+    <path d="M914 248 Q 990 206 1054 230" stroke="#ffffff" stroke-width="4" fill="none"/>
+    <polygon points="1052,218 1076,234 1048,242" fill="#ffffff"/>
+    <circle cx="1096" cy="238" r="12" fill="#d7ff3f"/>
+    <circle cx="1092" cy="234" r="2.4" fill="#0f5a46"/>
+    <circle cx="1100" cy="234" r="2.4" fill="#0f5a46"/>
+    <circle cx="1092" cy="242" r="2.4" fill="#0f5a46"/>
+    <circle cx="1100" cy="242" r="2.4" fill="#0f5a46"/>
+    <text x="972" y="312" fill="#cfe8dd" font-size="14" font-weight="700" text-anchor="middle">STRUCK LOW, ON THE WAY UP</text>
+    <text x="818" y="352" fill="#d7ff3f" font-size="24" font-weight="800">THE UNDERHAND SERVE</text>
+    <text x="818" y="388" fill="#ffffff" font-size="17" font-weight="600">The ball is struck underhand,</text>
+    <text x="818" y="412" fill="#ffffff" font-size="17" font-weight="600">below the waist, on the way</text>
+    <text x="818" y="436" fill="#ffffff" font-size="17" font-weight="600">up. No overhead cannon.</text>
+    <text x="818" y="504" fill="#ff8ebc" font-size="15" font-weight="800">WHAT IT NEUTRALIZES</text>
+    <text x="818" y="530" fill="#ffffff" font-size="16" font-weight="600">The unreturnable ace. Every</text>
+    <text x="818" y="554" fill="#ffffff" font-size="16" font-weight="600">point starts as a rally.</text>
+  </g>
+</svg>

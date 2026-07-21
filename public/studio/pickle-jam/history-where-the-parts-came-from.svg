@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" role="img" aria-labelledby="t d">
+  <title id="t">Where the parts of pickleball came from</title>
+  <desc id="d">Four columns showing what pickleball borrowed and what came out of the yard itself. From badminton: the court at 20 by 44 feet, the net first hung at 60 inches then cut to 36, and the skeleton of the rules. From table tennis: the paddles straight off the rec room table, the short flat swing, and rallies decided by touch. From tennis: the overhead smash, doubles and the fight for the net, and volleys and the instinct to hit it hard. From the backyard itself: the kitchen, the two-bounce rule, and the underhand serve. The three rules that make pickleball feel fair came from none of the parent sports.</desc>
+  <rect width="1200" height="600" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">WHERE THE PARTS CAME FROM</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">PICKLEBALL BORROWED THREE SPORTS. THE BEST BITS CAME OUT OF THE YARD.</text>
+
+    <!-- BADMINTON -->
+    <rect x="36" y="140" width="270" height="330" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="58" y="186" fill="#d7ff3f" font-size="21" font-weight="800">BADMINTON</text>
+    <line x1="58" y1="200" x2="284" y2="200" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="58" y="230" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="82" y="242" fill="#ffffff" font-size="16" font-weight="600">The court: 20 by 44 feet</text>
+    <rect x="58" y="300" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="82" y="312" fill="#ffffff" font-size="16" font-weight="600">The net, first hung at 60</text>
+    <text x="82" y="334" fill="#ffffff" font-size="16" font-weight="600">inches, then cut to 36</text>
+    <rect x="58" y="370" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="82" y="382" fill="#ffffff" font-size="16" font-weight="600">The skeleton of the rules</text>
+
+    <!-- TABLE TENNIS -->
+    <rect x="322" y="140" width="270" height="330" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="344" y="186" fill="#d7ff3f" font-size="21" font-weight="800">TABLE TENNIS</text>
+    <line x1="344" y1="200" x2="570" y2="200" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="344" y="230" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="368" y="242" fill="#ffffff" font-size="16" font-weight="600">The paddles, straight off</text>
+    <text x="368" y="264" fill="#ffffff" font-size="16" font-weight="600">the rec room table</text>
+    <rect x="344" y="300" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="368" y="312" fill="#ffffff" font-size="16" font-weight="600">The short, flat swing</text>
+    <rect x="344" y="370" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="368" y="382" fill="#ffffff" font-size="16" font-weight="600">Rallies decided by touch</text>
+
+    <!-- TENNIS -->
+    <rect x="608" y="140" width="270" height="330" rx="24" fill="#0d7a5c" stroke="#d7ff3f" stroke-width="3"/>
+    <text x="630" y="186" fill="#d7ff3f" font-size="21" font-weight="800">TENNIS</text>
+    <line x1="630" y1="200" x2="856" y2="200" stroke="#d7ff3f" stroke-width="3"/>
+    <rect x="630" y="230" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="654" y="242" fill="#ffffff" font-size="16" font-weight="600">The overhead smash</text>
+    <rect x="630" y="300" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="654" y="312" fill="#ffffff" font-size="16" font-weight="600">Doubles, and the fight</text>
+    <text x="654" y="334" fill="#ffffff" font-size="16" font-weight="600">for the net</text>
+    <rect x="630" y="370" width="12" height="12" rx="3" fill="#d7ff3f"/>
+    <text x="654" y="382" fill="#ffffff" font-size="16" font-weight="600">Volleys, and the instinct</text>
+    <text x="654" y="404" fill="#ffffff" font-size="16" font-weight="600">to hit it hard</text>
+
+    <!-- THE BACKYARD -->
+    <rect x="894" y="140" width="270" height="330" rx="24" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="916" y="186" fill="#ff8ebc" font-size="21" font-weight="800">THE BACKYARD</text>
+    <line x1="916" y1="200" x2="1142" y2="200" stroke="#ff3f8e" stroke-width="3"/>
+    <rect x="916" y="230" width="12" height="12" rx="3" fill="#ff3f8e"/>
+    <text x="940" y="242" fill="#ffffff" font-size="16" font-weight="600">The kitchen</text>
+    <rect x="916" y="300" width="12" height="12" rx="3" fill="#ff3f8e"/>
+    <text x="940" y="312" fill="#ffffff" font-size="16" font-weight="600">The two-bounce rule</text>
+    <rect x="916" y="370" width="12" height="12" rx="3" fill="#ff3f8e"/>
+    <text x="940" y="382" fill="#ffffff" font-size="16" font-weight="600">The underhand serve</text>
+
+    <rect x="36" y="496" width="1128" height="60" rx="24" fill="#ff3f8e"/>
+    <text x="600" y="534" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">THE THREE RULES THAT MAKE PICKLEBALL FEEL FAIR CAME FROM NONE OF THE PARENT SPORTS</text>
+  </g>
+</svg>

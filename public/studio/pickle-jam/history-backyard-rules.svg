@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="t d">
+  <title id="t">What one backyard decided</title>
+  <desc id="d">A diagram of the paved badminton court at the Pritchard cabin on Bainbridge Island in 1965, showing four rules that came from whatever was already in the yard. One, the badminton court was already paved, so 20 by 44 feet became the size of the sport. Two, the net was hung at badminton height of 60 inches and then dropped to 36 inches so the players could smash. Three, a madrona tree crowded one baseline, so the serve went underhand with one foot allowed inside the line. Four, nobody could find a full set of badminton rackets, so they used ping-pong paddles and a perforated plastic ball.</desc>
+  <rect width="1200" height="620" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">WHAT ONE BACKYARD DECIDED</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">PICKLEBALL'S ODDEST RULES CAME FROM WHATEVER WAS ALREADY IN THE YARD</text>
+
+    <!-- the madrona tree -->
+    <rect x="64" y="300" width="14" height="52" fill="#7a4f2a"/>
+    <circle cx="71" cy="288" r="34" fill="#2f9e6a"/>
+
+    <!-- the court -->
+    <rect x="110" y="180" width="480" height="220" rx="10" fill="#0d7a5c" stroke="#ffffff" stroke-width="4"/>
+    <rect x="274" y="180" width="76" height="220" fill="#d7ff3f" opacity="0.16"/>
+    <rect x="350" y="180" width="76" height="220" fill="#d7ff3f" opacity="0.16"/>
+    <line x1="274" y1="180" x2="274" y2="400" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="426" y1="180" x2="426" y2="400" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="110" y1="290" x2="274" y2="290" stroke="#ffffff" stroke-width="2" opacity="0.7"/>
+    <line x1="426" y1="290" x2="590" y2="290" stroke="#ffffff" stroke-width="2" opacity="0.7"/>
+    <line x1="350" y1="170" x2="350" y2="410" stroke="#ffffff" stroke-width="6"/>
+    <circle cx="350" cy="170" r="6" fill="#ffffff"/>
+    <circle cx="350" cy="410" r="6" fill="#ffffff"/>
+
+    <!-- paddle and ball -->
+    <ellipse cx="296" cy="436" rx="19" ry="24" fill="#d9c39a" stroke="#7a4f2a" stroke-width="3"/>
+    <rect x="291" y="458" width="10" height="18" rx="4" fill="#7a4f2a"/>
+    <circle cx="404" cy="440" r="14" fill="#d7ff3f"/>
+    <circle cx="399" cy="435" r="2.6" fill="#0f5a46"/>
+    <circle cx="409" cy="435" r="2.6" fill="#0f5a46"/>
+    <circle cx="399" cy="445" r="2.6" fill="#0f5a46"/>
+    <circle cx="409" cy="445" r="2.6" fill="#0f5a46"/>
+
+    <!-- badges on the diagram -->
+    <circle cx="470" cy="350" r="22" fill="#d7ff3f"/>
+    <text x="470" y="358" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">1</text>
+    <circle cx="350" cy="146" r="22" fill="#ff3f8e"/>
+    <text x="350" y="154" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">2</text>
+    <circle cx="71" cy="382" r="22" fill="#d7ff3f"/>
+    <text x="71" y="390" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">3</text>
+    <circle cx="350" cy="440" r="22" fill="#ff3f8e"/>
+    <text x="350" y="448" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">4</text>
+
+    <!-- court caption -->
+    <text x="350" y="508" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">20 FEET x 44 FEET</text>
+    <text x="350" y="534" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">The paved badminton court at the Pritchard</text>
+    <text x="350" y="556" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">cabin. Still the regulation size today.</text>
+
+    <!-- right column -->
+    <circle cx="660" cy="183" r="24" fill="#d7ff3f"/>
+    <text x="660" y="191" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">1</text>
+    <text x="706" y="177" fill="#d7ff3f" font-size="21" font-weight="800">THE COURT</text>
+    <text x="706" y="207" fill="#ffffff" font-size="17" font-weight="600">The badminton court was already paved, so</text>
+    <text x="706" y="231" fill="#ffffff" font-size="17" font-weight="600">20 by 44 feet became the size of a sport.</text>
+
+    <circle cx="660" cy="293" r="24" fill="#ff3f8e"/>
+    <text x="660" y="301" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">2</text>
+    <text x="706" y="287" fill="#ff8ebc" font-size="21" font-weight="800">THE NET</text>
+    <text x="706" y="317" fill="#ffffff" font-size="17" font-weight="600">They hung it at badminton height, 60 inches,</text>
+    <text x="706" y="341" fill="#ffffff" font-size="17" font-weight="600">then dropped it to 36 so they could smash.</text>
+
+    <circle cx="660" cy="403" r="24" fill="#d7ff3f"/>
+    <text x="660" y="411" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">3</text>
+    <text x="706" y="397" fill="#d7ff3f" font-size="21" font-weight="800">THE SERVE</text>
+    <text x="706" y="427" fill="#ffffff" font-size="17" font-weight="600">A madrona tree crowded one baseline, so the</text>
+    <text x="706" y="451" fill="#ffffff" font-size="17" font-weight="600">serve went underhand, one foot allowed in.</text>
+
+    <circle cx="660" cy="513" r="24" fill="#ff3f8e"/>
+    <text x="660" y="521" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">4</text>
+    <text x="706" y="507" fill="#ff8ebc" font-size="21" font-weight="800">THE GEAR</text>
+    <text x="706" y="537" fill="#ffffff" font-size="17" font-weight="600">Nobody could find a full set of badminton</text>
+    <text x="706" y="561" fill="#ffffff" font-size="17" font-weight="600">rackets, so: ping-pong paddles and a</text>
+    <text x="706" y="585" fill="#ffffff" font-size="17" font-weight="600">perforated plastic ball.</text>
+  </g>
+</svg>

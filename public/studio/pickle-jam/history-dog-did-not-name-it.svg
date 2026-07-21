@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="t d">
+  <title id="t">The dog did not name the game</title>
+  <desc id="d">A timeline showing that Pickles the dog arrived three years after pickleball was named. In 1965 the game is named: Joan Pritchard calls it pickleball after the pickle boat in crew, the boat crewed by the leftover oarsmen from other boats. In 1968, three years later, the dog arrives: the Pritchards bring home a dog and call it Pickles, after the game, not the other way around. The dog story is the better story, and it is also the wrong one.</desc>
+  <rect width="1200" height="520" rx="42" fill="#0f5a46"/>
+  <g font-family="Arial, sans-serif">
+    <text x="600" y="64" fill="#ffffff" font-size="44" font-weight="800" text-anchor="middle">THE DOG DID NOT NAME THE GAME</text>
+    <text x="600" y="104" fill="#d7ff3f" font-size="21" font-weight="700" text-anchor="middle">PICKLES ARRIVED THREE YEARS AFTER PICKLEBALL DID</text>
+
+    <text x="600" y="184" fill="#d7ff3f" font-size="22" font-weight="800" text-anchor="middle">THREE YEARS APART</text>
+    <line x1="340" y1="196" x2="860" y2="196" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="340" y1="196" x2="340" y2="232" stroke="#d7ff3f" stroke-width="3"/>
+    <line x1="860" y1="196" x2="860" y2="232" stroke="#d7ff3f" stroke-width="3"/>
+
+    <line x1="140" y1="250" x2="1060" y2="250" stroke="#3c6f5c" stroke-width="4"/>
+    <circle cx="340" cy="250" r="16" fill="#d7ff3f"/>
+    <circle cx="860" cy="250" r="16" fill="#ff3f8e"/>
+
+    <text x="340" y="308" fill="#d7ff3f" font-size="28" font-weight="800" text-anchor="middle">1965</text>
+    <text x="340" y="340" fill="#ffffff" font-size="19" font-weight="800" text-anchor="middle">THE GAME IS NAMED</text>
+    <text x="340" y="370" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">Joan Pritchard calls it pickleball</text>
+    <text x="340" y="394" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">after the pickle boat in crew, the</text>
+    <text x="340" y="418" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">boat crewed by the leftovers.</text>
+
+    <text x="860" y="308" fill="#ff8ebc" font-size="28" font-weight="800" text-anchor="middle">1968</text>
+    <text x="860" y="340" fill="#ffffff" font-size="19" font-weight="800" text-anchor="middle">THE DOG ARRIVES</text>
+    <text x="860" y="370" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">The Pritchards bring home a dog</text>
+    <text x="860" y="394" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">and call it Pickles. After the</text>
+    <text x="860" y="418" fill="#cfe8dd" font-size="17" font-weight="600" text-anchor="middle">game, not the other way around.</text>
+
+    <rect x="180" y="446" width="840" height="52" rx="26" fill="#ff3f8e"/>
+    <text x="600" y="479" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">THE DOG STORY IS THE BETTER STORY. IT IS ALSO THE WRONG ONE.</text>
+  </g>
+</svg>
