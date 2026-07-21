@@ -43,7 +43,7 @@ import {
   laddersCityPath,
   groupPath,
   groupsCityPath,
-  learnCategoryPath,
+  blogCategoryPath,
   articlePath,
   authorPath,
   newsArticlePath,
@@ -321,7 +321,7 @@ export const sitemapSegments: Record<SitemapSegmentId, SitemapSegment> = {
         const published = items.filter((i) => i.status === "published");
         // The category landing (omitted when it has no published content).
         if (published.length > 0) {
-          out.push(directoryEntry(learnCategoryPath(c.category), undefined, "weekly", 0.6));
+          out.push(directoryEntry(blogCategoryPath(c.category), undefined, "weekly", 0.6));
         }
         for (const item of published) {
           if (seen.has(item.id)) continue;
@@ -482,7 +482,7 @@ const STATIC_ROUTES: ReadonlyArray<{
 }> = [
   { path: "/", priority: 1.0, changeFrequency: "daily" },
   { path: "/courts", priority: 0.9, changeFrequency: "weekly" },
-  { path: "/learn", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
   { path: "/news", priority: 0.7, changeFrequency: "daily" },
   { path: "/round-robin", priority: 0.8, changeFrequency: "monthly" },
   { path: "/tournaments", priority: 0.8, changeFrequency: "weekly" },

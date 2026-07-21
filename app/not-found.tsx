@@ -12,7 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default function NotFound() {
-  const popular = primaryNav.flatMap((c) => c.links).slice(0, 6);
+  // A single-destination column (Round Robin, Blog) has no `links` — fall back to
+  // the column itself so it still appears among the recovery links.
+  const popular = primaryNav
+    .flatMap((c) => (c.links.length > 0 ? c.links : c.href ? [{ label: c.label, href: c.href }] : []))
+    .slice(0, 6);
   return (
     <main id="main" className="flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-5 p-8 text-center">
       <Logo variant="mark" />

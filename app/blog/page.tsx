@@ -12,28 +12,29 @@ import {
   getAuthor,
   listCategories,
 } from "@/lib/data/content";
-import { learnHub, learnCategoryPath, articlePath } from "@/lib/urls";
+import { blogHub, blogCategoryPath, articlePath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 import type { ContentItem } from "@/lib/db/types";
 
 /** Evergreen hub — slow-changing; rebuild at most once/day (§3, ISR). */
 export const revalidate = 86400;
 
-const TITLE = "Learn Pickleball";
-const DESCRIPTION = `Guides, rules, strategy & gear — from first dink to tournament day. Learn pickleball with expert, beginner-friendly guides from ${brand.identity.name}.`;
+const TITLE = "Pickleball Blog";
+const DESCRIPTION = `Guides, rules, strategy & gear — from first dink to tournament day. Expert, beginner-friendly pickleball guides from ${brand.identity.name}.`;
 
 export function generateMetadata(): Metadata {
   return buildMetadata({
     title: TITLE,
     description: DESCRIPTION,
-    path: learnHub(),
+    path: blogHub(),
     keywords: [
+      "pickleball blog",
       "learn pickleball",
       "pickleball guides",
       "pickleball rules",
       "pickleball strategy",
       "pickleball gear",
-      "pickleball for beginners",
+      "pickleball news",
     ],
   });
 }
@@ -47,7 +48,7 @@ async function authorAvatars(articles: ContentItem[]): Promise<Map<string, strin
   return map;
 }
 
-export default async function LearnHubPage(): Promise<JSX.Element> {
+export default async function BlogHubPage(): Promise<JSX.Element> {
   const base = brand.siteUrl;
   const categories = await listCategories();
 
@@ -77,12 +78,12 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
         data={[
           breadcrumbListJsonLd([
             { name: "Home", url: base },
-            { name: "Learn", url: `${base}${learnHub()}` },
+            { name: "Blog", url: `${base}${blogHub()}` },
           ]),
           collectionPageJsonLd({
             name: TITLE,
             description: DESCRIPTION,
-            url: learnHub(),
+            url: blogHub(),
             items: all.slice(0, 20).map((a) => ({
               name: a.title,
               url: articlePath(a.category, a.slug),
@@ -91,17 +92,17 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
         ]}
       />
 
-      <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Learn" }]} />
+      <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Blog" }]} />
 
       {/* Header + Browse by topic */}
       <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h1 className="font-display text-4xl font-bold text-accent sm:text-5xl">Learn Pickleball</h1>
+          <h1 className="font-display text-4xl font-bold text-accent sm:text-5xl">Pickleball Blog</h1>
           <p className="mt-3 max-w-xl text-lg text-muted">
-            Guides, rules, strategy &amp; gear — from first dink to tournament day.
+            Guides, rules, strategy, gear &amp; news — from first dink to tournament day.
           </p>
           <form action="/search" method="get" role="search" className="mt-6 flex max-w-xl gap-2">
-            <label htmlFor="learn-search" className="sr-only">
+            <label htmlFor="blog-search" className="sr-only">
               Search guides, topics, or questions
             </label>
             <div className="relative flex-1">
@@ -110,7 +111,7 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
                 <path d="M21 21l-4.3-4.3" />
               </svg>
               <input
-                id="learn-search"
+                id="blog-search"
                 type="search"
                 name="q"
                 placeholder="Search guides, topics, or questions…"
@@ -135,7 +136,7 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
                 <li key={c.category} className="py-0.5">
                   <CategoryTile
                     label={meta.label}
-                    href={learnCategoryPath(c.category)}
+                    href={blogCategoryPath(c.category)}
                     count={c.count}
                     glyph={meta.glyph}
                   />
@@ -171,7 +172,7 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
             <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Latest</h2>
             {categories[0] && (
               <Link
-                href={learnCategoryPath(categories[0].category)}
+                href={blogCategoryPath(categories[0].category)}
                 className="rounded-sm text-sm font-semibold text-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 View all
@@ -199,7 +200,7 @@ export default async function LearnHubPage(): Promise<JSX.Element> {
 
       {/* Newsletter */}
       <div className="mt-12">
-        <NewsletterSignup source="learn" />
+        <NewsletterSignup source="blog" />
       </div>
     </main>
   );

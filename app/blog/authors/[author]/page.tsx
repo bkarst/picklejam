@@ -13,7 +13,7 @@ import { Breadcrumbs } from "@/components/directory";
 import { ArticleCard } from "@/components/content";
 import { initials } from "@/components/content/format";
 import { getAuthorBySlug, getContentByAuthor } from "@/lib/data/content";
-import { learnHub, authorPath, articlePath } from "@/lib/urls";
+import { blogHub, authorPath, articlePath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 export const revalidate = 86400;
@@ -125,7 +125,7 @@ export default async function AuthorPage({ params }: { params: Params }): Promis
         data={[
           breadcrumbListJsonLd([
             { name: "Home", url: base },
-            { name: "Learn", url: `${base}${learnHub()}` },
+            { name: "Blog", url: `${base}${blogHub()}` },
             { name: item.name, url: `${base}${authorPath(item.slug)}` },
           ]),
           profilePage,
@@ -138,7 +138,7 @@ export default async function AuthorPage({ params }: { params: Params }): Promis
       <Breadcrumbs
         items={[
           { name: "Home", href: "/" },
-          { name: "Learn", href: learnHub() },
+          { name: "Blog", href: blogHub() },
           { name: item.name },
         ]}
       />

@@ -8,7 +8,8 @@ import { JsonLd } from "@/components/JsonLd";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { PlayFeatures } from "@/components/home/PlayFeatures";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { FindYourPeopleCTA } from "@/components/groups";
+import { FindYourPeopleCTA, GROUP_STEPS } from "@/components/groups";
+import { HubSteps } from "@/components/hub";
 import { countryPath, groupNewPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
@@ -43,7 +44,7 @@ export default async function Home() {
       <section className="border-b border-border bg-surface">
         <main
           id="main"
-          className="mx-auto flex w-full max-w-7xl flex-col items-center px-4 py-16 text-center"
+          className="mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-16 text-center"
         >
           <p className="text-sm font-semibold uppercase tracking-wide text-muted">
             {brand.identity.taglineMarketing}
@@ -80,10 +81,14 @@ export default async function Home() {
         </main>
       </section>
 
-      {/* Groups — Find your pickleball people (§6.9) */}
+      {/* Groups — Find your pickleball people (§6.9), then how groups work.
+          Same <HubSteps> + copy as the groups hub (shared GROUP_STEPS), so the
+          two surfaces stay in step. HubSteps carries its own mt-12, so the
+          wrapper only pads the bottom. */}
       <section>
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-16">
           <FindYourPeopleCTA />
+          <HubSteps steps={GROUP_STEPS} />
         </div>
       </section>
 

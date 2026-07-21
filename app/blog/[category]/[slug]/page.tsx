@@ -27,7 +27,7 @@ import { getContentBySlug, getAuthor } from "@/lib/data/content";
 import { getCity } from "@/lib/data/geo";
 import { parseCityKey } from "@/lib/db/keys";
 import { stateAbbr } from "@/lib/geo/us-states";
-import { learnHub, learnCategoryPath, articlePath, authorPath, cityUrlFromKey } from "@/lib/urls";
+import { blogHub, blogCategoryPath, articlePath, authorPath, cityUrlFromKey } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
 /** Evergreen article — ISR once/day (§6.5). */
@@ -96,8 +96,8 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
           data={[
             breadcrumbListJsonLd([
               { name: "Home", url: base },
-              { name: "Learn", url: `${base}${learnHub()}` },
-              { name: meta.label, url: `${base}${learnCategoryPath(content.category)}` },
+              { name: "Blog", url: `${base}${blogHub()}` },
+              { name: meta.label, url: `${base}${blogCategoryPath(content.category)}` },
               { name: content.title, url: `${base}${path}` },
             ]),
             articleJsonLd(content, { url: path, author }),
@@ -106,75 +106,84 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
           ]}
         />
 
-        <Breadcrumbs
-          items={[
-            { name: "Home", href: "/" },
-            { name: "Learn", href: learnHub() },
-            { name: meta.label, href: learnCategoryPath(content.category) },
-            { name: content.title },
-          ]}
-        />
-
-        {/* Article header */}
-        <header className="mx-auto mt-4 max-w-3xl">
-          <p className="text-sm font-bold uppercase tracking-wide text-accent">{meta.label}</p>
-          <h1 className="mt-2 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-            {content.title}
-          </h1>
-          {content.excerpt && <p className="mt-3 text-lg text-muted">{content.excerpt}</p>}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <AuthorByline
-              name={author?.name ?? content.authorName ?? brand.identity.name}
-              avatarUrl={author?.avatarUrl}
-              href={author ? authorPath(author.slug) : undefined}
-              readMinutes={minutes}
-              date={content.publishedAt}
-              size="md"
+        {/* Breadcrumb, header, cover and body all live in ONE column so they
+            share a single left edge; the TOC is a right rail beside it (9.3).
+            The content track is a fixed measure rather than 1fr so the rail sits
+            a fixed distance from the text — with 1fr the rail is pushed to the
+            container edge and drifts further away the wider the viewport. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,39rem)_15rem] lg:justify-center lg:gap-14">
+          {/* 39rem ≈ 66 characters (~11 words) per line in Montserrat at 17px —
+              the ideal measure for body prose. Montserrat is a wide face, so
+              this is narrower than the usual max-w-3xl; re-measure if the body
+              font or size changes. */}
+          <div className="mx-auto w-full min-w-0 max-w-[39rem] lg:mx-0">
+            <Breadcrumbs
+              items={[
+                { name: "Home", href: "/" },
+                { name: "Blog", href: blogHub() },
+                { name: meta.label, href: blogCategoryPath(content.category) },
+                { name: content.title },
+              ]}
             />
-            <ShareLinkButton url={`${base}${path}`} />
-          </div>
-        </header>
 
-        {/* Cover */}
-        {content.coverImage && (
-          <div className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl bg-surface-secondary">
-            <div className="relative aspect-[16/9]">
-              <Image
-                src={content.coverImage}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 896px"
-                className="object-cover"
-              />
-            </div>
-          </div>
-        )}
+            {/* Article header */}
+            <header className="mt-4">
+              <p className="text-sm font-bold uppercase tracking-wide text-accent">{meta.label}</p>
+              <h1 className="mt-2 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+                {content.title}
+              </h1>
+              {content.excerpt && <p className="mt-3 text-lg text-muted">{content.excerpt}</p>}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <AuthorByline
+                  name={author?.name ?? content.authorName ?? brand.identity.name}
+                  avatarUrl={author?.avatarUrl}
+                  href={author ? authorPath(author.slug) : undefined}
+                  readMinutes={minutes}
+                  date={content.publishedAt}
+                  size="md"
+                />
+                <ShareLinkButton url={`${base}${path}`} />
+              </div>
+            </header>
 
-        {/* Body + TOC */}
-        <div className="mt-8 lg:grid lg:grid-cols-[1fr_15rem] lg:gap-10">
-          <article className="mx-auto w-full min-w-0 max-w-3xl">
-            {/* Mobile TOC (collapsible; anchors work JS-off) */}
-            {toc.length > 0 && (
-              <details className="mb-6 rounded-xl border border-border bg-surface px-4 lg:hidden">
-                <summary className="cursor-pointer list-none py-3 font-semibold text-foreground marker:content-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                  On this page
-                </summary>
-                <div className="pb-3">
-                  <TableOfContents items={toc} title="On this page" />
+            {/* Cover — same width as the text column so the left edge holds. */}
+            {content.coverImage && (
+              <div className="mt-6 overflow-hidden rounded-2xl bg-surface-secondary">
+                <div className="relative aspect-[16/9]">
+                  <Image
+                    src={content.coverImage}
+                    alt=""
+                    fill
+                    priority
+                    sizes="(max-width: 624px) 100vw, 624px"
+                    className="object-cover"
+                  />
                 </div>
-              </details>
-            )}
-
-            {takeaways.length > 0 && (
-              <div className="mb-8">
-                <KeyTakeaways items={takeaways} />
               </div>
             )}
 
-            {/* Markdown body — server-rendered, crawlable. Heading ids match the TOC. */}
-            <div
-              className="
+            <article className="mt-8">
+              {/* Mobile TOC (collapsible; anchors work JS-off) */}
+              {toc.length > 0 && (
+                <details className="mb-6 rounded-xl border border-border bg-surface px-4 lg:hidden">
+                  <summary className="cursor-pointer list-none py-3 font-semibold text-foreground marker:content-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                    On this page
+                  </summary>
+                  <div className="pb-3">
+                    <TableOfContents items={toc} title="On this page" />
+                  </div>
+                </details>
+              )}
+
+              {takeaways.length > 0 && (
+                <div className="mb-8">
+                  <KeyTakeaways items={takeaways} />
+                </div>
+              )}
+
+              {/* Markdown body — server-rendered, crawlable. Heading ids match the TOC. */}
+              <div
+                className="
                 text-[1.0625rem] leading-8 text-foreground
                 [&_a]:text-accent [&_a]:underline hover:[&_a]:opacity-80
                 [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_blockquote]:text-muted [&_blockquote]:italic
@@ -188,33 +197,34 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
                 [&_table]:my-6 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:bg-surface-secondary [&_th]:p-2 [&_th]:text-left
                 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6
               "
-            >
-              <MarkdownBody markdown={content.body} />
-            </div>
-
-            {/* FAQ */}
-            {faq.length > 0 && (
-              <section className="mt-12">
-                <h2 className="font-display text-2xl font-bold text-foreground">Frequently asked questions</h2>
-                <div className="mt-4">
-                  <FaqAccordion items={faq} />
-                </div>
-              </section>
-            )}
-
-            {/* Related-local CTA (resolves to a real city page) */}
-            {localCta && (
-              <div className="mt-12">
-                <RelatedLocalCTA
-                  cityName={localCta.cityName}
-                  stateCode={localCta.stateCode}
-                  href={localCta.href}
-                />
+              >
+                <MarkdownBody markdown={content.body} />
               </div>
-            )}
-          </article>
 
-          {/* Desktop sticky TOC */}
+              {/* FAQ */}
+              {faq.length > 0 && (
+                <section className="mt-12">
+                  <h2 className="font-display text-2xl font-bold text-foreground">Frequently asked questions</h2>
+                  <div className="mt-4">
+                    <FaqAccordion items={faq} />
+                  </div>
+                </section>
+              )}
+
+              {/* Related-local CTA (resolves to a real city page) */}
+              {localCta && (
+                <div className="mt-12">
+                  <RelatedLocalCTA
+                    cityName={localCta.cityName}
+                    stateCode={localCta.stateCode}
+                    href={localCta.href}
+                  />
+                </div>
+              )}
+            </article>
+          </div>
+
+          {/* Desktop sticky TOC — right rail, starts level with the breadcrumb. */}
           {toc.length > 0 && (
             <aside className="hidden lg:block">
               <div className="sticky top-24">
@@ -227,9 +237,15 @@ export default async function ArticlePage({ params }: { params: Params }): Promi
 
       {/* Every article ends with an invitation to form a crew (§6.9). Full-bleed
           cream band — `main` is bg-surface, so the white card needs the canvas
-          behind it to read as a card. */}
+          behind it to read as a card.
+
+          The card matches the article block above it rather than the page
+          container: below lg that is the reading column (39rem), at lg+ it is
+          column + gap + rail (39 + 3.5 + 15 = 57.5rem). Each figure adds this
+          wrapper's own px-4 (2rem) — so 41rem / 59.5rem. Keep these in step with
+          the grid above if that geometry changes. */}
       <section className="mt-4 bg-background">
-        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-16">
+        <div className="mx-auto w-full max-w-[41rem] px-4 py-12 sm:py-16 lg:max-w-[59.5rem]">
           <FindYourPeopleCTA />
         </div>
       </section>

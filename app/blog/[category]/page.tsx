@@ -9,7 +9,7 @@ import { Breadcrumbs } from "@/components/directory";
 import { ArticleCard, NewsletterSignup } from "@/components/content";
 import { categoryMeta } from "@/components/content/categories";
 import { getContentByCategory, getAuthor, listCategories, CONTENT_CATEGORIES } from "@/lib/data/content";
-import { learnHub, learnCategoryPath, articlePath } from "@/lib/urls";
+import { blogHub, blogCategoryPath, articlePath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 import type { ContentItem } from "@/lib/db/types";
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return buildMetadata({
     title: `${meta.label} — Pickleball ${meta.label} Guides`,
     description: meta.blurb,
-    path: learnCategoryPath(category),
+    path: blogCategoryPath(category),
   });
 }
 
@@ -40,7 +40,7 @@ async function avatarMap(articles: ContentItem[]): Promise<Map<string, string>> 
   return map;
 }
 
-export default async function LearnCategoryPage({
+export default async function BlogCategoryPage({
   params,
 }: {
   params: Params;
@@ -54,8 +54,8 @@ export default async function LearnCategoryPage({
 
   const known = categories.some((c) => c.category === category);
   // A curated category slug (e.g. "gear") is "defined" even before it has any
-  // content — it's in the taxonomy and linked from nav, so it earns a
-  // "Coming soon" page rather than a 404.
+  // content — it's in the taxonomy and linked from the hub's topic rail, so it
+  // earns a "Coming soon" page rather than a 404.
   const isDefinedCategory = (CONTENT_CATEGORIES as readonly string[]).includes(category);
   const articles = rawArticles
     .filter((a) => a.status === "published")
@@ -74,8 +74,8 @@ export default async function LearnCategoryPage({
         data={[
           breadcrumbListJsonLd([
             { name: "Home", url: base },
-            { name: "Learn", url: `${base}${learnHub()}` },
-            { name: meta.label, url: `${base}${learnCategoryPath(category)}` },
+            { name: "Blog", url: `${base}${blogHub()}` },
+            { name: meta.label, url: `${base}${blogCategoryPath(category)}` },
           ]),
           itemListJsonLd(
             articles.map((a) => ({ name: a.title, url: articlePath(a.category, a.slug) })),
@@ -86,7 +86,7 @@ export default async function LearnCategoryPage({
       <Breadcrumbs
         items={[
           { name: "Home", href: "/" },
-          { name: "Learn", href: learnHub() },
+          { name: "Blog", href: blogHub() },
           { name: meta.label },
         ]}
       />
@@ -101,7 +101,7 @@ export default async function LearnCategoryPage({
           <ul className="flex flex-wrap gap-2">
             <li>
               <Link
-                href={learnHub()}
+                href={blogHub()}
                 className="inline-flex h-9 items-center rounded-full border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 All Topics
@@ -112,7 +112,7 @@ export default async function LearnCategoryPage({
               return (
                 <li key={c.category}>
                   <Link
-                    href={learnCategoryPath(c.category)}
+                    href={blogCategoryPath(c.category)}
                     aria-current={active ? "page" : undefined}
                     className={`inline-flex h-9 items-center rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                       active
@@ -175,7 +175,7 @@ export default async function LearnCategoryPage({
           </section>
 
           <section className="rounded-2xl border border-border bg-surface p-5">
-            <NewsletterSignup source="learn-category" variant="inline" title="Stay in the loop" description="Get new guides delivered to your inbox." />
+            <NewsletterSignup source="blog-category" variant="inline" title="Stay in the loop" description="Get new guides delivered to your inbox." />
           </section>
         </aside>
       </div>

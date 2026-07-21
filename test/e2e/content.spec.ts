@@ -7,9 +7,9 @@ import { test, expect } from "@playwright/test";
  * E-E-A-T page, and a working newsletter subscribe. Content is DB-seeded.
  */
 
-const ARTICLE = "/learn/guides/dinking-basics";
+const ARTICLE = "/blog/guides/dinking-basics";
 const NEWS = "/news/mlp-announces-expanded-2026-season";
-const AUTHOR = "/learn/authors/jamie-green";
+const AUTHOR = "/blog/authors/jamie-green";
 
 test("Stage 9 — evergreen article: crawlable server HTML (JS-off) + Article/Person JSON-LD + related-local CTA", async ({ page, request }) => {
   // RAW server HTML (a plain fetch — no JS runs): the body + structured data must

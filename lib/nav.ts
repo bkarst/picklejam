@@ -7,7 +7,7 @@
  */
 
 import { LEGAL_DOC_SLUGS, legalDocs } from "@/lib/legal/docs";
-import { legalPath, discoverPath } from "@/lib/urls";
+import { legalPath, discoverPath, blogHub, roundRobinLanding, countryPath } from "@/lib/urls";
 import { publicEnv } from "@/lib/env";
 
 /** Paid events (tournaments/leagues/ladders) are hidden until Stripe is approved. */
@@ -25,64 +25,115 @@ export interface NavColumn {
   label: string;
   /** Search intent (§4) — used as the menu's aria description. */
   intent: string;
+  /**
+   * When set (and `links` is empty), the entry is a single destination rather
+   * than a mega-menu: the header renders a plain link, and the footer folds it
+   * into the shared "More" column. Used by "Round Robin" and "Blog".
+   */
+  href?: string;
   links: NavLink[];
 }
 
-/** The four intent-segmented mega-menus (PRD §4). */
+/**
+ * The intent-segmented top-level nav (PRD §4).
+ *
+ * Labels are keyword-bearing NOUNS ("Courts", "Groups") rather than generic verbs
+ * ("Play"): a sitewide anchor is the strongest internal link on the site, so it
+ * should describe its destination for both readers and crawlers. Each menu leads
+ * with its INDEXABLE hub (`/courts`, `/groups`); the personalized finders
+ * (`/search`, `/discover-pickleball-near-me`) are `noindex` utilities and sit
+ * BELOW the hub rather than replacing it.
+ *
+ * Court actions ("Check In", "Write a Review") are deliberately absent: they act
+ * on one specific court, so from global nav they could only dump the user on the
+ * search page. They live on the court pages where they mean something.
+ */
 export const primaryNav: NavColumn[] = [
   {
-    label: "Play",
+    label: "Courts",
     intent: "Discovery",
     links: [
-      { label: "Find Courts", href: "/search", description: "Browse courts near you" },
-      { label: "Find Groups", href: "/groups", description: "Clubs & crews" },
-      { label: "Find Near You", href: discoverPath(), description: "Groups, leagues, ladders & tournaments near you" },
-      { label: "Check In", href: "/search", description: "Show you're playing today" },
-      { label: "Write a Review", href: "/search", description: "Share your take on a court" },
+      // Straight to the US country page: `/courts` is a one-card index whose only
+      // link is this page, so pointing at it just adds a hop.
+      { label: "Browse All Courts", href: countryPath("us"), description: "By state, city & neighborhood" },
+      { label: "Find Courts Near You", href: "/search", description: "Search courts near you" },
     ],
   },
   {
-    label: "Compete",
-    intent: "Events (free tool → paid)",
-    links: [
-      ...(PAID
-        ? [
+    // Single link, no menu. `discoverPath("groups")` deep-links the groups tab so
+    // the label matches what loads. NOTE: /discover-pickleball-near-me is
+    // `noindex`, so the indexable /groups hub now has NO nav link — it is still
+    // reached via the sitemap, the home page CTA, and city finders.
+    label: "Groups Near You",
+    intent: "Discovery",
+    href: discoverPath("groups"),
+    links: [],
+  },
+  // While paid events are off, round robin is the ONLY event surface — so it is a
+  // single link rather than two one-item menus ("Compete" + "Organize") pointing
+  // at the same feature. The landing already carries the "Create a round robin"
+  // CTA, so hosting needs no separate nav entry. When PAID flips on, round robin
+  // folds back into Compete and the Organize funnel returns.
+  ...(PAID
+    ? [
+        {
+          label: "Compete",
+          intent: "Events (free tool → paid)",
+          links: [
             { label: "Tournaments", href: "/tournaments", description: "Find & register" },
             { label: "Leagues", href: "/leagues", description: "Multi-week seasons" },
             { label: "Ladders", href: "/ladders", description: "Challenge play" },
-          ]
-        : []),
-      { label: "Round Robin Tool", href: "/round-robin", description: "Free generator" },
-    ],
-  },
-  {
-    label: "Learn",
-    intent: "Content / SEO",
-    links: [
-      { label: "How to Play", href: "/learn", description: "Guides for every level" },
-      { label: "Gear Guides", href: "/learn/gear", description: "Paddles & shoes" },
-      { label: "News", href: "/news", description: "Pros, tours & products" },
-    ],
-  },
-  {
-    label: "Organize",
-    intent: "Organizer funnel",
-    links: [
-      { label: "Host a Round Robin", href: "/round-robin/new", description: "No account needed" },
-      ...(PAID
-        ? [
+            { label: "Round Robin Tool", href: roundRobinLanding(), description: "Free generator" },
+          ],
+        },
+        {
+          label: "Organize",
+          intent: "Organizer funnel",
+          links: [
+            { label: "Host a Round Robin", href: "/round-robin/new", description: "No account needed" },
             { label: "Run a Tournament", href: "/organize/tournaments/new", description: "Paid registration" },
             { label: "Run a League", href: "/organize/leagues/new", description: "Seasons on autopilot" },
             { label: "Run a Ladder", href: "/organize/leagues/new", description: "Continuous challenges" },
-          ]
-        : []),
-    ],
+          ],
+        },
+      ]
+    : [
+        {
+          label: "Round Robin",
+          intent: "Events (free tool)",
+          href: roundRobinLanding(),
+          links: [],
+        },
+      ]),
+  {
+    // One link, no menu: "Learn" / "How to Play" / "Gear Guides" / "News" all
+    // collapsed into "Blog". Gear and News are deliberately NOT surfaced in nav
+    // for now (their routes still exist) — re-add links here to bring them back.
+    label: "Blog",
+    intent: "Content / SEO",
+    href: blogHub(),
+    links: [],
   },
 ];
 
-/** Footer IA columns (PRD §4 footer; the sitewide internal-linking hub). */
+/**
+ * Footer IA columns (PRD §4 footer; the sitewide internal-linking hub).
+ *
+ * Single-destination entries (Round Robin, Blog) would each render as a column
+ * heading over an empty list, so they collapse into one shared "More" column —
+ * the footer keeps every top-level destination without the dead space.
+ */
+const footerDirectLinks: NavLink[] = primaryNav.flatMap((c) =>
+  c.links.length === 0 && c.href ? [{ label: c.label, href: c.href }] : [],
+);
+
 export const footerColumns: NavColumn[] = [
-  ...primaryNav.map(({ label, intent, links }) => ({ label, intent, links })),
+  ...primaryNav
+    .filter((c) => c.links.length > 0)
+    .map(({ label, intent, links }) => ({ label, intent, links })),
+  ...(footerDirectLinks.length > 0
+    ? [{ label: "More", intent: "Top-level destinations", links: footerDirectLinks }]
+    : []),
   {
     label: "Company",
     intent: "System / Marketing",

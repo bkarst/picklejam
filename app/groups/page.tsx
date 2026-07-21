@@ -5,6 +5,7 @@ import { breadcrumbListJsonLd, faqPageJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/JsonLd";
 import { Breadcrumbs } from "@/components/directory";
 import { HubHero, HubSteps, HubFaq, type HubAction } from "@/components/hub";
+import { GROUP_STEPS } from "@/components/groups";
 import { groupsHub, groupNewPath, discoverPath } from "@/lib/urls";
 import { brand } from "@/brand.config";
 
@@ -41,13 +42,6 @@ const FAQS = [
   },
 ];
 
-const STEPS = [
-  { title: "Create", body: "Name your group and pick a home court in under a minute." },
-  { title: "Invite", body: "Share an invite link with your crew — private by default." },
-  { title: "Schedule", body: "Post recurring meet-ups; members RSVP in a tap." },
-  { title: "Play", body: "See who's checked in and looking to play, then hit the court." },
-];
-
 export default function GroupsHubPage(): JSX.Element {
   const base = brand.siteUrl;
   const actions: HubAction[] = [
@@ -79,7 +73,7 @@ export default function GroupsHubPage(): JSX.Element {
         }}
       />
 
-      <HubSteps steps={STEPS} />
+      <HubSteps steps={GROUP_STEPS} />
 
       <HubFaq faqs={FAQS} />
     </main>

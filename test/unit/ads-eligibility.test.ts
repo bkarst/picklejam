@@ -12,8 +12,8 @@ describe("adsAllowed — §2.2 ad-eligibility boundary", () => {
     "/courts/us/kansas/lawrence/some-court", // court detail
     "/courts/amenities/lighted", // amenity finder
     "/courts/types/indoor", // type finder
-    "/learn", // content hub
-    "/learn/basics/what-is-pickleball", // article
+    "/blog", // content hub
+    "/blog/basics/what-is-pickleball", // article
     "/news", // news index
     "/news/some-story", // news article
     "/tournaments", // finder (no /register)

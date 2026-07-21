@@ -119,6 +119,21 @@ export function Header() {
         {/* Desktop mega-menus */}
         <ul className="hidden items-center gap-1 lg:flex">
           {primaryNav.map((col) => {
+            // A single-destination entry (e.g. "Blog") is a plain link — no
+            // trigger button, no chevron, no dropdown.
+            if (col.href && col.links.length === 0) {
+              return (
+                <li key={col.label}>
+                  <Link
+                    href={col.href}
+                    aria-current={pathname === col.href || pathname.startsWith(`${col.href}/`) ? "page" : undefined}
+                    className="inline-flex h-11 items-center rounded-full px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                  >
+                    {col.label}
+                  </Link>
+                </li>
+              );
+            }
             const isOpen = openMenu === col.label;
             return (
               <li key={col.label} className="relative" onMouseEnter={() => setOpenMenu(col.label)} onMouseLeave={() => setOpenMenu(null)}>
@@ -193,7 +208,19 @@ export function Header() {
 
             <Drawer.Body className="py-2">
               <ul className="flex flex-col">
-                {primaryNav.map((col) => (
+                {primaryNav.map((col) =>
+                  col.href && col.links.length === 0 ? (
+                    // Single-destination entry — a plain row, not an accordion.
+                    <li key={col.label}>
+                      <Link
+                        href={col.href}
+                        onClick={mobile.close}
+                        className="flex w-full items-center border-b border-border py-3 text-left text-base font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                      >
+                        {col.label}
+                      </Link>
+                    </li>
+                  ) : (
                   <li key={col.label}>
                     <Disclosure className="border-b border-border">
                       <Disclosure.Heading>
@@ -218,7 +245,8 @@ export function Header() {
                       </Disclosure.Content>
                     </Disclosure>
                   </li>
-                ))}
+                  ),
+                )}
               </ul>
 
               {/* Appearance (theme) — lives here on mobile since the toggle is desktop-only. */}

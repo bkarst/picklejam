@@ -238,26 +238,29 @@ export function groupsCityPathFromKey(cityKey: string): string {
 export const discoverPath = (type?: "groups" | "leagues" | "ladders" | "tournaments"): string =>
   type ? `/discover-pickleball-near-me?type=${type}` : "/discover-pickleball-near-me";
 
-// ── Content Hub /learn + News /news (Stage 9, §6.5/§6.6) ─────────────────────
+// ── Blog /blog + News /news (Stage 9, §6.5/§6.6) ─────────────────────────────
 //
-// Route-collision note (next-conventions.md): `/learn/authors` and
+// The Content Hub lives at `/blog` (it replaced `/learn`, which is gone — no
+// redirect, so any stale `/learn/*` link now 404s by design).
+//
+// Route-collision note (next-conventions.md): `/blog/authors` and
 // `/news/topics` are STATIC segments that sit beside their dynamic siblings
-// (`/learn/[category]`, `/news/[slug]`). A static segment always wins over a
+// (`/blog/[category]`, `/news/[slug]`). A static segment always wins over a
 // sibling dynamic one, so this is allowed — only TWO different dynamic names at
 // the same level would conflict.
 
-/** The Content Hub index ("Learn Pickleball"). Indexable. */
-export const learnHub = (): string => "/learn";
+/** The Blog index (the Content Hub). Indexable. */
+export const blogHub = (): string => "/blog";
 
 /** A category feed ("How to Play", "Rules", "Gear"…). Indexable. */
-export const learnCategoryPath = (category: string): string => `/learn/${category}`;
+export const blogCategoryPath = (category: string): string => `/blog/${category}`;
 
 /** An evergreen article detail page (ISR 86400). Indexable. */
 export const articlePath = (category: string, slug: string): string =>
-  `/learn/${category}/${slug}`;
+  `/blog/${category}/${slug}`;
 
-/** An author profile (E-E-A-T). Static `/learn/authors/` segment. Indexable. */
-export const authorPath = (slug: string): string => `/learn/authors/${slug}`;
+/** An author profile (E-E-A-T). Static `/blog/authors/` segment. Indexable. */
+export const authorPath = (slug: string): string => `/blog/authors/${slug}`;
 
 /** The News index ("Pickleball News", ISR 900). Indexable. */
 export const newsHub = (): string => "/news";

@@ -21,7 +21,7 @@ describe("<ArticleCard>", () => {
     const link = screen.getByRole("link", { name: article.title });
     expect(link).toHaveAttribute("href", articlePath(article.category, article.slug));
     expect(articlePath(article.category, article.slug)).toBe(
-      "/learn/how-to-play/complete-guide-to-getting-started",
+      "/blog/how-to-play/complete-guide-to-getting-started",
     );
   });
 

@@ -12,7 +12,7 @@ import { FindYourPeopleCTA } from "@/components/groups";
 import { relativeTime, formatArticleDate, titleize } from "@/components/content/format";
 import { MarkdownBody } from "@/lib/content/render";
 import { getNewsBySlug, getNewsFeed } from "@/lib/data/content";
-import { newsHub, newsTopicPath, newsArticlePath, learnHub } from "@/lib/urls";
+import { newsHub, newsTopicPath, newsArticlePath, blogHub } from "@/lib/urls";
 import { brand } from "@/brand.config";
 import type { NewsItem } from "@/lib/db/types";
 
@@ -225,7 +225,7 @@ export default async function NewsArticlePage({ params }: { params: Params }): P
           <section className="rounded-2xl border border-border bg-surface p-5">
             <h2 className="font-display text-lg font-bold text-foreground">Go deeper</h2>
             <Link
-              href={learnHub()}
+              href={blogHub()}
               className="group mt-3 flex items-center gap-4 rounded-xl border border-border p-4 transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-bubblegum/40 text-secondary">

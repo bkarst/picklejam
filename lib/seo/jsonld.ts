@@ -569,7 +569,7 @@ export function authorPersonJsonLd(author: AuthorItem, opts?: { url?: string }):
     "@context": SCHEMA_CONTEXT,
     "@type": "Person",
     name: author.name,
-    url: absolute(opts?.url ?? `/learn/authors/${author.slug}`),
+    url: absolute(opts?.url ?? `/blog/authors/${author.slug}`),
     knowsAbout: "Pickleball",
     ...(author.credentials ? { jobTitle: author.credentials } : {}),
     ...(author.bio ? { description: author.bio } : {}),
@@ -597,7 +597,7 @@ export function articleJsonLd(
     ? {
         "@type": "Person",
         name: opts.author.name,
-        url: absolute(`/learn/authors/${opts.author.slug}`),
+        url: absolute(`/blog/authors/${opts.author.slug}`),
         ...(opts.author.avatarUrl ? { image: opts.author.avatarUrl } : {}),
       }
     : content.authorName
@@ -657,7 +657,7 @@ export function newsArticleJsonLd(news: NewsItem, opts: { url: string }): JsonLd
 }
 
 /**
- * `CollectionPage` — the /learn hub and /news index (Stage 9, §3.4). Wraps an
+ * `CollectionPage` — the /blog hub and /news index (Stage 9, §3.4). Wraps an
  * `ItemList` of the surfaced articles/items as `mainEntity` so the collection's
  * membership is machine-readable. EMPTY-SAFE: `mainEntity` is omitted when the
  * collection is empty.
