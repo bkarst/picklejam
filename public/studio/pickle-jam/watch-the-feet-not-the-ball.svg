@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="t d">
+  <title id="t">Watch the feet, not the ball: four things to track in a professional pickleball rally</title>
+  <desc id="d">A top view of a pickleball court on the left, with the two non-volley zones (the kitchen) shaded either side of the net. On the right of the court both players stand at the kitchen line. On the left one player is at the line and their partner is stranded deep near the baseline, with a dashed arrow showing that player already moving forward before the ball arrives. A panel on the right lists four things to track while watching a professional match: the feet rather than the ball, because the pros are standing where the ball is going before it gets there; who gets to the kitchen line first and refuses to leave; who is forced to lift the ball, because that player is losing the point; and the reset, a soft shot that buys time and that no crowd ever cheers for. A band across the bottom says that watching one of these for one game will show up in your own next game.</desc>
+
+  <rect width="1200" height="800" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="64" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800" text-anchor="middle">WATCH THE FEET, NOT THE BALL</text>
+  <text x="600" y="102" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">FOUR THINGS TO TRACK IN A PRO RALLY THAT WILL SHOW UP IN YOUR OWN GAME</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- ============ COURT (TOP VIEW) ============ -->
+    <g>
+      <rect x="60" y="200" width="620" height="282" rx="8" fill="#0d7a5c"/>
+
+      <!-- kitchen zones -->
+      <rect x="271" y="200" width="99" height="282" fill="#d7ff3f" opacity=".16"/>
+      <rect x="370" y="200" width="99" height="282" fill="#d7ff3f" opacity=".16"/>
+
+      <!-- outer lines -->
+      <rect x="60" y="200" width="620" height="282" rx="8" fill="none" stroke="#ffffff" stroke-width="4"/>
+
+      <!-- kitchen lines -->
+      <line x1="271" y1="200" x2="271" y2="482" stroke="#ffffff" stroke-width="3"/>
+      <line x1="469" y1="200" x2="469" y2="482" stroke="#ffffff" stroke-width="3"/>
+
+      <!-- centre service lines -->
+      <line x1="60" y1="341" x2="271" y2="341" stroke="#ffffff" stroke-width="3"/>
+      <line x1="469" y1="341" x2="680" y2="341" stroke="#ffffff" stroke-width="3"/>
+
+      <!-- net -->
+      <line x1="370" y1="192" x2="370" y2="490" stroke="#ffffff" stroke-width="6"/>
+      <circle cx="370" cy="192" r="6" fill="#ffffff"/>
+      <circle cx="370" cy="490" r="6" fill="#ffffff"/>
+
+      <!-- right team: both at the line -->
+      <circle cx="500" cy="262" r="17" fill="#d7ff3f"/>
+      <circle cx="500" cy="420" r="17" fill="#d7ff3f"/>
+
+      <!-- left team: one up, one stranded deep -->
+      <circle cx="248" cy="262" r="17" fill="#d7ff3f"/>
+      <circle cx="112" cy="424" r="17" fill="#ff3f8e"/>
+
+      <!-- the stranded player already moving -->
+      <path d="M 130 408 L 216 308" fill="none" stroke="#ff3f8e" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 8"/>
+      <path d="M 233 288 L 222.8 313.9 L 209.2 302.2 Z" fill="#ff3f8e"/>
+    </g>
+
+    <text x="370" y="512" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="15" font-weight="800" text-anchor="middle">THE SHADED STRIPS ARE THE KITCHEN. THE LINE BESIDE THEM IS THE PRIZE.</text>
+    <text x="370" y="544" fill="#ffffff" font-family="Arial, sans-serif" font-size="15" text-anchor="middle" opacity=".75">Top view. The broadcast shows you all of this. Most of us watch only the ball.</text>
+
+    <!-- pink marker key -->
+    <g>
+      <circle cx="90" cy="600" r="12" fill="#ff3f8e"/>
+      <text x="114" y="606" fill="#ffffff" font-size="16">The one player who is out of position, already running.</text>
+      <circle cx="90" cy="638" r="12" fill="#d7ff3f"/>
+      <text x="114" y="644" fill="#ffffff" font-size="16">Everyone else: parked at the line, refusing to give it up.</text>
+    </g>
+
+    <!-- ============ RIGHT PANEL: THE FOUR THINGS ============ -->
+    <rect x="740" y="170" width="410" height="520" rx="20" fill="#0d7a5c"/>
+
+    <g>
+      <circle cx="778" cy="216" r="18" fill="#d7ff3f"/>
+      <text x="778" y="223" fill="#0f5a46" font-size="19" font-weight="800" text-anchor="middle">1</text>
+      <text x="812" y="222" fill="#d7ff3f" font-size="19" font-weight="800">THE FEET, NOT THE BALL</text>
+      <text x="812" y="248" fill="#ffffff" font-size="17">The pros are standing where the</text>
+      <text x="812" y="272" fill="#ffffff" font-size="17">ball is going before it gets</text>
+      <text x="812" y="296" fill="#ffffff" font-size="17">there. Follow one player's feet.</text>
+
+      <circle cx="778" cy="336" r="18" fill="#d7ff3f"/>
+      <text x="778" y="343" fill="#0f5a46" font-size="19" font-weight="800" text-anchor="middle">2</text>
+      <text x="812" y="342" fill="#d7ff3f" font-size="19" font-weight="800">WHO GETS TO THE LINE</text>
+      <text x="812" y="368" fill="#ffffff" font-size="17">Both teams sprint to the kitchen</text>
+      <text x="812" y="392" fill="#ffffff" font-size="17">line and refuse to leave it.</text>
+      <text x="812" y="416" fill="#ffffff" font-size="17">Time how long that takes.</text>
+
+      <circle cx="778" cy="456" r="18" fill="#d7ff3f"/>
+      <text x="778" y="463" fill="#0f5a46" font-size="19" font-weight="800" text-anchor="middle">3</text>
+      <text x="812" y="462" fill="#d7ff3f" font-size="19" font-weight="800">WHO HAD TO HIT UP</text>
+      <text x="812" y="488" fill="#ffffff" font-size="17">Whoever lifts the ball is losing</text>
+      <text x="812" y="512" fill="#ffffff" font-size="17">the point. Track that for a game</text>
+      <text x="812" y="536" fill="#ffffff" font-size="17">and the score explains itself.</text>
+
+      <circle cx="778" cy="576" r="18" fill="#d7ff3f"/>
+      <text x="778" y="583" fill="#0f5a46" font-size="19" font-weight="800" text-anchor="middle">4</text>
+      <text x="812" y="582" fill="#d7ff3f" font-size="19" font-weight="800">THE RESET, NOT THE WINNER</text>
+      <text x="812" y="608" fill="#ffffff" font-size="17">The best shot in most rallies is</text>
+      <text x="812" y="632" fill="#ffffff" font-size="17">a soft one that buys time. No</text>
+      <text x="812" y="656" fill="#ffffff" font-size="17">crowd has ever cheered for it.</text>
+    </g>
+
+    <!-- ============ BOTTOM BAND ============ -->
+    <rect x="50" y="712" width="1100" height="56" rx="18" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="600" y="748" fill="#ffffff" font-size="21" font-weight="800" text-anchor="middle">Pick one of the four. Watch it for one game. It shows up in your next one.</text>
+  </g>
+</svg>

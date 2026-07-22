@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" role="img" aria-labelledby="t d">
+  <title id="t">Follow the tour, not the channel: the four pro pickleball tours and where each one lives</title>
+  <desc id="d">Four columns, one per professional pickleball circuit. The PPA Tour is individual pros playing bracket by bracket, and it lives on the sport's own subscription network, whose championship court is free on the web. MLP is city teams with drafted rosters, sharing the PPA's streaming home since the two merged, plus its own free YouTube channel. The APP Tour is a second full tour of individual pros that streams whole tournaments free on its YouTube channel, with additional windows on national sports networks. The MLP Champions Series is team play for players past forty, in 40+, 50+ and 60+ divisions, streamed free on its own YouTube channel alongside a broadcast deal. A band across the bottom notes that the channels change but the tours do not, so a viewer should start at the tour's own watch page.</desc>
+
+  <rect width="1200" height="790" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="64" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="800" text-anchor="middle">FOLLOW THE TOUR, NOT THE CHANNEL</text>
+  <text x="600" y="102" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="20" font-weight="700" text-anchor="middle">PICK WHO YOU WANT TO WATCH. THE TOUR TELLS YOU THE SCREEN.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- ============ COLUMN 1: PPA TOUR ============ -->
+    <g>
+      <rect x="50" y="140" width="260" height="56" rx="18" fill="#d7ff3f"/>
+      <text x="180" y="178" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">PPA TOUR</text>
+      <rect x="50" y="206" width="260" height="424" rx="18" fill="#0d7a5c"/>
+
+      <text x="72" y="244" fill="#d7ff3f" font-size="14" font-weight="800">WHAT IT IS</text>
+      <text x="72" y="272" fill="#ffffff" font-size="17">Individual pros,</text>
+      <text x="72" y="296" fill="#ffffff" font-size="17">bracket by bracket,</text>
+      <text x="72" y="320" fill="#ffffff" font-size="17">week after week.</text>
+
+      <line x1="72" y1="346" x2="288" y2="346" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="72" y="380" fill="#d7ff3f" font-size="14" font-weight="800">WHERE IT LIVES</text>
+      <text x="72" y="408" fill="#ffffff" font-size="17">The sport's own</text>
+      <text x="72" y="432" fill="#ffffff" font-size="17">subscription network.</text>
+      <text x="72" y="456" fill="#ffffff" font-size="17">Its championship</text>
+      <text x="72" y="480" fill="#ffffff" font-size="17">court is free on web.</text>
+
+      <line x1="72" y1="506" x2="288" y2="506" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="72" y="540" fill="#d7ff3f" font-size="14" font-weight="800">COST</text>
+      <text x="72" y="570" fill="#ffffff" font-size="18" font-weight="700">One court: $0</text>
+      <text x="72" y="596" fill="#ffffff" font-size="18" font-weight="700">All of it: a few $/mo</text>
+    </g>
+
+    <!-- ============ COLUMN 2: MLP ============ -->
+    <g>
+      <rect x="330" y="140" width="260" height="56" rx="18" fill="#d7ff3f"/>
+      <text x="460" y="178" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">MLP</text>
+      <rect x="330" y="206" width="260" height="424" rx="18" fill="#0d7a5c"/>
+
+      <text x="352" y="244" fill="#d7ff3f" font-size="14" font-weight="800">WHAT IT IS</text>
+      <text x="352" y="272" fill="#ffffff" font-size="17">City teams, drafted</text>
+      <text x="352" y="296" fill="#ffffff" font-size="17">rosters, one score</text>
+      <text x="352" y="320" fill="#ffffff" font-size="17">for four matchups.</text>
+
+      <line x1="352" y1="346" x2="568" y2="346" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="352" y="380" fill="#d7ff3f" font-size="14" font-weight="800">WHERE IT LIVES</text>
+      <text x="352" y="408" fill="#ffffff" font-size="17">Same home as the</text>
+      <text x="352" y="432" fill="#ffffff" font-size="17">PPA (they merged</text>
+      <text x="352" y="456" fill="#ffffff" font-size="17">under one company),</text>
+      <text x="352" y="480" fill="#ffffff" font-size="17">plus its own YouTube.</text>
+
+      <line x1="352" y1="506" x2="568" y2="506" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="352" y="540" fill="#d7ff3f" font-size="14" font-weight="800">COST</text>
+      <text x="352" y="570" fill="#ffffff" font-size="18" font-weight="700">On YouTube: $0</text>
+      <text x="352" y="596" fill="#ffffff" font-size="18" font-weight="700">Live: the PPA's app</text>
+    </g>
+
+    <!-- ============ COLUMN 3: APP TOUR ============ -->
+    <g>
+      <rect x="610" y="140" width="260" height="56" rx="18" fill="#d7ff3f"/>
+      <text x="740" y="178" fill="#0f5a46" font-size="26" font-weight="800" text-anchor="middle">APP TOUR</text>
+      <rect x="610" y="206" width="260" height="424" rx="18" fill="#0d7a5c"/>
+
+      <text x="632" y="244" fill="#d7ff3f" font-size="14" font-weight="800">WHAT IT IS</text>
+      <text x="632" y="272" fill="#ffffff" font-size="17">A second full tour of</text>
+      <text x="632" y="296" fill="#ffffff" font-size="17">individual pros, with</text>
+      <text x="632" y="320" fill="#ffffff" font-size="17">amateurs alongside.</text>
+
+      <line x1="632" y1="346" x2="848" y2="346" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="632" y="380" fill="#d7ff3f" font-size="14" font-weight="800">WHERE IT LIVES</text>
+      <text x="632" y="408" fill="#ffffff" font-size="17">Its own YouTube</text>
+      <text x="632" y="432" fill="#ffffff" font-size="17">channel, whole days</text>
+      <text x="632" y="456" fill="#ffffff" font-size="17">start to finish. Plus</text>
+      <text x="632" y="480" fill="#ffffff" font-size="17">national TV windows.</text>
+
+      <line x1="632" y1="506" x2="848" y2="506" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="632" y="540" fill="#d7ff3f" font-size="14" font-weight="800">COST</text>
+      <text x="632" y="570" fill="#ffffff" font-size="18" font-weight="700">On YouTube: $0</text>
+      <text x="632" y="596" fill="#ffffff" font-size="18" font-weight="700">No account needed</text>
+    </g>
+
+    <!-- ============ COLUMN 4: MLP CHAMPIONS SERIES ============ -->
+    <g>
+      <rect x="890" y="140" width="260" height="56" rx="18" fill="#d7ff3f"/>
+      <text x="1020" y="177" fill="#0f5a46" font-size="21" font-weight="800" text-anchor="middle">CHAMPIONS SERIES</text>
+      <rect x="890" y="206" width="260" height="424" rx="18" fill="#0d7a5c"/>
+
+      <text x="912" y="244" fill="#d7ff3f" font-size="14" font-weight="800">WHAT IT IS</text>
+      <text x="912" y="272" fill="#ffffff" font-size="17">Team play for players</text>
+      <text x="912" y="296" fill="#ffffff" font-size="17">past forty: 40+, 50+</text>
+      <text x="912" y="320" fill="#ffffff" font-size="17">and 60+ divisions.</text>
+
+      <line x1="912" y1="346" x2="1128" y2="346" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="912" y="380" fill="#d7ff3f" font-size="14" font-weight="800">WHERE IT LIVES</text>
+      <text x="912" y="408" fill="#ffffff" font-size="17">Its own YouTube</text>
+      <text x="912" y="432" fill="#ffffff" font-size="17">channel, whole days</text>
+      <text x="912" y="456" fill="#ffffff" font-size="17">at a time. Plus a</text>
+      <text x="912" y="480" fill="#ffffff" font-size="17">broadcast deal.</text>
+
+      <line x1="912" y1="506" x2="1128" y2="506" stroke="#ffffff" stroke-width="1.5" opacity=".3"/>
+
+      <text x="912" y="540" fill="#d7ff3f" font-size="14" font-weight="800">COST</text>
+      <text x="912" y="570" fill="#ffffff" font-size="18" font-weight="700">On YouTube: $0</text>
+      <text x="912" y="596" fill="#ffffff" font-size="18" font-weight="700">Live and on demand</text>
+    </g>
+
+    <!-- ============ BOTTOM BAND ============ -->
+    <rect x="50" y="656" width="1100" height="94" rx="20" fill="#0d7a5c" stroke="#ff3f8e" stroke-width="3"/>
+    <text x="600" y="694" fill="#ffffff" font-size="24" font-weight="800" text-anchor="middle">THE CHANNELS CHANGE EVERY YEAR. THE TOURS DO NOT.</text>
+    <text x="600" y="726" fill="#d7ff3f" font-size="19" font-weight="700" text-anchor="middle">Start at the tour's own watch page and it will tell you where today's match is.</text>
+  </g>
+</svg>
