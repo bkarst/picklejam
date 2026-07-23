@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" role="img" aria-labelledby="t d">
+  <title id="t">Why a dink is a low shot, not just a soft one</title>
+  <desc id="d">A side view of a pickleball net with two shots drawn from one player to the other. The green shot clears the tape by inches, lands short in the opponent's kitchen, and reaches the opponent below the height of the net, so the only shot available to them is an upward lift. The pink shot travels higher, lands deep in the kitchen, and kicks up so the opponent contacts it above the top of the net, where the ball can be hit downward and the point ends. A dashed line marks net height.</desc>
+
+  <rect width="1200" height="740" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="60" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="800" text-anchor="middle">SOFT IS NOT THE POINT. LOW IS THE POINT.</text>
+  <text x="600" y="96" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">WHAT DECIDES THE RALLY IS HOW HIGH THE BALL IS WHEN IT REACHES THEM</text>
+
+  <!-- net height reference line -->
+  <line x1="110" y1="390" x2="1090" y2="390" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3" stroke-dasharray="12 10"/>
+  <text x="1088" y="378" fill="#ffffff" fill-opacity="0.75" font-family="Arial, sans-serif" font-size="16" font-weight="800" text-anchor="end">NET HEIGHT</text>
+
+  <!-- court floor -->
+  <line x1="90" y1="520" x2="1110" y2="520" stroke="#7fd6b8" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- net -->
+  <rect x="594" y="390" width="12" height="130" fill="#ffffff" fill-opacity="0.85"/>
+  <rect x="584" y="382" width="32" height="12" rx="5" fill="#ffffff"/>
+
+  <!-- their kitchen bracket -->
+  <line x1="606" y1="542" x2="828" y2="542" stroke="#d7ff3f" stroke-width="3" stroke-linecap="round"/>
+  <line x1="606" y1="534" x2="606" y2="550" stroke="#d7ff3f" stroke-width="3"/>
+  <line x1="828" y1="534" x2="828" y2="550" stroke="#d7ff3f" stroke-width="3"/>
+  <text x="717" y="574" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="16" font-weight="800" text-anchor="middle">THEIR KITCHEN (7 FT)</text>
+
+  <!-- the dink that works: clears the tape, lands short, stays low -->
+  <path d="M 262 484 Q 430 320 600 356 Q 660 430 700 512" fill="none" stroke="#d7ff3f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 700 512 Q 800 440 900 472" fill="none" stroke="#d7ff3f" stroke-width="6" stroke-linecap="round" stroke-dasharray="14 10"/>
+  <circle cx="700" cy="512" r="7" fill="#d7ff3f"/>
+  <circle cx="900" cy="472" r="12" fill="#d7ff3f"/>
+
+  <!-- the dink that loses: floats over, lands deep, kicks up above the tape -->
+  <path d="M 262 484 Q 430 252 600 310 Q 700 380 815 512" fill="none" stroke="#ff3f8e" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 815 512 Q 880 350 930 330" fill="none" stroke="#ff3f8e" stroke-width="6" stroke-linecap="round" stroke-dasharray="14 10"/>
+  <circle cx="815" cy="512" r="7" fill="#ff3f8e"/>
+  <circle cx="930" cy="330" r="12" fill="#ff3f8e"/>
+
+  <!-- you -->
+  <circle cx="212" cy="438" r="16" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="198" y="460" width="28" height="60" rx="14" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="236" y="472" width="30" height="20" rx="9" fill="#ffffff" fill-opacity="0.55"/>
+  <text x="212" y="574" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle">YOU</text>
+
+  <!-- them -->
+  <circle cx="1042" cy="438" r="16" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="1028" y="460" width="28" height="60" rx="14" fill="#ffffff" fill-opacity="0.92"/>
+  <rect x="988" y="472" width="30" height="20" rx="9" fill="#ffffff" fill-opacity="0.55"/>
+  <text x="1042" y="574" fill="#ffffff" font-family="Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle">THEM</text>
+
+  <!-- legend -->
+  <g font-family="Arial, sans-serif">
+    <circle cx="132" cy="620" r="11" fill="#d7ff3f"/>
+    <text x="158" y="627" fill="#ffffff" font-size="18" font-weight="700">Reaches them BELOW the tape. Down is into the net, so they have to lift it back to you.</text>
+
+    <circle cx="132" cy="662" r="11" fill="#ff3f8e"/>
+    <text x="158" y="669" fill="#ffffff" font-size="18" font-weight="700">Reaches them ABOVE the tape. Now they get to hit down, and the rally is over.</text>
+
+    <line x1="120" y1="704" x2="146" y2="704" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3" stroke-dasharray="8 6"/>
+    <text x="158" y="711" fill="#ffffff" fill-opacity="0.85" font-size="18" font-weight="700">Net height: 34 in. at the center, 36 in. at the sidelines, so the middle is the cheap way over.</text>
+  </g>
+</svg>

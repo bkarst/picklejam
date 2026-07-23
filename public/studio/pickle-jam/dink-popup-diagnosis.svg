@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="t d">
+  <title id="t">Ten ways a dink goes up, and which one it was</title>
+  <desc id="d">A diagnostic table of ten symptoms and their causes. The ball popped straight up off the face: you squeezed the grip. It flew long past their kitchen: you met it behind you. It left faster than you meant: there was a backswing in there. It went where you did not aim: your wrist steered it. You finished stretched and off balance: you reached instead of moving your feet. Your hips ended up facing the sideline: you crossed your feet over. You lost sight of the ball late: you bent from the hips so your eyes went to the floor. They keep finding sharper angles: you have drifted back off the kitchen line. It clipped the tape and died: you aimed at the net instead of a landing spot. You sped it up from nowhere: you got bored.</desc>
+
+  <rect width="1200" height="800" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="800" text-anchor="middle">TEN WAYS THE BALL GOES UP</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">FIND WHAT IT LOOKED LIKE, AND YOU HAVE FOUND WHAT YOU DID</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- left column -->
+    <g>
+      <rect x="60" y="150" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="98" cy="204" r="20" fill="#ff3f8e"/>
+      <text x="98" y="212" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">1</text>
+      <text x="132" y="192" fill="#d7ff3f" font-size="17" font-weight="800">IT POPPED STRAIGHT UP OFF THE FACE</text>
+      <text x="132" y="222" fill="#ffffff" font-size="14" font-weight="700">You squeezed. Loosen to a three or four out of ten.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="272" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="98" cy="326" r="20" fill="#ff3f8e"/>
+      <text x="98" y="334" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">2</text>
+      <text x="132" y="314" fill="#d7ff3f" font-size="17" font-weight="800">IT FLEW LONG, PAST THEIR KITCHEN</text>
+      <text x="132" y="344" fill="#ffffff" font-size="14" font-weight="700">You met it behind you, so your body went up with it.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="394" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="98" cy="448" r="20" fill="#ff3f8e"/>
+      <text x="98" y="456" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">3</text>
+      <text x="132" y="436" fill="#d7ff3f" font-size="17" font-weight="800">IT LEFT FASTER THAN YOU MEANT IT TO</text>
+      <text x="132" y="466" fill="#ffffff" font-size="14" font-weight="700">There was a backswing in there you did not notice.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="516" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="98" cy="570" r="20" fill="#ff3f8e"/>
+      <text x="98" y="578" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">4</text>
+      <text x="132" y="558" fill="#d7ff3f" font-size="17" font-weight="800">IT WENT WHERE YOU DID NOT AIM</text>
+      <text x="132" y="588" fill="#ffffff" font-size="14" font-weight="700">The wrist steered it. Push from the shoulder instead.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="638" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="98" cy="692" r="20" fill="#ff3f8e"/>
+      <text x="98" y="700" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">5</text>
+      <text x="132" y="680" fill="#d7ff3f" font-size="17" font-weight="800">YOU FINISHED STRETCHED AND OFF BALANCE</text>
+      <text x="132" y="710" fill="#ffffff" font-size="14" font-weight="700">You reached for it instead of moving your feet.</text>
+    </g>
+
+    <!-- right column -->
+    <g>
+      <rect x="620" y="150" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="658" cy="204" r="20" fill="#ff3f8e"/>
+      <text x="658" y="212" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">6</text>
+      <text x="692" y="192" fill="#d7ff3f" font-size="17" font-weight="800">YOUR HIPS ENDED UP FACING THE SIDELINE</text>
+      <text x="692" y="222" fill="#ffffff" font-size="14" font-weight="700">You crossed your feet over instead of shuffling.</text>
+    </g>
+
+    <g>
+      <rect x="620" y="272" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="658" cy="326" r="20" fill="#ff3f8e"/>
+      <text x="658" y="334" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">7</text>
+      <text x="692" y="314" fill="#d7ff3f" font-size="17" font-weight="800">YOU LOST SIGHT OF THE BALL LATE</text>
+      <text x="692" y="344" fill="#ffffff" font-size="14" font-weight="700">You bent from the hips, so your eyes went to the floor.</text>
+    </g>
+
+    <g>
+      <rect x="620" y="394" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="658" cy="448" r="20" fill="#ff3f8e"/>
+      <text x="658" y="456" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">8</text>
+      <text x="692" y="436" fill="#d7ff3f" font-size="17" font-weight="800">THEY KEEP FINDING SHARPER ANGLES</text>
+      <text x="692" y="466" fill="#ffffff" font-size="14" font-weight="700">You have drifted back off the kitchen line.</text>
+    </g>
+
+    <g>
+      <rect x="620" y="516" width="520" height="108" rx="16" fill="#0d7a5c"/>
+      <circle cx="658" cy="570" r="20" fill="#ff3f8e"/>
+      <text x="658" y="578" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">9</text>
+      <text x="692" y="558" fill="#d7ff3f" font-size="17" font-weight="800">IT CLIPPED THE TAPE AND DIED</text>
+      <text x="692" y="588" fill="#ffffff" font-size="14" font-weight="700">You aimed at the net instead of a landing spot.</text>
+    </g>
+
+    <g>
+      <rect x="620" y="638" width="520" height="108" rx="16" fill="#0f5a46" stroke="#d7ff3f" stroke-width="4"/>
+      <circle cx="658" cy="692" r="20" fill="#ff3f8e"/>
+      <text x="658" y="700" fill="#ffffff" font-size="20" font-weight="800" text-anchor="middle">10</text>
+      <text x="692" y="680" fill="#d7ff3f" font-size="17" font-weight="800">YOU SPED IT UP FROM NOWHERE</text>
+      <text x="692" y="710" fill="#ffffff" font-size="14" font-weight="700">You got bored. That is the cause and the fix, both.</text>
+    </g>
+
+  </g>
+</svg>

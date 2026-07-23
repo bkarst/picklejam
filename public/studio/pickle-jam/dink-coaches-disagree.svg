@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 880" role="img" aria-labelledby="t d">
+  <title id="t">Three places good dinking coaches disagree</title>
+  <desc id="d">Three coaching disagreements set side by side with a practical rule for each. On the wrist, Selkirk and The Dink say push from the shoulder and keep the wrist firm, while Pickleheads describes using the wrist and forearm together with very little shoulder; if you are popping balls up, quiet the wrist first. On spin, Pickleball.com calls spin a bonus rather than a crutch once you are already consistent, while Better Pickleball argues that rolling and cutting every ball is costing recreational players points; use spin on purpose, never out of habit. On room over the net, Pickleball.com says the ideal dink clears the net by just a few inches, while Better Pickleball says to give yourself a comfortable clearance instead; spend the risk wherever you are losing more points, on margin if you keep finding the net and on height if you keep getting attacked.</desc>
+
+  <rect width="1200" height="880" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="800" text-anchor="middle">THREE PLACES THE COACHES SPLIT</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">MOST DINK ADVICE IS UNANIMOUS. THESE THREE ARE NOT.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- 1. THE WRIST -->
+    <g>
+      <text x="60" y="170" fill="#d7ff3f" font-size="24" font-weight="800">1. THE WRIST</text>
+
+      <rect x="60" y="188" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="60" y="188" width="10" height="104" rx="5" fill="#d7ff3f"/>
+      <text x="92" y="226" fill="#d7ff3f" font-size="16" font-weight="800">SELKIRK AND THE DINK</text>
+      <text x="92" y="258" fill="#ffffff" font-size="16" font-weight="700">Push from the shoulder and keep the</text>
+      <text x="92" y="280" fill="#ffffff" font-size="16" font-weight="700">wrist firm.</text>
+
+      <rect x="620" y="188" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="620" y="188" width="10" height="104" rx="5" fill="#ff3f8e"/>
+      <text x="652" y="226" fill="#ff3f8e" font-size="16" font-weight="800">PICKLEHEADS</text>
+      <text x="652" y="258" fill="#ffffff" font-size="16" font-weight="700">Wrist and forearm together, with very</text>
+      <text x="652" y="280" fill="#ffffff" font-size="16" font-weight="700">little shoulder.</text>
+
+      <rect x="60" y="304" width="1080" height="44" rx="12" fill="#0f5a46" stroke="#d7ff3f" stroke-width="3"/>
+      <text x="88" y="332" fill="#d7ff3f" font-size="16" font-weight="800">WHAT TO DO:</text>
+      <text x="212" y="332" fill="#ffffff" font-size="16" font-weight="700">if you are popping balls up, quiet the wrist first.</text>
+    </g>
+
+    <!-- 2. SPIN -->
+    <g>
+      <text x="60" y="412" fill="#d7ff3f" font-size="24" font-weight="800">2. SPIN</text>
+
+      <rect x="60" y="430" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="60" y="430" width="10" height="104" rx="5" fill="#d7ff3f"/>
+      <text x="92" y="468" fill="#d7ff3f" font-size="16" font-weight="800">PICKLEBALL.COM</text>
+      <text x="92" y="500" fill="#ffffff" font-size="16" font-weight="700">A bonus, not a crutch. Add it once you</text>
+      <text x="92" y="522" fill="#ffffff" font-size="16" font-weight="700">are already consistent.</text>
+
+      <rect x="620" y="430" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="620" y="430" width="10" height="104" rx="5" fill="#ff3f8e"/>
+      <text x="652" y="468" fill="#ff3f8e" font-size="16" font-weight="800">BETTER PICKLEBALL</text>
+      <text x="652" y="500" fill="#ffffff" font-size="16" font-weight="700">Rolling and cutting every ball is costing</text>
+      <text x="652" y="522" fill="#ffffff" font-size="16" font-weight="700">rec players points.</text>
+
+      <rect x="60" y="546" width="1080" height="44" rx="12" fill="#0f5a46" stroke="#d7ff3f" stroke-width="3"/>
+      <text x="88" y="574" fill="#d7ff3f" font-size="16" font-weight="800">WHAT TO DO:</text>
+      <text x="212" y="574" fill="#ffffff" font-size="16" font-weight="700">reach for spin on purpose, never out of habit.</text>
+    </g>
+
+    <!-- 3. ROOM OVER THE NET -->
+    <g>
+      <text x="60" y="654" fill="#d7ff3f" font-size="24" font-weight="800">3. ROOM OVER THE NET</text>
+
+      <rect x="60" y="672" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="60" y="672" width="10" height="104" rx="5" fill="#d7ff3f"/>
+      <text x="92" y="710" fill="#d7ff3f" font-size="16" font-weight="800">PICKLEBALL.COM</text>
+      <text x="92" y="742" fill="#ffffff" font-size="16" font-weight="700">The ideal dink clears the net by just a</text>
+      <text x="92" y="764" fill="#ffffff" font-size="16" font-weight="700">few inches.</text>
+
+      <rect x="620" y="672" width="520" height="104" rx="14" fill="#0d7a5c"/>
+      <rect x="620" y="672" width="10" height="104" rx="5" fill="#ff3f8e"/>
+      <text x="652" y="710" fill="#ff3f8e" font-size="16" font-weight="800">BETTER PICKLEBALL</text>
+      <text x="652" y="742" fill="#ffffff" font-size="16" font-weight="700">Chasing the tape buys errors. Give</text>
+      <text x="652" y="764" fill="#ffffff" font-size="16" font-weight="700">yourself a comfortable clearance.</text>
+
+      <rect x="60" y="788" width="1080" height="44" rx="12" fill="#0f5a46" stroke="#d7ff3f" stroke-width="3"/>
+      <text x="88" y="816" fill="#d7ff3f" font-size="16" font-weight="800">WHAT TO DO:</text>
+      <text x="212" y="816" fill="#ffffff" font-size="16" font-weight="700">spend the risk where you are losing points. Margin if you keep finding the net, height if you keep getting attacked.</text>
+    </g>
+
+  </g>
+</svg>

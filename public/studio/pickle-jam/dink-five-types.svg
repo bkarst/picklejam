@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="t d">
+  <title id="t">The five dinks worth knowing</title>
+  <desc id="d">Five cards describing the dinks worth learning. One, the cross-court dink, your default, because the diagonal is longer and the net is lowest in the middle. Two, the straight-ahead dink, the bailout when their angle beats you, hit softer because the path is short. Three, the dead dink, flat and shallow and very hard to speed up. Four, the pressure dink, balanced and aimed at their kitchen line so they have to make a decision. Five, the reset, an open paddle face and a soft arm that absorbs their pace when you are in trouble. A sixth panel adds the rule of thumb: take the ball at the top of its bounce, where it has the least energy.</desc>
+
+  <rect width="1200" height="760" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800" text-anchor="middle">THE FIVE DINKS WORTH KNOWING</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">FOUR OF THEM ARE JOBS. ONE OF THEM IS AN ESCAPE HATCH.</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <!-- 1 -->
+    <g>
+      <rect x="60" y="140" width="340" height="250" rx="18" fill="#0d7a5c"/>
+      <circle cx="100" cy="184" r="22" fill="#ff3f8e"/>
+      <text x="100" y="192" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">1</text>
+      <text x="84" y="252" fill="#d7ff3f" font-size="24" font-weight="800">CROSS-COURT</text>
+      <text x="84" y="292" fill="#ffffff" font-size="16" font-weight="700">Your default. The diagonal is</text>
+      <text x="84" y="318" fill="#ffffff" font-size="16" font-weight="700">longer and the net is lowest in</text>
+      <text x="84" y="344" fill="#ffffff" font-size="16" font-weight="700">the middle, so you get margin.</text>
+    </g>
+
+    <!-- 2 -->
+    <g>
+      <rect x="430" y="140" width="340" height="250" rx="18" fill="#0d7a5c"/>
+      <circle cx="470" cy="184" r="22" fill="#ff3f8e"/>
+      <text x="470" y="192" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">2</text>
+      <text x="454" y="252" fill="#d7ff3f" font-size="24" font-weight="800">STRAIGHT AHEAD</text>
+      <text x="454" y="292" fill="#ffffff" font-size="16" font-weight="700">The bailout when their angle</text>
+      <text x="454" y="318" fill="#ffffff" font-size="16" font-weight="700">beats you. Short path, so hit it</text>
+      <text x="454" y="344" fill="#ffffff" font-size="16" font-weight="700">softer than feels right.</text>
+    </g>
+
+    <!-- 3 -->
+    <g>
+      <rect x="800" y="140" width="340" height="250" rx="18" fill="#0d7a5c"/>
+      <circle cx="840" cy="184" r="22" fill="#ff3f8e"/>
+      <text x="840" y="192" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">3</text>
+      <text x="824" y="252" fill="#d7ff3f" font-size="24" font-weight="800">THE DEAD DINK</text>
+      <text x="824" y="292" fill="#ffffff" font-size="16" font-weight="700">Flat, no spin, kept shallow.</text>
+      <text x="824" y="318" fill="#ffffff" font-size="16" font-weight="700">Not lazy. Very hard to speed</text>
+      <text x="824" y="344" fill="#ffffff" font-size="16" font-weight="700">up off a bounce that low.</text>
+    </g>
+
+    <!-- 4 -->
+    <g>
+      <rect x="60" y="420" width="340" height="250" rx="18" fill="#0d7a5c"/>
+      <circle cx="100" cy="464" r="22" fill="#ff3f8e"/>
+      <text x="100" y="472" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">4</text>
+      <text x="84" y="532" fill="#d7ff3f" font-size="24" font-weight="800">THE PRESSURE DINK</text>
+      <text x="84" y="572" fill="#ffffff" font-size="16" font-weight="700">Balanced, contact out front,</text>
+      <text x="84" y="598" fill="#ffffff" font-size="16" font-weight="700">aimed at their kitchen line so</text>
+      <text x="84" y="624" fill="#ffffff" font-size="16" font-weight="700">they have to make a decision.</text>
+    </g>
+
+    <!-- 5 -->
+    <g>
+      <rect x="430" y="420" width="340" height="250" rx="18" fill="#0d7a5c"/>
+      <circle cx="470" cy="464" r="22" fill="#ff3f8e"/>
+      <text x="470" y="472" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">5</text>
+      <text x="454" y="532" fill="#d7ff3f" font-size="24" font-weight="800">THE RESET</text>
+      <text x="454" y="572" fill="#ffffff" font-size="16" font-weight="700">Open face, soft arm, light grip.</text>
+      <text x="454" y="598" fill="#ffffff" font-size="16" font-weight="700">Absorbs their pace when you</text>
+      <text x="454" y="624" fill="#ffffff" font-size="16" font-weight="700">are the one in trouble.</text>
+    </g>
+
+    <!-- rule of thumb -->
+    <g>
+      <rect x="800" y="420" width="340" height="250" rx="18" fill="#0f5a46" stroke="#d7ff3f" stroke-width="4"/>
+      <text x="824" y="472" fill="#d7ff3f" font-size="21" font-weight="800">RULE OF THUMB</text>
+      <text x="824" y="516" fill="#ffffff" font-size="16" font-weight="700">Take the ball at the top of its</text>
+      <text x="824" y="542" fill="#ffffff" font-size="16" font-weight="700">bounce whenever you can.</text>
+      <text x="824" y="568" fill="#ffffff" font-size="16" font-weight="700">That is where it has the least</text>
+      <text x="824" y="594" fill="#ffffff" font-size="16" font-weight="700">energy left, and where it feels</text>
+      <text x="824" y="620" fill="#ffffff" font-size="16" font-weight="700">like it is sitting on a tee.</text>
+    </g>
+
+  </g>
+</svg>

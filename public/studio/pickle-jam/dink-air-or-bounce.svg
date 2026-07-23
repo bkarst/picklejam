@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="t d">
+  <title id="t">Take the dink out of the air, or let it bounce?</title>
+  <desc id="d">A decision diagram. The question at the top asks whether you can reach the ball in front of you, at a comfortable height, without leaning into the kitchen. If yes, take it out of the air, but hit it softer, because a ball taken out of the air keeps its speed and travels farther than the same swing played off a bounce. If no, step back, keep the ball in front of you, hit it at the top of the hop, then walk straight back onto the kitchen line. A warning at the bottom notes that backing off the line for every ball hands your opponents every angle on the court.</desc>
+
+  <defs>
+    <marker id="limeArrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#d7ff3f"/>
+    </marker>
+    <marker id="pinkArrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#ff3f8e"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="700" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="60" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="800" text-anchor="middle">OUT OF THE AIR, OR LET IT BOUNCE?</text>
+  <text x="600" y="96" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">THE DECISION YOU MAKE MOST OFTEN AT THE KITCHEN LINE</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <rect x="170" y="132" width="860" height="112" rx="18" fill="#0d7a5c"/>
+    <text x="600" y="180" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">CAN YOU REACH IT IN FRONT OF YOU, AT A COMFORTABLE HEIGHT,</text>
+    <text x="600" y="212" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">WITHOUT LEANING INTO THE KITCHEN?</text>
+
+    <line x1="470" y1="248" x2="330" y2="292" stroke="#d7ff3f" stroke-width="5" marker-end="url(#limeArrow)"/>
+    <line x1="730" y1="248" x2="870" y2="292" stroke="#ff3f8e" stroke-width="5" marker-end="url(#pinkArrow)"/>
+
+    <rect x="118" y="300" width="100" height="46" rx="14" fill="#d7ff3f"/>
+    <text x="168" y="332" fill="#0f5a46" font-size="23" font-weight="800" text-anchor="middle">YES</text>
+
+    <rect x="682" y="300" width="100" height="46" rx="14" fill="#ff3f8e"/>
+    <text x="732" y="332" fill="#ffffff" font-size="23" font-weight="800" text-anchor="middle">NO</text>
+
+    <rect x="90" y="358" width="460" height="214" rx="18" fill="#0d7a5c"/>
+    <text x="118" y="404" fill="#d7ff3f" font-size="22" font-weight="800">TAKE IT OUT OF THE AIR</text>
+    <text x="118" y="444" fill="#ffffff" font-size="17" font-weight="700">But hit it softer than feels right.</text>
+    <text x="118" y="472" fill="#ffffff" font-size="17" font-weight="700">A ball played out of the air keeps</text>
+    <text x="118" y="500" fill="#ffffff" font-size="17" font-weight="700">its speed, so the same swing sends</text>
+    <text x="118" y="528" fill="#ffffff" font-size="17" font-weight="700">it farther than it would off a bounce.</text>
+
+    <rect x="650" y="358" width="460" height="214" rx="18" fill="#0d7a5c"/>
+    <text x="678" y="404" fill="#d7ff3f" font-size="22" font-weight="800">LET IT BOUNCE</text>
+    <text x="678" y="444" fill="#ffffff" font-size="17" font-weight="700">Step back, keep the ball in front of</text>
+    <text x="678" y="472" fill="#ffffff" font-size="17" font-weight="700">you, and meet it at the top of the</text>
+    <text x="678" y="500" fill="#ffffff" font-size="17" font-weight="700">hop. Then walk straight back onto</text>
+    <text x="678" y="528" fill="#ffffff" font-size="17" font-weight="700">the kitchen line before the next one.</text>
+
+    <rect x="90" y="600" width="1020" height="70" rx="16" fill="#0f5a46" stroke="#ff3f8e" stroke-width="4"/>
+    <text x="120" y="643" fill="#ff3f8e" font-size="19" font-weight="800">THE TRAP:</text>
+    <text x="230" y="643" fill="#ffffff" font-size="19" font-weight="700">backing off the line for every ball hands them every angle on the court.</text>
+
+  </g>
+</svg>

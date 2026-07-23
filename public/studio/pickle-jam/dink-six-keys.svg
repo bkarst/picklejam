@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="t d">
+  <title id="t">Six keys to a repeatable pickleball dink</title>
+  <desc id="d">Six numbered rows describing how to hit a dink. One, start in the position you want to finish in: feet shoulder width, weight on the balls of the feet, knees bent rather than bent at the hips, paddle up in front. Two, feet first and then paddle: shuffle sideways with your hips square to the net instead of crossing your feet over. Three, hold the paddle at about a three out of ten, because grip tension travels into the ball. Four, contact the ball in front of your body every time; contact beside or behind you sends the ball up. Five, push from the shoulder and lift with the legs, with a quiet wrist and almost no backswing. Six, recover to the kitchen line and back toward the middle after every dink.</desc>
+
+  <rect width="1200" height="800" rx="42" fill="#0f5a46"/>
+
+  <text x="600" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="42" font-weight="800" text-anchor="middle">SIX KEYS TO A DINK YOU CAN REPEAT</text>
+  <text x="600" y="100" fill="#d7ff3f" font-family="Arial, sans-serif" font-size="19" font-weight="700" text-anchor="middle">EVERY ONE OF THEM IS ABOUT TAKING ENERGY OUT OF THE SHOT</text>
+
+  <g font-family="Arial, sans-serif">
+
+    <g>
+      <rect x="60" y="140" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="189" r="22" fill="#ff3f8e"/>
+      <text x="106" y="197" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">1</text>
+      <text x="152" y="182" fill="#d7ff3f" font-size="23" font-weight="800">START WHERE YOU WANT TO FINISH</text>
+      <text x="152" y="212" fill="#ffffff" font-size="17" font-weight="700">Feet shoulder width, weight forward, knees bent. Bend at the knees, not the hips, or your eyes drop.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="248" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="297" r="22" fill="#ff3f8e"/>
+      <text x="106" y="305" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">2</text>
+      <text x="152" y="290" fill="#d7ff3f" font-size="23" font-weight="800">FEET FIRST, THEN PADDLE</text>
+      <text x="152" y="320" fill="#ffffff" font-size="17" font-weight="700">Shuffle sideways with your hips square to the net. Crossing your feet over opens a hole behind you.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="356" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="405" r="22" fill="#ff3f8e"/>
+      <text x="106" y="413" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">3</text>
+      <text x="152" y="398" fill="#d7ff3f" font-size="23" font-weight="800">GRIP AT A THREE OR FOUR OUT OF TEN</text>
+      <text x="152" y="428" fill="#ffffff" font-size="17" font-weight="700">Squeeze and the tension runs down the handle into the face, and the ball leaves higher than you meant.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="464" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="513" r="22" fill="#ff3f8e"/>
+      <text x="106" y="521" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">4</text>
+      <text x="152" y="506" fill="#d7ff3f" font-size="23" font-weight="800">CONTACT IN FRONT. ALWAYS.</text>
+      <text x="152" y="536" fill="#ffffff" font-size="17" font-weight="700">Beside you pops it up. Behind you sends your whole body up with it. Step back to keep the ball in front.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="572" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="621" r="22" fill="#ff3f8e"/>
+      <text x="106" y="629" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">5</text>
+      <text x="152" y="614" fill="#d7ff3f" font-size="23" font-weight="800">PUSH FROM THE SHOULDER, LIFT WITH THE LEGS</text>
+      <text x="152" y="644" fill="#ffffff" font-size="17" font-weight="700">Quiet wrist, backswing of a few inches. Small joints and big swings are where the pop-ups come from.</text>
+    </g>
+
+    <g>
+      <rect x="60" y="680" width="1080" height="98" rx="16" fill="#0d7a5c"/>
+      <circle cx="106" cy="729" r="22" fill="#ff3f8e"/>
+      <text x="106" y="737" fill="#ffffff" font-size="22" font-weight="800" text-anchor="middle">6</text>
+      <text x="152" y="722" fill="#d7ff3f" font-size="23" font-weight="800">RECOVER TO THE LINE, AND TO THE MIDDLE</text>
+      <text x="152" y="752" fill="#ffffff" font-size="17" font-weight="700">The kitchen line is the best real estate on the court. Take a ball off it, then walk right back onto it.</text>
+    </g>
+
+  </g>
+</svg>
